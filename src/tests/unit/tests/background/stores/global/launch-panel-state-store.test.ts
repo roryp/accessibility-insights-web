@@ -1,23 +1,23 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
-import { IMock, It, Mock, Times } from 'typemoq';
-
-import { LaunchPanelStateActions } from '../../../../../../background/actions/launch-panel-state-action';
-import { ChromeAdapter } from '../../../../../../background/browser-adapter';
-import { LocalStorageDataKeys } from '../../../../../../background/local-storage-data-keys';
-import { ILocalStorageData } from '../../../../../../background/storage-data';
-import { LaunchPanelStore } from '../../../../../../background/stores/global/launch-panel-store';
-import { StoreNames } from '../../../../../../common/stores/store-names';
-import { LaunchPanelType } from '../../../../../../popup/scripts/components/popup-view';
+import { LaunchPanelStateActions } from 'background/actions/launch-panel-state-action';
+import { LocalStorageDataKeys } from 'background/local-storage-data-keys';
+import { LocalStorageData } from 'background/storage-data';
+import { LaunchPanelStore } from 'background/stores/global/launch-panel-store';
+import { StorageAdapter } from 'common/browser-adapters/storage-adapter';
+import { StoreNames } from 'common/stores/store-names';
+import { LaunchPanelStoreData } from 'common/types/store-data/launch-panel-store-data';
+import { LaunchPanelType } from 'popup/components/popup-view';
+import { IMock, It, Mock } from 'typemoq';
 import { createStoreWithNullParams, StoreTester } from '../../../../common/store-tester';
 
 describe('LaunchPanelStateStoreTest', () => {
-    let userDataStub: ILocalStorageData;
-    let browserAdapterMock: IMock<ChromeAdapter>;
+    let userDataStub: LocalStorageData;
+    let storageAdapterMock: IMock<StorageAdapter>;
 
     beforeAll(() => {
         userDataStub = { launchPanelSetting: LaunchPanelType.AdhocToolsPanel };
-        browserAdapterMock = Mock.ofType(ChromeAdapter);
+        storageAdapterMock = Mock.ofType<StorageAdapter>();
     });
 
     test('constructor, no side effects', () => {
@@ -35,7 +35,10 @@ describe('LaunchPanelStateStoreTest', () => {
 
         const expectedState = getDefaultState();
 
-        createStoreForLaunchPanelStateActions('getCurrentState').testListenerToBeCalledOnce(initialState, expectedState);
+        createStoreForLaunchPanelStateActions('getCurrentState').testListenerToBeCalledOnce(
+            initialState,
+            expectedState,
+        );
     });
 
     test('initialize, user data is not null', () => {
@@ -56,26 +59,31 @@ describe('LaunchPanelStateStoreTest', () => {
         const expectedState = getDefaultState();
         expectedState.launchPanelType = payload;
 
-        const expecetedSetUserData = {
+        const expectedSetUserData = {
             [LocalStorageDataKeys.launchPanelSetting]: payload,
         };
 
-        browserAdapterMock.setup(bA => bA.setUserData(It.isValue(expecetedSetUserData))).verifiable(Times.once());
+        storageAdapterMock
+            .setup(adapter => adapter.setUserData(It.isValue(expectedSetUserData)))
+            .returns(() => Promise.resolve());
 
         createStoreForLaunchPanelStateActions('setLaunchPanelType')
             .withActionParam(payload)
             .testListenerToBeCalledOnce(initialState, expectedState);
 
-        browserAdapterMock.verifyAll();
+        storageAdapterMock.verifyAll();
     });
 
-    function createStoreForLaunchPanelStateActions(actionName: keyof LaunchPanelStateActions) {
-        const factory = (actions: LaunchPanelStateActions) => new LaunchPanelStore(actions, browserAdapterMock.object, userDataStub);
+    function createStoreForLaunchPanelStateActions(
+        actionName: keyof LaunchPanelStateActions,
+    ): StoreTester<LaunchPanelStoreData, LaunchPanelStateActions> {
+        const factory = (actions: LaunchPanelStateActions) =>
+            new LaunchPanelStore(actions, storageAdapterMock.object, userDataStub);
 
         return new StoreTester(LaunchPanelStateActions, actionName, factory);
     }
 
-    function getDefaultState() {
+    function getDefaultState(): LaunchPanelStoreData {
         return createStoreWithNullParams(LaunchPanelStore).getDefaultState();
     }
 });

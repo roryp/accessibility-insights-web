@@ -1,32 +1,31 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 import { ClientUtils } from '../client-utils';
-import { IAssessmentVisualizationInstance } from '../frameCommunicators/html-element-axe-results-helper';
+import { DialogRenderer } from '../dialog-renderer';
+import { AssessmentVisualizationInstance } from '../frameCommunicators/html-element-axe-results-helper';
 import { FailureInstanceFormatter } from './failure-instance-formatter';
 import { DrawerConfiguration } from './formatter';
 
-// tslint:disable-next-line:interface-name
-export interface IHeadingStyleConfiguration {
+export interface HeadingStyleConfiguration {
     borderColor: string;
     fontColor: string;
 }
 
-// tslint:disable-next-line:interface-name
-export interface IStyleComputer {
+export interface StyleComputer {
     getComputedStyle(elt: Element, pseudoElt?: string): CSSStyleDeclaration;
 }
 
 export class HeadingFormatter extends FailureInstanceFormatter {
-    private styleComputer: IStyleComputer;
+    private styleComputer: StyleComputer;
     private clientUtils: ClientUtils;
 
-    constructor(styleComputer: IStyleComputer, clientUtils: ClientUtils) {
+    constructor(styleComputer: StyleComputer, clientUtils: ClientUtils) {
         super();
         this.styleComputer = styleComputer;
         this.clientUtils = clientUtils;
     }
 
-    public static headingStyles: { [level: string]: IHeadingStyleConfiguration } = {
+    public static headingStyles: { [level: string]: HeadingStyleConfiguration } = {
         '1': {
             borderColor: '#0066CC',
             fontColor: '#FFFFFF',
@@ -57,12 +56,17 @@ export class HeadingFormatter extends FailureInstanceFormatter {
         },
     };
 
-    public getDialogRenderer() {
+    public getDialogRenderer(): DialogRenderer {
         return null;
     }
 
-    public getDrawerConfiguration(element: HTMLElement, data: IAssessmentVisualizationInstance): DrawerConfiguration {
-        const level = this.isHTag(element) ? this.getHTagLevel(element) : this.getAriaLevel(element);
+    public getDrawerConfiguration(
+        element: HTMLElement,
+        data: AssessmentVisualizationInstance,
+    ): DrawerConfiguration {
+        const level = this.isHTag(element)
+            ? this.getHTagLevel(element)
+            : this.getAriaLevel(element);
         const text = (this.isHTag(element) ? 'H' : 'h') + level;
         const style = HeadingFormatter.headingStyles[level] || HeadingFormatter.headingStyles.blank;
 

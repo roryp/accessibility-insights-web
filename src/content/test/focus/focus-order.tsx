@@ -4,7 +4,6 @@ import { create, React } from '../../common';
 
 export const infoAndExamples = create(({ Markup }) => (
     <>
-        <h1>Focus order</h1>
         <p>Components must receive focus in an order that preserves meaning and operability.</p>
 
         <h2>Why it matters</h2>
@@ -20,7 +19,7 @@ export const infoAndExamples = create(({ Markup }) => (
             <Markup.Emphasis>
                 "I use a keyboard and a screen reader to navigate content and operate software. When creating solutions, organize content
                 and controls so that I can understand the presentation, meaning and operation of the interface by the order in which
-                information is presented. To "see" it like I do, write down the text and controls in the order required to complete the
+                information is presented. To 'see' it like I do, write down the text and controls in the order required to complete the
                 task. Next, read the sequence out loud. If it doesn’t make sense to you, it is likely to confuse me and many other people."
             </Markup.Emphasis>
         </p>

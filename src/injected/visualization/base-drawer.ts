@@ -1,29 +1,29 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
+import { throttle } from 'lodash';
 import { WindowUtils } from '../../common/window-utils';
 import { DialogRenderer } from '../dialog-renderer';
 import { ShadowUtils } from '../shadow-utils';
+import { Drawer, DrawerInitData } from './drawer';
 import { DrawerUtils } from './drawer-utils';
 import { Formatter } from './formatter';
-import { IDrawer, IDrawerInitData } from './idrawer';
 
-export abstract class BaseDrawer implements IDrawer {
-    protected dom: NodeSelector & Node;
+export abstract class BaseDrawer implements Drawer {
+    protected dom: Document;
     protected formatter: Formatter;
     protected isEnabled = false;
     protected containerClass: string;
-    protected currentTimeoutId: number;
-    protected changeHandlerBind: (e: MessageEvent) => void;
-    public static recalculationTimeout = 500;
+    protected changeHandler: () => void;
+    public static recalculationTimeout = 16;
     protected dialogRenderer: DialogRenderer;
     protected windowUtils: WindowUtils;
     protected containerElement: HTMLElement;
     protected drawerUtils: DrawerUtils;
 
-    private _shadowUtils: ShadowUtils;
+    private shadowUtils: ShadowUtils;
 
     constructor(
-        dom: NodeSelector & Node,
+        dom: Document,
         containerClass: string,
         windowUtils: WindowUtils,
         shadowUtils: ShadowUtils,
@@ -34,12 +34,12 @@ export abstract class BaseDrawer implements IDrawer {
         this.containerClass = containerClass;
         this.formatter = formatter;
         this.windowUtils = windowUtils;
-        this._shadowUtils = shadowUtils;
-        this.changeHandlerBind = this.onPositionChangeHandler.bind(this);
+        this.shadowUtils = shadowUtils;
+        this.changeHandler = throttle(this.handlePositionChange, BaseDrawer.recalculationTimeout);
         this.drawerUtils = drawerUtils;
     }
 
-    public abstract initialize(config: IDrawerInitData<any>): void;
+    public abstract initialize(config: DrawerInitData<any>): void;
 
     public drawLayout(): void {
         this.addListeners();
@@ -47,7 +47,7 @@ export abstract class BaseDrawer implements IDrawer {
         this.isEnabled = true;
     }
 
-    public eraseLayout() {
+    public eraseLayout(): void {
         this.removeListeners();
         this.removeContainerElement();
         this.isEnabled = false;
@@ -66,36 +66,49 @@ export abstract class BaseDrawer implements IDrawer {
     }
 
     protected addListeners(): void {
-        this.windowUtils.addEventListener(this.windowUtils.getWindow(), 'resize', this.changeHandlerBind, true);
-        this.windowUtils.addEventListener(this.windowUtils.getWindow(), 'scroll', this.changeHandlerBind, true);
+        this.windowUtils.addEventListener(
+            this.windowUtils.getWindow(),
+            'resize',
+            this.changeHandler,
+            true,
+        );
+        this.windowUtils.addEventListener(
+            this.windowUtils.getWindow(),
+            'scroll',
+            this.changeHandler,
+            true,
+        );
     }
 
     protected removeListeners(): void {
-        this.windowUtils.removeEventListener(this.windowUtils.getWindow(), 'resize', this.changeHandlerBind, true);
-        this.windowUtils.removeEventListener(this.windowUtils.getWindow(), 'scroll', this.changeHandlerBind, true);
+        this.windowUtils.removeEventListener(
+            this.windowUtils.getWindow(),
+            'resize',
+            this.changeHandler,
+            true,
+        );
+        this.windowUtils.removeEventListener(
+            this.windowUtils.getWindow(),
+            'scroll',
+            this.changeHandler,
+            true,
+        );
     }
 
     protected abstract addHighlightsToContainer(): void;
 
-    private onPositionChangeHandler(): void {
-        if (this.currentTimeoutId != null) {
-            this.windowUtils.clearTimeout(this.currentTimeoutId);
-        }
-
-        this.currentTimeoutId = this.windowUtils.setTimeout(() => this.handlePositionChange(), BaseDrawer.recalculationTimeout);
-    }
-
-    protected handlePositionChange(): void {
+    protected handlePositionChange = () => {
         if (this.isEnabled) {
             this.removeContainerElement();
             this.draw();
         }
-
-        this.currentTimeoutId = null;
-    }
+    };
 
     protected applyContainerClass(): void {
-        this.containerElement.setAttribute('class', `insights-container insights-highlight-container ${this.containerClass}`);
+        this.containerElement.setAttribute(
+            'class',
+            `insights-container insights-highlight-container ${this.containerClass}`,
+        );
     }
 
     protected createContainerElement(): void {
@@ -106,14 +119,14 @@ export abstract class BaseDrawer implements IDrawer {
         this.applyContainerClass();
     }
 
-    protected removeContainerElement() {
+    protected removeContainerElement(): void {
         if (this.containerElement) {
             this.containerElement.remove();
             this.containerElement = null;
         }
     }
 
-    private attachContainerToDom() {
-        this._shadowUtils.getShadowContainer().appendChild(this.containerElement);
+    private attachContainerToDom(): void {
+        this.shadowUtils.getShadowContainer().appendChild(this.containerElement);
     }
 }

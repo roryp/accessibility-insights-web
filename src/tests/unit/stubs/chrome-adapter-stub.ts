@@ -9,12 +9,12 @@ export class PortDisconnectStub implements chrome.runtime.PortDisconnectEvent {
         this.callbackForDisconnect = [];
     }
 
-    public addListener(callback: any) {
+    public addListener(callback: any): void {
         this.listeners.push(callback);
         this.callbackForDisconnect.push(callback);
     }
 
-    public getRules(ruleIdentifiers: any, callback?: any) {
+    public getRules(ruleIdentifiers: any, callback?: any): void {
         throw new Error('Method not implemented.');
     }
 
@@ -22,11 +22,14 @@ export class PortDisconnectStub implements chrome.runtime.PortDisconnectEvent {
         return Helpers.arrayHasCallback(this.listeners, callback);
     }
 
-    public removeRules(ruleIdentifiers?: any, callback?: any) {
+    public removeRules(ruleIdentifiers?: any, callback?: any): void {
         throw new Error('Method not implemented.');
     }
 
-    public addRules(rules: chrome.events.Rule[], callback?: (rules: chrome.events.Rule[]) => void): void {
+    public addRules(
+        rules: chrome.events.Rule[],
+        callback?: (rules: chrome.events.Rule[]) => void,
+    ): void {
         throw new Error('Method not implemented.');
     }
 
@@ -56,7 +59,7 @@ export class PortOnMessageStub implements chrome.runtime.PortMessageEvent {
         this.listeners.push(callback);
     }
 
-    public getRules(ruleIdentifiers: any, callback?: any) {
+    public getRules(ruleIdentifiers: any, callback?: any): void {
         throw new Error('Method not implemented.');
     }
 
@@ -64,11 +67,14 @@ export class PortOnMessageStub implements chrome.runtime.PortMessageEvent {
         return Helpers.arrayHasCallback(this.listeners, callback);
     }
 
-    public removeRules(ruleIdentifiers?: any, callback?: any) {
+    public removeRules(ruleIdentifiers?: any, callback?: any): void {
         throw new Error('Method not implemented.');
     }
 
-    public addRules(rules: chrome.events.Rule[], callback?: (rules: chrome.events.Rule[]) => void): void {
+    public addRules(
+        rules: chrome.events.Rule[],
+        callback?: (rules: chrome.events.Rule[]) => void,
+    ): void {
         throw new Error('Method not implemented.');
     }
 
@@ -80,7 +86,7 @@ export class PortOnMessageStub implements chrome.runtime.PortMessageEvent {
         return this.listeners.length > 0;
     }
 
-    public sendMessage(message: any) {
+    public sendMessage(message: any): void {
         this.listeners.forEach(listener => {
             console.log(this.listeners);
             listener(message);
@@ -105,25 +111,5 @@ namespace Helpers {
         return array.filter(item => {
             return item.toString() !== callback.toString();
         });
-    }
-}
-
-export class PortStub implements chrome.runtime.Port {
-    public sender: chrome.runtime.MessageSender;
-    public onDisconnect: PortDisconnectStub;
-    public onMessage: PortOnMessageStub;
-    public name: string;
-
-    constructor() {
-        this.onDisconnect = new PortDisconnectStub();
-        this.onMessage = new PortOnMessageStub();
-    }
-
-    public disconnect(): void {
-        this.onDisconnect.disconnect(this);
-    }
-
-    public postMessage(message: Object): void {
-        this.onMessage.sendMessage(message);
     }
 }

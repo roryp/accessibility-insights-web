@@ -1,21 +1,23 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
+import { formatPageElementForSnapshot } from 'tests/common/element-snapshot-formatter';
 import { Browser } from '../../common/browser';
 import { launchBrowser } from '../../common/browser-factory';
 import { popupPageElementIdentifiers } from '../../common/element-identifiers/popup-page-element-identifiers';
+import { PopupPage } from '../../common/page-controllers/popup-page';
+import { TargetPage } from '../../common/page-controllers/target-page';
 import { scanForAccessibilityIssues } from '../../common/scan-for-accessibility-issues';
 
-describe('Hamburger menu', () => {
+describe('Popup -> Hamburger menu', () => {
     let browser: Browser;
+    let targetPage: TargetPage;
+    let popupPage: PopupPage;
 
     beforeAll(async () => {
         browser = await launchBrowser({ suppressFirstTimeDialog: true });
-    });
-
-    afterEach(async () => {
-        if (browser) {
-            await browser.closeAllPages();
-        }
+        targetPage = await browser.newTargetPage();
+        popupPage = await browser.newPopupPage(targetPage);
+        await popupPage.clickSelector(popupPageElementIdentifiers.hamburgerMenuButton);
     });
 
     afterAll(async () => {
@@ -26,30 +28,30 @@ describe('Hamburger menu', () => {
     });
 
     it('should have content matching snapshot', async () => {
-        const popupPage = await createPopupPage();
+        const button = await popupPage.getSelectorElement(
+            popupPageElementIdentifiers.hamburgerMenuButton,
+        );
+        const menuCalloutId = await button.evaluate(element => element.getAttribute('aria-owns'));
 
-        await popupPage.clickSelector(popupPageElementIdentifiers.hamburgerMenuButton);
-
-        const hamburgerMenu = await popupPage.getPrintableHtmlElement(popupPageElementIdentifiers.hamburgerMenu);
-
+        const hamburgerMenu = await formatPageElementForSnapshot(popupPage, `#${menuCalloutId}`);
         expect(hamburgerMenu).toMatchSnapshot();
     });
 
-    it('should pass accessibility validation', async () => {
-        const popupPage = await createPopupPage();
+    it.each([true, false])(
+        'should pass accessibility validation with highContrastMode=%s',
+        async highContrastMode => {
+            await browser.setHighContrastMode(highContrastMode);
+            await popupPage.waitForHighContrastMode(highContrastMode);
 
-        await popupPage.clickSelector(popupPageElementIdentifiers.hamburgerMenuButton);
+            const button = await popupPage.getSelectorElement(
+                popupPageElementIdentifiers.hamburgerMenuButton,
+            );
+            const menuCalloutId = await button.evaluate(element =>
+                element.getAttribute('aria-owns'),
+            );
 
-        const results = await scanForAccessibilityIssues(popupPage, popupPageElementIdentifiers.hamburgerMenu);
-        expect(results).toHaveLength(0);
-    });
-
-    async function createPopupPage() {
-        const targetPage = await browser.newTestResourcePage('all.html');
-
-        await targetPage.bringToFront();
-        const targetPageTabId = await browser.getActivePageTabId();
-
-        return await browser.newExtensionPopupPage(targetPageTabId);
-    }
+            const results = await scanForAccessibilityIssues(popupPage, `#${menuCalloutId}`);
+            expect(results).toHaveLength(0);
+        },
+    );
 });

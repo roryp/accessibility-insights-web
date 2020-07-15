@@ -1,30 +1,39 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
+import { InspectMode } from 'background/inspect-modes';
+import { InspectStore } from 'background/stores/inspect-store';
 import { IMock, It, Mock, MockBehavior, Times } from 'typemoq';
-
-import { InspectMode } from '../../../../background/inspect-modes';
-import { InspectStore } from '../../../../background/stores/inspect-store';
-import { InspectConfigurationFactory } from '../../../../common/configs/inspect-configuration-factory';
-import { IInspectStoreData } from '../../../../common/types/store-data/inspect-store-data';
+import {
+    ConfigurationKey,
+    InspectConfigurationFactory,
+} from '../../../../common/configs/inspect-configuration-factory';
+import { InspectStoreData } from '../../../../common/types/store-data/inspect-store-data';
 import { InspectController } from '../../../../injected/inspect-controller';
 import { ScopingListener } from '../../../../injected/scoping-listener';
 
 describe('InspectControllerTests', () => {
     let inspectStoreMock: IMock<InspectStore>;
-    let inspectStoreChangeListener: Function;
-    let inspectStoreState: IInspectStoreData;
+    let inspectStoreState: InspectStoreData;
     let scopingListenerMock: IMock<ScopingListener>;
     let inspectConfigurationMock: IMock<InspectConfigurationFactory>;
     let defaultState: InspectMode;
     let onHoverStub: (selector: string[]) => void;
-    let changeInspectModeMock: IMock<(event: React.MouseEvent<HTMLButtonElement> | MouseEvent, inspectMode: InspectMode) => void>;
+    let changeInspectModeMock: IMock<(
+        event: React.MouseEvent<HTMLButtonElement> | MouseEvent,
+        inspectMode: InspectMode,
+    ) => void>;
     let testObject: InspectController;
 
     beforeEach(() => {
         inspectStoreMock = Mock.ofType(InspectStore);
         scopingListenerMock = Mock.ofType(ScopingListener, MockBehavior.Strict);
         inspectConfigurationMock = Mock.ofType(InspectConfigurationFactory, MockBehavior.Strict);
-        changeInspectModeMock = Mock.ofInstance((event: React.MouseEvent<HTMLButtonElement> | MouseEvent, inspectMode: InspectMode) => {});
+        changeInspectModeMock = Mock.ofInstance(
+            (
+                event: React.MouseEvent<HTMLButtonElement> | MouseEvent,
+                inspectMode: InspectMode,
+            ) => {},
+        );
         onHoverStub = () => {};
 
         testObject = new InspectController(
@@ -37,11 +46,7 @@ describe('InspectControllerTests', () => {
 
         defaultState = InspectMode.off;
 
-        inspectStoreMock
-            .setup(sm => sm.addChangedListener(It.isAny()))
-            .callback(listener => {
-                inspectStoreChangeListener = listener;
-            });
+        inspectStoreMock.setup(sm => sm.addChangedListener(It.isAny()));
         inspectStoreMock.setup(sm => sm.getState()).returns(() => inspectStoreState);
     });
 
@@ -55,7 +60,9 @@ describe('InspectControllerTests', () => {
 
     test('do not start inspect if inspect store state is null', () => {
         inspectStoreState = null;
-        changeInspectModeMock.setup(sm => sm(It.isAny(), It.isValue(defaultState))).verifiable(Times.once());
+        changeInspectModeMock
+            .setup(sm => sm(It.isAny(), It.isValue(defaultState)))
+            .verifiable(Times.once());
 
         testObject.listenToStore();
         inspectStoreMock.verifyAll();
@@ -71,10 +78,14 @@ describe('InspectControllerTests', () => {
         };
         let sendSelector;
 
-        changeInspectModeMock.setup(sm => sm(It.isAny(), It.isValue(inspectType))).verifiable(Times.once());
+        changeInspectModeMock
+            .setup(sm => sm(It.isAny(), It.isValue(inspectType)))
+            .verifiable(Times.once());
 
         const inspectConfigMock = Mock.ofInstance((event, selector) => {});
-        inspectConfigMock.setup(sm => sm(It.isAny(), It.isValue(givenSelector))).verifiable(Times.once());
+        inspectConfigMock
+            .setup(sm => sm(It.isAny(), It.isValue(givenSelector)))
+            .verifiable(Times.once());
 
         scopingListenerMock
             .setup(sm => sm.start(It.isAny(), onHoverStub))
@@ -104,15 +115,19 @@ describe('InspectControllerTests', () => {
 
         const givenSelector = ['selector'];
 
-        changeInspectModeMock.setup(sm => sm(It.isAny(), It.isValue(defaultState))).verifiable(Times.once());
+        changeInspectModeMock
+            .setup(sm => sm(It.isAny(), It.isValue(defaultState)))
+            .verifiable(Times.once());
 
         const inspectConfigMock = Mock.ofInstance((event, selector) => {});
-        inspectConfigMock.setup(sm => sm(It.isAny(), It.isValue(givenSelector))).verifiable(Times.once());
+        inspectConfigMock
+            .setup(sm => sm(It.isAny(), It.isValue(givenSelector)))
+            .verifiable(Times.once());
 
         scopingListenerMock.setup(sm => sm.stop()).verifiable(Times.never());
 
         inspectConfigurationMock
-            .setup(sm => sm.getConfigurationByKey(defaultState))
+            .setup(sm => sm.getConfigurationByKey(defaultState as ConfigurationKey))
             .returns((ev, selector) => inspectConfigMock.object)
             .verifiable(Times.never());
 

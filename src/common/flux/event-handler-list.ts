@@ -1,22 +1,24 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
-export class EventHandlerList<TSender, TEventArgs> {
-    private _handlers: FunctionPPR<TSender, TEventArgs, any>[] = [];
+import { FunctionPPR } from '../../types/common-types';
 
-    public subscribe(handler: FunctionPPR<TSender, TEventArgs, any>) {
+export class EventHandlerList<TSender, TEventArgs> {
+    private handlers: FunctionPPR<TSender, TEventArgs, any>[] = [];
+
+    public subscribe(handler: FunctionPPR<TSender, TEventArgs, any>): void {
         if (handler) {
-            this._handlers.push(handler);
+            this.handlers.push(handler);
         }
     }
 
-    public unsubscribe(handler: FunctionPPR<TSender, TEventArgs, any>) {
-        if (this._handlers) {
-            this._handlers = this._handlers.filter(h => h !== handler);
+    public unsubscribe(handler: FunctionPPR<TSender, TEventArgs, any>): void {
+        if (this.handlers) {
+            this.handlers = this.handlers.filter(h => h !== handler);
         }
     }
 
     public invokeHandlers(sender?: TSender, eventArgs?: TEventArgs): void {
-        const handlersCopy = Array.apply(null, this._handlers);
+        const handlersCopy = Array.apply(null, this.handlers);
 
         handlersCopy.forEach(handler => handler(sender, eventArgs));
     }

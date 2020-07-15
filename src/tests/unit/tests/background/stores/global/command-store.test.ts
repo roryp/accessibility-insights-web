@@ -2,12 +2,15 @@
 // Licensed under the MIT License.
 import { IMock, It, Mock, Times } from 'typemoq';
 
-import { CommandActions, IGetCommandsPayload } from '../../../../../../background/actions/command-actions';
-import { CommandStore } from '../../../../../../background/stores/global/command-store';
-import { TelemetryEventHandler } from '../../../../../../background/telemetry/telemetry-event-handler';
+import { CommandActions, GetCommandsPayload } from 'background/actions/command-actions';
+import { CommandStore } from 'background/stores/global/command-store';
+import { TelemetryEventHandler } from 'background/telemetry/telemetry-event-handler';
+import {
+    ModifiedCommandsTelemetryData,
+    SHORTCUT_MODIFIED,
+} from '../../../../../../common/extension-telemetry-events';
 import { StoreNames } from '../../../../../../common/stores/store-names';
-import { ModifiedCommandsTelemetryData, SHORTCUT_MODIFIED } from '../../../../../../common/telemetry-events';
-import { ICommandStoreData } from '../../../../../../common/types/store-data/icommand-store-data';
+import { CommandStoreData } from '../../../../../../common/types/store-data/command-store-data';
 import { createStoreWithNullParams, StoreTester } from '../../../../common/store-tester';
 
 describe('CommandStoreTest', () => {
@@ -29,10 +32,10 @@ describe('CommandStoreTest', () => {
 
     test('on getCommands: no command modification', () => {
         const prototype = new CommandStore(null, null);
-        const initialState: ICommandStoreData = prototype.getDefaultState();
-        const expectedState: ICommandStoreData = prototype.getDefaultState();
+        const initialState: CommandStoreData = prototype.getDefaultState();
+        const expectedState: CommandStoreData = prototype.getDefaultState();
 
-        const payload: IGetCommandsPayload = {
+        const payload: GetCommandsPayload = {
             commands: [],
             tabId: 1,
         };
@@ -49,7 +52,7 @@ describe('CommandStoreTest', () => {
             shortcut: 'Ctrl+Shift+F',
         };
 
-        const initialState: ICommandStoreData = {
+        const initialState: CommandStoreData = {
             commands: [initialCommand],
         };
 
@@ -59,12 +62,12 @@ describe('CommandStoreTest', () => {
             shortcut: 'Ctrl+Shift+A',
         };
 
-        const expectedState: ICommandStoreData = {
+        const expectedState: CommandStoreData = {
             commands: [newCommand],
         };
 
         const tabId = 1;
-        const payload: IGetCommandsPayload = {
+        const payload: GetCommandsPayload = {
             commands: [newCommand],
             tabId: tabId,
         };
@@ -87,7 +90,7 @@ describe('CommandStoreTest', () => {
     });
 
     test("handling weird case: amount of commands change on runtime (this should not happen but we're handling it anyway)", () => {
-        const initialState: ICommandStoreData = new CommandStore(null, null).getDefaultState();
+        const initialState: CommandStoreData = new CommandStore(null, null).getDefaultState();
 
         const command: chrome.commands.Command = {
             description: 'Toggle Headings',
@@ -101,12 +104,12 @@ describe('CommandStoreTest', () => {
             shortcut: 'Ctrl+Shift+A',
         };
 
-        const expectedState: ICommandStoreData = {
+        const expectedState: CommandStoreData = {
             commands: [newCommand],
         };
 
         const tabId = 1;
-        const payload: IGetCommandsPayload = {
+        const payload: GetCommandsPayload = {
             commands: [newCommand],
             tabId: tabId,
         };
@@ -116,8 +119,11 @@ describe('CommandStoreTest', () => {
             .testListenerToBeCalledOnce(initialState, expectedState);
     });
 
-    function createStoreTesterForCommandActions(actionName: keyof CommandActions) {
-        const factory = (actions: CommandActions) => new CommandStore(actions, telemetryEventHandlerMock.object);
+    function createStoreTesterForCommandActions(
+        actionName: keyof CommandActions,
+    ): StoreTester<CommandStoreData, CommandActions> {
+        const factory = (actions: CommandActions) =>
+            new CommandStore(actions, telemetryEventHandlerMock.object);
 
         return new StoreTester(CommandActions, actionName, factory);
     }

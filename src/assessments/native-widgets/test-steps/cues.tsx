@@ -1,24 +1,31 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
+import { AnalyzerConfigurationFactory } from 'assessments/common/analyzer-configuration-factory';
+import { CuesPropertyBag } from 'common/types/property-bag/cues';
+import { VisualizationType } from 'common/types/visualization-type';
+import { link } from 'content/link';
+import { productName } from 'content/strings/application';
+import { TestAutomaticallyPassedNotice } from 'content/test/common/test-automatically-passed-notice';
+import * as content from 'content/test/native-widgets/cues';
+import { AssessmentVisualizationEnabledToggle } from 'DetailsView/components/assessment-visualization-enabled-toggle';
+import { ScannerUtils } from 'injected/scanner-utils';
 import * as React from 'react';
-
-import { AnalyzerConfigurationFactory } from '../../../assessments/common/analyzer-configuration-factory';
-import { ICuesPropertyBag } from '../../../common/types/property-bag/icues';
-import { VisualizationType } from '../../../common/types/visualization-type';
-import { link } from '../../../content/link';
-import { productName } from '../../../content/strings/application';
-import * as content from '../../../content/test/native-widgets/cues';
-import { AssessmentVisualizationEnabledToggle } from '../../../DetailsView/components/assessment-visualization-enabled-toggle';
-import { ScannerUtils } from '../../../injected/scanner-utils';
-import AssistedTestRecordYourResults from '../../common/assisted-test-record-your-results';
-import { PropertyBagColumnRendererConfig } from '../../common/property-bag-column-renderer';
+import { AssistedTestRecordYourResults } from '../../common/assisted-test-record-your-results';
+import {
+    NoValue,
+    PropertyBagColumnRendererConfig,
+} from '../../common/property-bag-column-renderer';
 import { PropertyBagColumnRendererFactory } from '../../common/property-bag-column-renderer-factory';
 import * as Markup from '../../markup';
 import { ReportInstanceField } from '../../types/report-instance-field';
-import { TestStep } from '../../types/test-step';
+import { Requirement } from '../../types/requirement';
 import { NativeWidgetsTestStep } from './test-steps';
 
-const description: JSX.Element = <span>If a native widget adopts certain interactive states, it must provide appropriate cues.</span>;
+const description: JSX.Element = (
+    <span>
+        If a native widget adopts certain interactive states, it must provide appropriate cues.
+    </span>
+);
 
 const howToTest: JSX.Element = (
     <div>
@@ -33,9 +40,11 @@ const howToTest: JSX.Element = (
             <Markup.NonBreakingSpace />
             <Markup.Tag tagName="textarea" isBold={true} /> elements.
         </p>
+        <TestAutomaticallyPassedNotice />
         <ol>
             <li>
-                In the target page, interact with each native widget to determine whether it adopts any of these states:
+                In the target page, interact with each native widget to determine whether it adopts
+                any of these states:
                 <ol>
                     <li>Disabled</li>
                     <li>Read-only</li>
@@ -43,15 +52,17 @@ const howToTest: JSX.Element = (
                 </ol>
             </li>
             <li>
-                If a widget <Markup.Emphasis>does</Markup.Emphasis> adopt any of these states, inspect its HTML using the Chrome Developer
-                Tools to verify that the states are appropriately coded.
+                If a widget <Markup.Emphasis>does</Markup.Emphasis> adopt any of these states,
+                inspect its HTML using the browser Developer Tools to verify that the states are
+                appropriately coded.
                 <ol>
                     <li>
-                        HTML properties (e.g., <Markup.CodeTerm>readonly</Markup.CodeTerm>) should be used on elements that support them.
+                        HTML properties (e.g., <Markup.CodeTerm>readonly</Markup.CodeTerm>) should
+                        be used on elements that support them.
                     </li>
                     <li>
-                        ARIA properties (e.g., <Markup.CodeTerm>aria-readonly</Markup.CodeTerm>) should be used on elements that don't
-                        support HTML properties.
+                        ARIA properties (e.g., <Markup.CodeTerm>aria-readonly</Markup.CodeTerm>)
+                        should be used on elements that don't support HTML properties.
                     </li>
                 </ol>
             </li>
@@ -60,32 +71,32 @@ const howToTest: JSX.Element = (
     </div>
 );
 
-const propertyBagConfig: PropertyBagColumnRendererConfig<ICuesPropertyBag>[] = [
+const propertyBagConfig: PropertyBagColumnRendererConfig<CuesPropertyBag>[] = [
     {
         propertyName: 'element',
         displayName: 'Element',
-        defaultValue: '-',
+        defaultValue: NoValue,
     },
     {
         propertyName: 'accessibleName',
         displayName: 'Accessible name',
-        defaultValue: '-',
+        defaultValue: NoValue,
     },
     {
         propertyName: 'htmlCues',
         displayName: 'HTML cues',
-        defaultValue: '-',
+        defaultValue: NoValue,
         expand: true,
     },
     {
         propertyName: 'ariaCues',
         displayName: 'ARIA cues',
-        defaultValue: '-',
+        defaultValue: NoValue,
         expand: true,
     },
 ];
 
-export const Cues: TestStep = {
+export const Cues: Requirement = {
     key: NativeWidgetsTestStep.cues,
     name: 'Cues',
     description,
@@ -97,7 +108,9 @@ export const Cues: TestStep = {
         {
             key: 'cues-info',
             name: 'Cues',
-            onRender: PropertyBagColumnRendererFactory.get<ICuesPropertyBag>(propertyBagConfig),
+            onRender: PropertyBagColumnRendererFactory.getRenderer<CuesPropertyBag>(
+                propertyBagConfig,
+            ),
         },
     ],
     reportInstanceFields: ReportInstanceField.fromColumns(propertyBagConfig),
@@ -111,6 +124,5 @@ export const Cues: TestStep = {
             }),
         ),
     getDrawer: provider => provider.createHighlightBoxDrawer(),
-    updateVisibility: false,
     getVisualHelperToggle: props => <AssessmentVisualizationEnabledToggle {...props} />,
 };

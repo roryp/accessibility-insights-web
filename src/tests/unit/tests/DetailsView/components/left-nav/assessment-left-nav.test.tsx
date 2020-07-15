@@ -1,11 +1,15 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
+import { AssessmentsProvider } from 'assessments/types/assessments-provider';
+import { FeatureFlags } from 'common/feature-flags';
+import { VisualizationType } from 'common/types/visualization-type';
 import { shallow } from 'enzyme';
 import * as React from 'react';
-import { IMock, Mock } from 'typemoq';
-
-import { IAssessmentsProvider } from '../../../../../../assessments/types/iassessments-provider';
-import { ManualTestStatus, ManualTestStatusData } from '../../../../../../common/types/manual-test-status';
+import { IMock, Mock, MockBehavior } from 'typemoq';
+import {
+    ManualTestStatus,
+    ManualTestStatusData,
+} from '../../../../../../common/types/manual-test-status';
 import {
     AssessmentLeftNav,
     AssessmentLeftNavDeps,
@@ -14,20 +18,26 @@ import {
 } from '../../../../../../DetailsView/components/left-nav/assessment-left-nav';
 import { LeftNavLinkBuilder } from '../../../../../../DetailsView/components/left-nav/left-nav-link-builder';
 import { NavLinkHandler } from '../../../../../../DetailsView/components/left-nav/nav-link-handler';
+import { DictionaryStringTo } from '../../../../../../types/common-types';
 
-describe('AssessmentLeftNav', () => {
+describe(AssessmentLeftNav, () => {
     let linkStub: AssessmentLeftNavLink;
     let deps: AssessmentLeftNavDeps;
     let props: AssessmentLeftNavProps;
     let leftNavLinkBuilderMock: IMock<LeftNavLinkBuilder>;
     let navLinkHandlerMock: NavLinkHandler;
-    let assessmentsProviderStub: IAssessmentsProvider;
+    let assessmentsProviderStub: AssessmentsProvider;
     let assessmentsDataStub: DictionaryStringTo<ManualTestStatusData>;
+    const expandedTest: VisualizationType = 1;
+    let onRightPanelContentSwitch: () => void;
+    let setNavComponentRef: (nav) => void;
 
     beforeEach(() => {
+        onRightPanelContentSwitch = () => {};
+        setNavComponentRef = _ => {};
         assessmentsDataStub = {};
-        assessmentsProviderStub = {} as IAssessmentsProvider;
-        leftNavLinkBuilderMock = Mock.ofType(LeftNavLinkBuilder);
+        assessmentsProviderStub = {} as AssessmentsProvider;
+        leftNavLinkBuilderMock = Mock.ofType(LeftNavLinkBuilder, MockBehavior.Strict);
         navLinkHandlerMock = {
             onOverviewClick: () => {},
             onAssessmentTestClick: (x, y) => {},
@@ -45,13 +55,48 @@ describe('AssessmentLeftNav', () => {
             leftNavLinkBuilder: leftNavLinkBuilderMock.object,
             assessmentsProvider: assessmentsProviderStub,
             assessmentsData: assessmentsDataStub,
+            featureFlagStoreData: {},
+            expandedTest,
+            onRightPanelContentSwitch,
+            setNavComponentRef,
         };
 
         leftNavLinkBuilderMock
             .setup(lnlbm =>
-                lnlbm.buildOverviewLink(deps, navLinkHandlerMock.onOverviewClick, assessmentsProviderStub, assessmentsDataStub, 0),
+                lnlbm.buildOverviewLink(
+                    deps,
+                    navLinkHandlerMock.onOverviewClick,
+                    assessmentsProviderStub,
+                    assessmentsDataStub,
+                    0,
+                    onRightPanelContentSwitch,
+                ),
             )
             .returns(() => linkStub);
+    });
+
+    it('renders with reflow feature flag enabled', () => {
+        props.featureFlagStoreData[FeatureFlags.reflowUI] = true;
+
+        leftNavLinkBuilderMock
+            .setup(lnlbm =>
+                lnlbm.buildReflowAssessmentTestLinks(
+                    deps,
+                    assessmentsProviderStub,
+                    assessmentsDataStub,
+                    1,
+                    expandedTest,
+                    onRightPanelContentSwitch,
+                ),
+            )
+            .returns(() => [linkStub]);
+
+        const actual = shallow(<AssessmentLeftNav {...props} />);
+        expect(actual.getElement()).toMatchSnapshot();
+    });
+
+    it('renders with reflow feature flag disabled', () => {
+        props.featureFlagStoreData[FeatureFlags.reflowUI] = false;
 
         leftNavLinkBuilderMock
             .setup(lnlbm =>
@@ -64,24 +109,8 @@ describe('AssessmentLeftNav', () => {
                 ),
             )
             .returns(() => [linkStub]);
-    });
 
-    it('render with index icon', () => {
         const actual = shallow(<AssessmentLeftNav {...props} />);
-        const renderIcon: (link: AssessmentLeftNavLink) => JSX.Element = actual.prop('renderIcon');
-        const renderedIcon = shallow(renderIcon(linkStub));
-
         expect(actual.getElement()).toMatchSnapshot();
-        expect(renderedIcon.getElement()).toMatchSnapshot();
-    });
-
-    it('render with status icon', () => {
-        linkStub.status = -1;
-        const actual = shallow(<AssessmentLeftNav {...props} />);
-        const renderIcon: (link: AssessmentLeftNavLink) => JSX.Element = actual.prop('renderIcon');
-        const renderedIcon = shallow(renderIcon(linkStub));
-
-        expect(actual.getElement()).toMatchSnapshot();
-        expect(renderedIcon.getElement()).toMatchSnapshot();
     });
 });

@@ -1,20 +1,19 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
-import { autobind } from '@uifabric/utilities';
-import { INavLink, Nav } from 'office-ui-fabric-react/lib/Nav';
+import { INavLink, Nav } from 'office-ui-fabric-react';
 import * as React from 'react';
 
-import { IAssessmentsProvider } from '../../assessments/types/iassessments-provider';
+import { AssessmentsProvider } from 'assessments/types/assessments-provider';
+import { OutcomeTypeSemantic } from 'reports/components/outcome-type';
 import { getRequirementsResults } from '../../common/assessment/requirement';
 import { ManualTestStatus, ManualTestStatusData } from '../../common/types/manual-test-status';
 import { VisualizationType } from '../../common/types/visualization-type';
 import { DetailsViewActionMessageCreator } from '../actions/details-view-action-message-creator';
-import { OutcomeTypeSemantic } from '../reports/components/outcome-type';
-import { TestStepLink } from './test-step-link';
+import { RequirementLink } from './requirement-link';
 
 export interface TestStepNavDeps {
     detailsViewActionMessageCreator: DetailsViewActionMessageCreator;
-    assessmentsProvider: IAssessmentsProvider;
+    assessmentsProvider: AssessmentsProvider;
     outcomeTypeSemanticsFromTestStatus(testStatus: ManualTestStatus): OutcomeTypeSemantic;
     getInnerTextFromJsxElement(element: JSX.Element): string;
 }
@@ -52,38 +51,49 @@ export class TestStepsNav extends React.Component<TestStepNavProps> {
         );
     }
 
-    @autobind
-    protected renderNavLink(link: INavLink): JSX.Element {
+    protected renderNavLink = (link: INavLink): JSX.Element => {
         return (
-            <TestStepLink
+            <RequirementLink
                 link={link}
                 status={this.getStepStatus(link.key)}
                 renderRequirementDescription={link.renderRequirementDescription}
             />
         );
-    }
+    };
 
     private getStepStatus(key: string): ManualTestStatus {
         return this.props.stepStatus[key].stepFinalResult;
     }
 
-    @autobind
-    protected onTestStepSelected(event?: React.MouseEvent<HTMLElement>, item?: INavLink): void {
+    protected onTestStepSelected = (
+        event?: React.MouseEvent<HTMLElement>,
+        item?: INavLink,
+    ): void => {
         if (item) {
-            this.props.deps.detailsViewActionMessageCreator.selectTestStep(event, item.key, this.props.selectedTest);
+            this.props.deps.detailsViewActionMessageCreator.selectRequirement(
+                event,
+                item.key,
+                this.props.selectedTest,
+            );
         }
-    }
+    };
 
     private getLinks(): INavLink[] {
         const { selectedTest, stepStatus } = this.props;
-        const { assessmentsProvider, getInnerTextFromJsxElement, outcomeTypeSemanticsFromTestStatus } = this.props.deps;
+        const {
+            assessmentsProvider,
+            getInnerTextFromJsxElement,
+            outcomeTypeSemanticsFromTestStatus,
+        } = this.props.deps;
         const results = getRequirementsResults(assessmentsProvider, selectedTest, stepStatus);
 
         return results.map(result => {
             const { definition: step } = result;
             const status = this.getStepStatus(step.key);
             const uiDisplayableStatus = outcomeTypeSemanticsFromTestStatus(status).pastTense;
-            const title = `${step.name}. ${uiDisplayableStatus}. ${getInnerTextFromJsxElement(step.description)}`;
+            const title = `${step.name}. ${uiDisplayableStatus}. ${getInnerTextFromJsxElement(
+                step.description,
+            )}`;
 
             return {
                 key: step.key,

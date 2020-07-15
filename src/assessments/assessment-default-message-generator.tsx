@@ -1,28 +1,40 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
+import { ManualTestStatus } from 'common/types/manual-test-status';
+import {
+    AssessmentInstancesMap,
+    InstanceIdToInstanceDataMap,
+    TestStepResult,
+} from 'common/types/store-data/assessment-result-data';
 import { isEmpty, size } from 'lodash';
 import * as React from 'react';
+import * as styles from './assessment-default-message-generator.scss';
 
-import { ManualTestStatus } from '../common/types/manual-test-status';
-import { IAssessmentInstancesMap, InstanceIdToInstanceDataMap, ITestStepResult } from '../common/types/store-data/iassessment-result-data';
-
-export type IMessageGenerator = (instancesMap: IAssessmentInstancesMap, selectedTestStep: string) => DefaultMessageInterface;
-export type IGetMessageGenerator = (generator: AssessmentDefaultMessageGenerator) => IMessageGenerator;
+export type IMessageGenerator = (
+    instancesMap: AssessmentInstancesMap,
+    selectedTestStep: string,
+) => DefaultMessageInterface;
+export type IGetMessageGenerator = (
+    generator: AssessmentDefaultMessageGenerator,
+) => IMessageGenerator;
 export interface DefaultMessageInterface {
     message: JSX.Element;
     instanceCount: number;
 }
 
-function failingInstances(result: ITestStepResult) {
+function failingInstances(result: TestStepResult): boolean {
     return result.status !== ManualTestStatus.PASS;
 }
 
-function passingInstances(result: ITestStepResult) {
+function passingInstances(result: TestStepResult): boolean {
     return result.status === ManualTestStatus.PASS;
 }
 
-function getRelevantTestStepResults(instancesMap: InstanceIdToInstanceDataMap, selectedTestStep: string): ITestStepResult[] {
-    const getSelectedTestStepResult: (instance: string) => ITestStepResult = (instance: string) => {
+function getRelevantTestStepResults(
+    instancesMap: InstanceIdToInstanceDataMap,
+    selectedTestStep: string,
+): TestStepResult[] {
+    const getSelectedTestStepResult: (instance: string) => TestStepResult = (instance: string) => {
         return instancesMap[instance].testStepResults[selectedTestStep];
     };
 
@@ -65,19 +77,24 @@ export class AssessmentDefaultMessageGenerator {
 
     private getNoMatchingInstancesResult(): DefaultMessageInterface {
         return {
-            message: <div className="no-failure-view">No matching instances</div>,
+            message: <div className={styles.noFailureView}>No matching instances</div>,
             instanceCount: 0,
         };
     }
 
-    private getNoFailingInstanceResult(passingInstanceKeys: ITestStepResult[]): DefaultMessageInterface {
+    private getNoFailingInstanceResult(
+        passingInstanceKeys: TestStepResult[],
+    ): DefaultMessageInterface {
         return {
-            message: <div className="no-failure-view">No failing instances</div>,
+            message: <div className={styles.noFailureView}>No failing instances</div>,
             instanceCount: size(passingInstanceKeys),
         };
     }
 
-    private checkRelevantTestSteps(instancesMap: InstanceIdToInstanceDataMap, selectedTestStep: string) {
+    private checkRelevantTestSteps(
+        instancesMap: InstanceIdToInstanceDataMap,
+        selectedTestStep: string,
+    ): DefaultMessageInterface {
         const relevantTestStepResults = getRelevantTestStepResults(instancesMap, selectedTestStep);
         if (isEmpty(relevantTestStepResults)) {
             return this.getNoMatchingInstancesResult();

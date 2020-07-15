@@ -1,14 +1,14 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
-import { autobind } from '@uifabric/utilities';
+import { ScanIncompleteWarningDetector } from 'injected/scan-incomplete-warning-detector';
 
+import { BaseStore } from '../../common/base-store';
 import { VisualizationConfigurationFactory } from '../../common/configs/visualization-configuration-factory';
-import { IBaseStore } from '../../common/istore';
 import { TelemetryDataFactory } from '../../common/telemetry-data-factory';
-import { IScopingStoreData } from '../../common/types/store-data/scoping-store-data';
+import { ScopingStoreData } from '../../common/types/store-data/scoping-store-data';
 import { ScanResults } from '../../scanner/iruleresults';
 import { ScannerUtils } from '../scanner-utils';
-import { AxeAnalyzerResult, RuleAnalyzerConfiguration } from './ianalyzer';
+import { AxeAnalyzerResult, RuleAnalyzerConfiguration } from './analyzer';
 import { RuleAnalyzer } from './rule-analyzer';
 
 export type IResultRuleFilter = (results: ScanResults, rules: string[]) => ScanResults;
@@ -19,14 +19,25 @@ export class BatchedRuleAnalyzer extends RuleAnalyzer {
     constructor(
         protected config: RuleAnalyzerConfiguration,
         protected scanner: ScannerUtils,
-        protected scopingStore: IBaseStore<IScopingStoreData>,
+        protected scopingStore: BaseStore<ScopingStoreData>,
         protected sendMessageDelegate: (message) => void,
         protected dateGetter: () => Date,
         protected telemetryFactory: TelemetryDataFactory,
         protected readonly visualizationConfigFactory: VisualizationConfigurationFactory,
         private postScanFilter: IResultRuleFilter,
+        scanIncompleteWarningDetector: ScanIncompleteWarningDetector,
     ) {
-        super(config, scanner, scopingStore, sendMessageDelegate, dateGetter, telemetryFactory, visualizationConfigFactory);
+        super(
+            config,
+            scanner,
+            scopingStore,
+            sendMessageDelegate,
+            dateGetter,
+            telemetryFactory,
+            visualizationConfigFactory,
+            null,
+            scanIncompleteWarningDetector,
+        );
         BatchedRuleAnalyzer.batchConfigs.push(config);
     }
 
@@ -34,8 +45,7 @@ export class BatchedRuleAnalyzer extends RuleAnalyzer {
         return null;
     }
 
-    @autobind
-    protected onResolve(results: AxeAnalyzerResult) {
+    protected onResolve = (results: AxeAnalyzerResult): void => {
         BatchedRuleAnalyzer.batchConfigs.forEach(config => {
             const filteredScannerResult = this.postScanFilter(results.originalResult, config.rules);
             const processResults = config.resultProcessor(this.scanner);
@@ -46,5 +56,5 @@ export class BatchedRuleAnalyzer extends RuleAnalyzer {
             };
             this.sendScanCompleteResolveMessage(filteredAxeAnalyzerResult, config);
         });
-    }
+    };
 }

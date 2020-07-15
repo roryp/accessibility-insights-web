@@ -1,9 +1,9 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
+import { TabbableElementsHelper } from '../../common/tabbable-elements-helper';
+import { WindowUtils } from '../../common/window-utils';
 import { ClientUtils } from '../client-utils';
-import { TabbableElementsHelper } from './../../common/tabbable-elements-helper';
-import { WindowUtils } from './../../common/window-utils';
-import { ClientRectOffset } from './../client-utils';
+import { ClientRectOffset } from '../client-utils';
 import { DrawerUtils } from './drawer-utils';
 import { Point } from './point';
 
@@ -31,7 +31,7 @@ export class CenterPositionCalculator {
         }
 
         const myDocument = this.drawerUtils.getDocumentElement();
-        const body = myDocument.querySelector('body');
+        const body = myDocument.body;
 
         const bodyStyle = this.windowUtils.getComputedStyle(body);
         const docStyle = this.windowUtils.getComputedStyle(myDocument.documentElement);
@@ -39,15 +39,34 @@ export class CenterPositionCalculator {
         const offset = this.clientUtils.getOffset(targetElement);
         const elementBoundingClientRect = targetElement.getBoundingClientRect();
 
-        if (this.drawerUtils.isOutsideOfDocument(elementBoundingClientRect, myDocument, bodyStyle, docStyle)) {
+        if (
+            this.drawerUtils.isOutsideOfDocument(
+                elementBoundingClientRect,
+                myDocument,
+                bodyStyle,
+                docStyle,
+            )
+        ) {
             return null;
         }
 
         const top = this.drawerUtils.getContainerTopOffset(offset);
         const left = this.drawerUtils.getContainerLeftOffset(offset);
 
-        const minHeight = this.drawerUtils.getContainerHeight(offset, myDocument, elementBoundingClientRect.height, bodyStyle, docStyle);
-        const minWidth = this.drawerUtils.getContainerWidth(offset, myDocument, elementBoundingClientRect.width, bodyStyle, docStyle);
+        const minHeight = this.drawerUtils.getContainerHeight(
+            offset,
+            myDocument,
+            elementBoundingClientRect.height,
+            bodyStyle,
+            docStyle,
+        );
+        const minWidth = this.drawerUtils.getContainerWidth(
+            offset,
+            myDocument,
+            elementBoundingClientRect.width,
+            bodyStyle,
+            docStyle,
+        );
 
         const x = left + minWidth / 2;
         const y = top + minHeight / 2;
@@ -56,21 +75,37 @@ export class CenterPositionCalculator {
     }
 
     private getAreaElementCenterPosition(element: HTMLAreaElement): Point {
-        const mapImageElement = this.tabbableElementsHelper.getMappedImage(this.tabbableElementsHelper.getAncestorMap(element));
+        const mapImageElement = this.tabbableElementsHelper.getMappedImage(
+            this.tabbableElementsHelper.getAncestorMap(element),
+        );
 
         const myDocument = this.drawerUtils.getDocumentElement();
-        const body = myDocument.querySelector('body');
+        const body = myDocument.body;
 
         const bodyStyle = this.windowUtils.getComputedStyle(body);
         const docStyle = this.windowUtils.getComputedStyle(myDocument.documentElement);
 
         const offset = this.clientUtils.getOffset(mapImageElement);
 
-        if (this.drawerUtils.isOutsideOfDocument(mapImageElement.getBoundingClientRect(), myDocument, bodyStyle, docStyle)) {
+        if (
+            this.drawerUtils.isOutsideOfDocument(
+                mapImageElement.getBoundingClientRect(),
+                myDocument,
+                bodyStyle,
+                docStyle,
+            )
+        ) {
             return null;
         }
 
-        return this.getCenterPositionRelativeToAreaShape(myDocument, element, mapImageElement, offset, bodyStyle, docStyle);
+        return this.getCenterPositionRelativeToAreaShape(
+            myDocument,
+            element,
+            mapImageElement,
+            offset,
+            bodyStyle,
+            docStyle,
+        );
     }
 
     private getCenterPositionRelativeToAreaShape(
@@ -86,8 +121,10 @@ export class CenterPositionCalculator {
         const left = this.drawerUtils.getContainerLeftOffset(offset);
         let x = left;
         let y = top;
-        const shape = (element as HTMLAreaElement).shape;
-        const coords = (element as HTMLAreaElement).coords.split(',');
+        const shape = element.shape;
+        const coords = element.getAttribute('coords')
+            ? element.getAttribute('coords').split(',')
+            : [];
 
         if (coords.length > 0) {
             let deltaX: number;
@@ -102,7 +139,13 @@ export class CenterPositionCalculator {
                         bodyStyle,
                         docStyle,
                     );
-                    const minWidth = this.drawerUtils.getContainerWidth(offset, dom, elementBoundingClientRect.width, bodyStyle, docStyle);
+                    const minWidth = this.drawerUtils.getContainerWidth(
+                        offset,
+                        dom,
+                        elementBoundingClientRect.width,
+                        bodyStyle,
+                        docStyle,
+                    );
                     deltaX = minWidth / 2;
                     deltaY = minHeight / 2;
                     break;

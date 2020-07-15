@@ -1,44 +1,43 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
-import { Messages } from '../../common/messages';
-import * as TelemetryEvents from '../../common/telemetry-events';
-import { BrowserAdapter } from '../browser-adapter';
+import { BrowserAdapter } from 'common/browser-adapters/browser-adapter';
+import { CHANGE_INSPECT_MODE } from 'common/extension-telemetry-events';
+import { Logger } from 'common/logging/logger';
+import { getStoreStateMessage, Messages } from 'common/messages';
+import { StoreNames } from 'common/stores/store-names';
+import { Interpreter } from '../interpreter';
 import { TelemetryEventHandler } from '../telemetry/telemetry-event-handler';
-import { IInspectPayload, InspectActions } from './inspect-actions';
+import { InspectActions, InspectPayload } from './inspect-actions';
 
 export class InspectActionCreator {
-    private inspectActions: InspectActions;
-    private browserAdapter: BrowserAdapter;
-    private telemetryEventHandler: TelemetryEventHandler;
-    private registerTypeToPayloadCallback: IRegisterTypeToPayloadCallback;
-
     constructor(
-        inspectActions: InspectActions,
-        telemetryEventHandler: TelemetryEventHandler,
-        browserAdapter: BrowserAdapter,
-        registerTypeToPayloadCallback: IRegisterTypeToPayloadCallback,
-    ) {
-        this.inspectActions = inspectActions;
-        this.telemetryEventHandler = telemetryEventHandler;
-        this.browserAdapter = browserAdapter;
-        this.registerTypeToPayloadCallback = registerTypeToPayloadCallback;
-    }
+        private readonly interpreter: Interpreter,
+        private readonly inspectActions: InspectActions,
+        private readonly telemetryEventHandler: TelemetryEventHandler,
+        private readonly browserAdapter: BrowserAdapter,
+        private readonly logger: Logger,
+    ) {}
 
     public registerCallbacks(): void {
-        this.registerTypeToPayloadCallback(Messages.Inspect.ChangeInspectMode, (payload: IInspectPayload, tabId: number) =>
-            this.onChangeInspectMode(payload, tabId),
+        this.interpreter.registerTypeToPayloadCallback(
+            Messages.Inspect.ChangeInspectMode,
+            this.onChangeInspectMode,
         );
-        this.registerTypeToPayloadCallback(Messages.Inspect.GetCurrentState, () => this.onGetInspectCurrentState());
+        this.interpreter.registerTypeToPayloadCallback(
+            getStoreStateMessage(StoreNames.InspectStore),
+            this.onGetInspectCurrentState,
+        );
     }
 
-    private onChangeInspectMode(payload: IInspectPayload, tabId: number): void {
-        const eventName = TelemetryEvents.CHANGE_INSPECT_MODE;
-        this.telemetryEventHandler.publishTelemetry(eventName, payload);
-        this.browserAdapter.switchToTab(tabId);
+    private onChangeInspectMode = async (payload: InspectPayload, tabId: number): Promise<void> => {
+        this.telemetryEventHandler.publishTelemetry(CHANGE_INSPECT_MODE, payload);
+        await this.browserAdapter
+            .switchToTab(tabId)
+            .catch(error => this.logger.error(`switchToTab failed: ${error}`));
         this.inspectActions.changeInspectMode.invoke(payload);
-    }
+    };
 
-    private onGetInspectCurrentState(): void {
+    private onGetInspectCurrentState = (): void => {
         this.inspectActions.getCurrentState.invoke(null);
-    }
+    };
 }

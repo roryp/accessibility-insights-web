@@ -1,14 +1,18 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
-import { AddTabbedElementPayload } from '../../../../../background/actions/action-payloads';
-import { TabActions } from '../../../../../background/actions/tab-actions';
-import { VisualizationScanResultActions } from '../../../../../background/actions/visualization-scan-result-actions';
-import { VisualizationScanResultStore } from '../../../../../background/stores/visualization-scan-result-store';
+import { AddTabbedElementPayload } from 'background/actions/action-payloads';
+import { TabActions } from 'background/actions/tab-actions';
+import { VisualizationScanResultActions } from 'background/actions/visualization-scan-result-actions';
+import { VisualizationScanResultStore } from 'background/stores/visualization-scan-result-store';
 import { StoreNames } from '../../../../../common/stores/store-names';
-import { ITabbedElementData } from '../../../../../common/types/store-data/ivisualization-scan-result-data';
+import {
+    TabbedElementData,
+    VisualizationScanResultData,
+} from '../../../../../common/types/store-data/visualization-scan-result-data';
 import { VisualizationType } from '../../../../../common/types/visualization-type';
-import { IHtmlElementAxeResults } from '../../../../../injected/scanner-utils';
+import { HtmlElementAxeResults } from '../../../../../injected/scanner-utils';
 import { ScanResults } from '../../../../../scanner/iruleresults';
+import { DictionaryStringTo } from '../../../../../types/common-types';
 import { createStoreWithNullParams, StoreTester } from '../../../common/store-tester';
 import { VisualizationScanResultStoreDataBuilder } from '../../../common/visualization-scan-result-store-data-builder';
 
@@ -31,7 +35,10 @@ describe('VisualizationScanResultStoreTest', () => {
         const initialState = new VisualizationScanResultStoreDataBuilder().build();
         const finalState = new VisualizationScanResultStoreDataBuilder().build();
 
-        createStoreTesterForVisualizationScanResultActions(actionName).testListenerToBeCalledOnce(initialState, finalState);
+        createStoreTesterForVisualizationScanResultActions(actionName).testListenerToBeCalledOnce(
+            initialState,
+            finalState,
+        );
     });
 
     test('onIssuesDisabled', () => {
@@ -83,10 +90,9 @@ describe('VisualizationScanResultStoreTest', () => {
             },
         };
 
-        const selectorMap: DictionaryStringTo<IHtmlElementAxeResults> = {
+        const selectorMap: DictionaryStringTo<HtmlElementAxeResults> = {
             target1: {
                 target: ['target1'],
-                isVisible: true,
                 ruleResults: {
                     'test id': {
                         any: [],
@@ -101,14 +107,11 @@ describe('VisualizationScanResultStoreTest', () => {
                         id: 'id1',
                         guidanceLinks: [],
                         helpUrl: 'help1',
-                        fingerprint: 'fp1',
-                        snippet: 'html',
                     },
                 },
             },
             target2: {
                 target: ['target2'],
-                isVisible: true,
                 ruleResults: {
                     'test id': {
                         any: [],
@@ -123,8 +126,6 @@ describe('VisualizationScanResultStoreTest', () => {
                         id: 'id2',
                         guidanceLinks: [],
                         helpUrl: 'help2',
-                        fingerprint: 'fp2',
-                        snippet: 'html',
                     },
                 },
             },
@@ -135,28 +136,30 @@ describe('VisualizationScanResultStoreTest', () => {
             violations: expectedViolations,
         } as ScanResults;
 
-        const type = VisualizationType.Issues;
+        const visualizationType = VisualizationType.Issues;
 
         const initialState = new VisualizationScanResultStoreDataBuilder()
-            .withSelectorMap(type, selectorMap)
-            .withFullIdToRuleResultMap(type, expectedFullIdToResultMap)
-            .withSelectedIdToRuleResultMap(type, expectedFullIdToResultMap)
-            .withScanResult(type, scanResult)
+            .withSelectorMap(visualizationType, selectorMap)
+            .withFullIdToRuleResultMapForIssues(expectedFullIdToResultMap)
+            .withSelectedIdToRuleResultMapForIssues(expectedFullIdToResultMap)
+            .withScanResult(visualizationType, scanResult)
             .withIssuesSelectedTargets(selectorMap)
             .build();
 
         const expectedState = new VisualizationScanResultStoreDataBuilder()
-            .withSelectorMap(type, selectorMap)
-            .withFullIdToRuleResultMap(type, expectedFullIdToResultMap)
-            .withSelectedIdToRuleResultMap(type, expectedFullIdToResultMap)
+            .withSelectorMap(visualizationType, selectorMap)
+            .withFullIdToRuleResultMapForIssues(expectedFullIdToResultMap)
+            .withSelectedIdToRuleResultMapForIssues(expectedFullIdToResultMap)
             .withIssuesSelectedTargets(selectorMap)
             .build();
 
-        createStoreTesterForVisualizationScanResultActions('disableIssues').testListenerToBeCalledOnce(initialState, expectedState);
+        createStoreTesterForVisualizationScanResultActions(
+            'disableIssues',
+        ).testListenerToBeCalledOnce(initialState, expectedState);
     });
 
     test('onTabStopDisabled', () => {
-        const tabEvents: ITabbedElementData[] = [
+        const tabEvents: TabbedElementData[] = [
             {
                 target: ['selector'],
                 timestamp: 1,
@@ -165,15 +168,21 @@ describe('VisualizationScanResultStoreTest', () => {
             },
         ];
 
-        const initialState = new VisualizationScanResultStoreDataBuilder().withTabStopsTabbedElements(tabEvents).build();
+        const initialState = new VisualizationScanResultStoreDataBuilder()
+            .withTabStopsTabbedElements(tabEvents)
+            .build();
 
-        const expectedState = new VisualizationScanResultStoreDataBuilder().withTabStopsTabbedElements(null).build();
+        const expectedState = new VisualizationScanResultStoreDataBuilder()
+            .withTabStopsTabbedElements(null)
+            .build();
 
-        createStoreTesterForVisualizationScanResultActions('disableTabStop').testListenerToBeCalledOnce(initialState, expectedState);
+        createStoreTesterForVisualizationScanResultActions(
+            'disableTabStop',
+        ).testListenerToBeCalledOnce(initialState, expectedState);
     });
 
     test('onScanCompleted', () => {
-        const type = VisualizationType.Issues;
+        const visualizationType = VisualizationType.Issues;
         const initialState = new VisualizationScanResultStoreDataBuilder().build();
 
         const expectedViolations: AxeRule[] = [
@@ -213,8 +222,6 @@ describe('VisualizationScanResultStoreTest', () => {
                 id: 'id1',
                 guidanceLinks: [],
                 helpUrl: 'help1',
-                fingerprint: 'fp1',
-                snippet: 'html',
             },
             id2: {
                 all: [],
@@ -229,15 +236,12 @@ describe('VisualizationScanResultStoreTest', () => {
                 id: 'id2',
                 guidanceLinks: [],
                 helpUrl: 'help2',
-                fingerprint: 'fp2',
-                snippet: 'html',
             },
         };
 
-        const selectorMap: DictionaryStringTo<IHtmlElementAxeResults> = {
+        const selectorMap: DictionaryStringTo<HtmlElementAxeResults> = {
             target1: {
                 target: ['target1'],
-                isVisible: true,
                 ruleResults: {
                     'test id': {
                         any: [],
@@ -252,14 +256,11 @@ describe('VisualizationScanResultStoreTest', () => {
                         id: 'id1',
                         guidanceLinks: [],
                         helpUrl: 'help1',
-                        fingerprint: 'fp1',
-                        snippet: 'html',
                     },
                 },
             },
             target2: {
                 target: ['target2'],
-                isVisible: true,
                 ruleResults: {
                     'test id': {
                         any: [],
@@ -274,8 +275,6 @@ describe('VisualizationScanResultStoreTest', () => {
                         id: 'id2',
                         guidanceLinks: [],
                         helpUrl: 'help2',
-                        fingerprint: 'fp2',
-                        snippet: 'html',
                     },
                 },
             },
@@ -287,10 +286,10 @@ describe('VisualizationScanResultStoreTest', () => {
         } as ScanResults;
 
         const expectedState = new VisualizationScanResultStoreDataBuilder()
-            .withSelectorMap(type, selectorMap)
-            .withFullIdToRuleResultMap(type, expectedFullIdToResultMap)
-            .withSelectedIdToRuleResultMap(type, expectedFullIdToResultMap)
-            .withScanResult(type, scanResult)
+            .withSelectorMap(visualizationType, selectorMap)
+            .withFullIdToRuleResultMapForIssues(expectedFullIdToResultMap)
+            .withSelectedIdToRuleResultMapForIssues(expectedFullIdToResultMap)
+            .withScanResult(visualizationType, scanResult)
             .withIssuesSelectedTargets(selectorMap)
             .build();
 
@@ -308,7 +307,7 @@ describe('VisualizationScanResultStoreTest', () => {
     test('onUpdateIssuesSelectedTargets', () => {
         const actionName = 'updateIssuesSelectedTargets';
 
-        const selectorMap: DictionaryStringTo<IHtmlElementAxeResults> = {
+        const selectorMap: DictionaryStringTo<HtmlElementAxeResults> = {
             '#heading-1': {
                 ruleResults: {
                     rule1: {
@@ -324,12 +323,9 @@ describe('VisualizationScanResultStoreTest', () => {
                         id: 'id1',
                         guidanceLinks: [],
                         helpUrl: 'help1',
-                        fingerprint: 'fp1',
-                        snippet: 'html',
                     },
                 },
                 target: ['#heading-1'],
-                isVisible: true,
             },
             '#heading-2': {
                 ruleResults: {
@@ -346,12 +342,9 @@ describe('VisualizationScanResultStoreTest', () => {
                         id: 'id2',
                         guidanceLinks: [],
                         helpUrl: 'help2',
-                        fingerprint: 'fp2',
-                        snippet: 'html',
                     },
                 },
                 target: ['#heading-2'],
-                isVisible: true,
             },
         };
 
@@ -369,8 +362,6 @@ describe('VisualizationScanResultStoreTest', () => {
                 id: 'id1',
                 guidanceLinks: [],
                 helpUrl: 'help1',
-                fingerprint: 'fp1',
-                snippet: 'html',
             },
             id2: {
                 any: [],
@@ -385,19 +376,17 @@ describe('VisualizationScanResultStoreTest', () => {
                 id: 'id2',
                 guidanceLinks: [],
                 helpUrl: 'help2',
-                fingerprint: 'fp2',
-                snippet: 'html',
             },
         };
 
         const initialState = new VisualizationScanResultStoreDataBuilder()
             .withSelectorMap(VisualizationType.Issues, selectorMap)
-            .withFullIdToRuleResultMap(VisualizationType.Issues, expectedFullIdToRuleResultMap)
-            .withSelectedIdToRuleResultMap(VisualizationType.Issues, expectedFullIdToRuleResultMap)
+            .withFullIdToRuleResultMapForIssues(expectedFullIdToRuleResultMap)
+            .withSelectedIdToRuleResultMapForIssues(expectedFullIdToRuleResultMap)
             .withIssuesSelectedTargets(selectorMap)
             .build();
 
-        const expectedSelectedMap: DictionaryStringTo<IHtmlElementAxeResults> = {
+        const expectedSelectedMap: DictionaryStringTo<HtmlElementAxeResults> = {
             '#heading-1': {
                 ruleResults: {
                     rule1: {
@@ -413,12 +402,9 @@ describe('VisualizationScanResultStoreTest', () => {
                         help: 'help1',
                         guidanceLinks: [],
                         helpUrl: 'help1',
-                        fingerprint: 'fp1',
-                        snippet: 'html',
                     },
                 },
                 target: ['#heading-1'],
-                isVisible: null,
             },
         };
 
@@ -436,15 +422,13 @@ describe('VisualizationScanResultStoreTest', () => {
                 id: 'id1',
                 guidanceLinks: [],
                 helpUrl: 'help1',
-                fingerprint: 'fp1',
-                snippet: 'html',
             },
         };
 
         const expectedState = new VisualizationScanResultStoreDataBuilder()
             .withSelectorMap(VisualizationType.Issues, selectorMap)
-            .withFullIdToRuleResultMap(VisualizationType.Issues, expectedFullIdToRuleResultMap)
-            .withSelectedIdToRuleResultMap(VisualizationType.Issues, expectedSelectedIdToRuleResultMap)
+            .withFullIdToRuleResultMapForIssues(expectedFullIdToRuleResultMap)
+            .withSelectedIdToRuleResultMapForIssues(expectedSelectedIdToRuleResultMap)
             .withIssuesSelectedTargets(expectedSelectedMap)
             .build();
 
@@ -466,7 +450,7 @@ describe('VisualizationScanResultStoreTest', () => {
             ],
         };
 
-        const tabbedElements: ITabbedElementData[] = [
+        const tabbedElements: TabbedElementData[] = [
             {
                 timestamp: payload.tabbedElements[0].timestamp,
                 target: payload.tabbedElements[0].target,
@@ -475,7 +459,9 @@ describe('VisualizationScanResultStoreTest', () => {
             },
         ];
 
-        const expectedState = new VisualizationScanResultStoreDataBuilder().withTabStopsTabbedElements(tabbedElements).build();
+        const expectedState = new VisualizationScanResultStoreDataBuilder()
+            .withTabStopsTabbedElements(tabbedElements)
+            .build();
 
         createStoreTesterForVisualizationScanResultActions('addTabbedElement')
             .withActionParam(payload)
@@ -483,7 +469,7 @@ describe('VisualizationScanResultStoreTest', () => {
     });
 
     test('onAddTabbedElement: ensure correct tab order', () => {
-        const initialTabbedElements: ITabbedElementData[] = [
+        const initialTabbedElements: TabbedElementData[] = [
             {
                 timestamp: 10,
                 target: ['selector-10'],
@@ -498,7 +484,9 @@ describe('VisualizationScanResultStoreTest', () => {
             },
         ];
 
-        const initialState = new VisualizationScanResultStoreDataBuilder().withTabStopsTabbedElements(initialTabbedElements).build();
+        const initialState = new VisualizationScanResultStoreDataBuilder()
+            .withTabStopsTabbedElements(initialTabbedElements)
+            .build();
 
         const payload: AddTabbedElementPayload = {
             tabbedElements: [
@@ -510,7 +498,7 @@ describe('VisualizationScanResultStoreTest', () => {
             ],
         };
 
-        const expectedTabbedElements: ITabbedElementData[] = [
+        const expectedTabbedElements: TabbedElementData[] = [
             initialTabbedElements[0],
             {
                 timestamp: payload.tabbedElements[0].timestamp,
@@ -526,35 +514,44 @@ describe('VisualizationScanResultStoreTest', () => {
             },
         ];
 
-        const expectedState = new VisualizationScanResultStoreDataBuilder().withTabStopsTabbedElements(expectedTabbedElements).build();
+        const expectedState = new VisualizationScanResultStoreDataBuilder()
+            .withTabStopsTabbedElements(expectedTabbedElements)
+            .build();
 
         createStoreTesterForVisualizationScanResultActions('addTabbedElement')
             .withActionParam(payload)
             .testListenerToBeCalledOnce(initialState, expectedState);
     });
 
-    test('onTabChange', () => {
+    test('onExistingTabUpdated', () => {
         const initialState = new VisualizationScanResultStoreDataBuilder()
-            .withFullIdToRuleResultMap(VisualizationType.Color, {})
             .withIssuesSelectedTargets({})
             .withScanResult(VisualizationType.Headings, [])
-            .withSelectedIdToRuleResultMap(VisualizationType.Landmarks, {})
             .withTabStopsTabbedElements([])
             .build();
 
         const expectedState = new VisualizationScanResultStoreDataBuilder().build();
 
-        createStoreTesterForTabActions('tabChange').testListenerToBeCalledOnce(initialState, expectedState);
+        createStoreTesterForTabActions('existingTabUpdated').testListenerToBeCalledOnce(
+            initialState,
+            expectedState,
+        );
     });
 
-    function createStoreTesterForVisualizationScanResultActions(actionName: keyof VisualizationScanResultActions) {
-        const factory = (actions: VisualizationScanResultActions) => new VisualizationScanResultStore(actions, new TabActions());
+    function createStoreTesterForVisualizationScanResultActions(
+        actionName: keyof VisualizationScanResultActions,
+    ): StoreTester<VisualizationScanResultData, VisualizationScanResultActions> {
+        const factory = (actions: VisualizationScanResultActions) =>
+            new VisualizationScanResultStore(actions, new TabActions());
 
         return new StoreTester(VisualizationScanResultActions, actionName, factory);
     }
 
-    function createStoreTesterForTabActions(actionName: keyof TabActions) {
-        const factory = (actions: TabActions) => new VisualizationScanResultStore(new VisualizationScanResultActions(), actions);
+    function createStoreTesterForTabActions(
+        actionName: keyof TabActions,
+    ): StoreTester<VisualizationScanResultData, TabActions> {
+        const factory = (actions: TabActions) =>
+            new VisualizationScanResultStore(new VisualizationScanResultActions(), actions);
 
         return new StoreTester(TabActions, actionName, factory);
     }

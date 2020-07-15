@@ -1,15 +1,21 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
-import * as _ from 'lodash';
+import { VisualHelperToggleConfig } from 'assessments/types/requirement';
+import { filter, includes, keys } from 'lodash';
 import * as React from 'react';
-
-import { VisualHelperToggleConfig } from '../../assessments/types/test-step';
 import { VisualizationToggle } from '../../common/components/visualization-toggle';
-import { IGeneratedAssessmentInstance } from '../../common/types/store-data/iassessment-result-data';
+import { GeneratedAssessmentInstance } from '../../common/types/store-data/assessment-result-data';
+import { DictionaryStringTo } from '../../types/common-types';
+
+export const visualHelperToggleAutomationId = 'visual-helper-toggle';
+export const visualHelperText = 'Visual helper';
 
 export abstract class BaseVisualHelperToggle extends React.Component<VisualHelperToggleConfig> {
     public render(): JSX.Element {
-        const filteredInstances = this.filterInstancesByTestStep(this.props.assessmentNavState, this.props.instancesMap);
+        const filteredInstances = this.filterInstancesByTestStep(
+            this.props.assessmentNavState,
+            this.props.instancesMap,
+        );
         const isDisabled: boolean = this.isDisabled(filteredInstances);
         const disabledMessage = this.renderNoMatchingElementsMessage(isDisabled);
         const onClick = this.onClick;
@@ -17,43 +23,58 @@ export abstract class BaseVisualHelperToggle extends React.Component<VisualHelpe
 
         return (
             <div className="visual-helper">
-                <div className="visual-helper-text">Visual helper</div>
-                <VisualizationToggle
-                    checked={isChecked}
-                    disabled={isDisabled}
-                    onClick={onClick}
-                    className="visual-helper-toggle"
-                    visualizationName="Visual helper"
-                />
+                <div className="visual-helper-text">{visualHelperText}</div>
+                <div aria-hidden={isDisabled} /* disabledMessage supersedes it; see #682 */>
+                    <VisualizationToggle
+                        checked={isChecked}
+                        disabled={isDisabled}
+                        onClick={onClick}
+                        className="visual-helper-toggle"
+                        visualizationName={visualHelperText}
+                        data-automation-id={visualHelperToggleAutomationId}
+                    />
+                </div>
                 {disabledMessage}
             </div>
         );
     }
 
-    protected abstract isDisabled(filteredInstances: IGeneratedAssessmentInstance<{}, {}>[]): boolean;
+    protected abstract isDisabled(
+        filteredInstances: GeneratedAssessmentInstance<{}, {}>[],
+    ): boolean;
 
-    protected abstract isChecked(instances: IGeneratedAssessmentInstance<{}, {}>[]): boolean;
+    protected abstract isChecked(instances: GeneratedAssessmentInstance<{}, {}>[]): boolean;
 
-    protected filterInstancesByTestStep(assessmentNavState, instancesMap: DictionaryStringTo<IGeneratedAssessmentInstance>) {
-        const selectedTestStep = assessmentNavState.selectedTestStep;
+    protected filterInstancesByTestStep(
+        assessmentNavState,
+        instancesMap: DictionaryStringTo<GeneratedAssessmentInstance>,
+    ): GeneratedAssessmentInstance<{}, {}>[] {
+        const selectedTestSubview = assessmentNavState.selectedTestSubview;
 
-        return _.filter(instancesMap, instance => {
+        return filter(instancesMap, instance => {
             if (instance == null) {
                 return false;
             }
 
-            const testStepKeys = _.keys(instance.testStepResults);
-            return _.includes(testStepKeys, selectedTestStep) && instance.testStepResults[selectedTestStep] != null;
+            const testStepKeys = keys(instance.testStepResults);
+            return (
+                includes(testStepKeys, selectedTestSubview) &&
+                instance.testStepResults[selectedTestSubview] != null
+            );
         });
     }
 
     private renderNoMatchingElementsMessage(isDisabled: boolean): JSX.Element {
         if (isDisabled) {
-            return <span className="no-matching-elements">No matching/failing instances were found</span>;
+            return (
+                <span className="no-matching-elements">
+                    No matching/failing instances were found
+                </span>
+            );
         }
 
         return null;
     }
 
-    protected abstract onClick(event): void;
+    protected abstract onClick: (event: any) => void;
 }

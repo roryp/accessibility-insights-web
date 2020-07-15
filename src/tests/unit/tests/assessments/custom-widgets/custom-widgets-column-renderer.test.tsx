@@ -3,15 +3,15 @@
 import { shallow } from 'enzyme';
 import * as React from 'react';
 
-import { PropertyBagColumnRendererConfig } from '../../../../../assessments/common/property-bag-column-renderer';
-import { customWidgetsColumnRenderer } from '../../../../../assessments/custom-widgets/custom-widgets-column-renderer';
+import { PropertyBagColumnRendererConfig } from 'assessments/common/property-bag-column-renderer';
+import { customWidgetsColumnRenderer } from 'assessments/custom-widgets/custom-widgets-column-renderer';
 import { ColumnValueBag } from '../../../../../common/types/property-bag/column-value-bag';
-import { IAssessmentInstanceRowData } from '../../../../../DetailsView/components/assessment-instance-table';
+import { AssessmentInstanceRowData } from '../../../../../DetailsView/components/assessment-instance-table';
 import { RendererWrapper } from '../common/renderer-wrapper';
 
 describe('CustomWidgetsColumnRenderer', () => {
     let configs: PropertyBagColumnRendererConfig<TestPropertyBag>[];
-    let item: IAssessmentInstanceRowData<TestPropertyBag>;
+    let item: AssessmentInstanceRowData<TestPropertyBag>;
 
     beforeEach(() => {
         configs = [
@@ -52,15 +52,29 @@ describe('CustomWidgetsColumnRenderer', () => {
         expect(designPatternSpan).not.toBeUndefined();
         expect(designPatternSpan.hasClass('property-bag-div')).toBeTruthy();
         expect(designPatternSpan.children()).toHaveLength(2);
-        expect(designPatternSpan.text()).toEqual(`${configs[0].displayName}: ${item.instance.propertyBag.a}`);
+        expect(designPatternSpan.text()).toEqual(
+            `${configs[0].displayName}: ${item.instance.propertyBag.a}`,
+        );
     });
 
     it('should render expected links when role is set', () => {
         const expectedValues = [
-            { designPattern: 'Accordion', URL: 'https://www.w3.org/TR/wai-aria-practices-1.1/#accordion' },
-            { designPattern: 'Button', URL: 'https://www.w3.org/TR/wai-aria-practices-1.1/#button' },
-            { designPattern: 'Dislosure (Show/Hide)', URL: 'https://www.w3.org/TR/wai-aria-practices-1.1/#disclosure' },
-            { designPattern: 'Menu Button', URL: 'https://www.w3.org/TR/wai-aria-practices-1.1/#menubutton' },
+            {
+                designPattern: 'Accordion',
+                URL: 'https://www.w3.org/TR/wai-aria-practices-1.1/#accordion',
+            },
+            {
+                designPattern: 'Button',
+                URL: 'https://www.w3.org/TR/wai-aria-practices-1.1/#button',
+            },
+            {
+                designPattern: 'Disclosure (Show/Hide)',
+                URL: 'https://www.w3.org/TR/wai-aria-practices-1.1/#disclosure',
+            },
+            {
+                designPattern: 'Menu Button',
+                URL: 'https://www.w3.org/TR/wai-aria-practices-1.1/#menubutton',
+            },
         ];
         item.instance.propertyBag.role = 'button';
 
@@ -86,8 +100,14 @@ describe('CustomWidgetsColumnRenderer', () => {
 
     it('should render expected spans when role is set', () => {
         const expectedValues = [
-            { designPattern: 'Slider', URL: 'https://www.w3.org/TR/wai-aria-practices-1.1/#slider' },
-            { designPattern: 'Slider (Multi-thumb)', URL: 'https://www.w3.org/TR/wai-aria-practices-1.1/#sliderwothumb' },
+            {
+                designPattern: 'Slider',
+                URL: 'https://www.w3.org/TR/wai-aria-practices-1.1/#slider',
+            },
+            {
+                designPattern: 'Slider (Multi-thumb)',
+                URL: 'https://www.w3.org/TR/wai-aria-practices-1.1/#sliderwothumb',
+            },
         ];
         item.instance.propertyBag.role = 'slider';
 
@@ -106,7 +126,7 @@ describe('CustomWidgetsColumnRenderer', () => {
         }
     });
 
-    function checkLink(link: React.ReactElement<any>, name: string, url: string) {
+    function checkLink(link: React.ReactElement<any>, name: string, url: string): void {
         expect(link.props.href).toEqual(url);
         expect(link.props.children).toEqual(name);
     }

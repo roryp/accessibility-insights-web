@@ -3,7 +3,7 @@
 import { It, Mock, Times } from 'typemoq';
 
 import { HTMLElementUtils } from '../../../../common/html-element-utils';
-import { NodeListBuilder } from '../../common/node-list-builder';
+import { HTMLCollectionOfBuilder } from '../../common/html-collection-of-builder';
 
 describe('HTMLElementUtilsTest', () => {
     test('getContentWindow', () => {
@@ -37,7 +37,7 @@ describe('HTMLElementUtilsTest', () => {
 
         const expectedElement = 'element' as any;
         const getElementsMock = Mock.ofInstance((_: string) => new Element());
-        getElementsMock.setup(get => get(tagName)).returns(() => expectedElement);
+        getElementsMock.setup(getter => getter(tagName)).returns(() => expectedElement);
 
         const dom = {
             getElementsByTagName: getElementsMock.object,
@@ -48,6 +48,20 @@ describe('HTMLElementUtilsTest', () => {
         const result = testObject.getAllElementsByTagName(tagName);
 
         expect(result).toEqual(expectedElement);
+    });
+
+    test('getBody', () => {
+        const expectedBody = 'body stub' as any;
+
+        const dom = {
+            body: expectedBody,
+        } as any;
+
+        const testObject = new HTMLElementUtils(dom);
+
+        const result = testObject.getBody();
+
+        expect(result).toEqual(expectedBody);
     });
 
     test('querySelector', () => {
@@ -73,9 +87,11 @@ describe('HTMLElementUtilsTest', () => {
 
         const elements = ['element1' as any, 'element2' as any];
 
-        const expectedElements: NodeListOf<Element> = NodeListBuilder.createNodeList(elements);
+        const expectedElements = HTMLCollectionOfBuilder.create(elements);
 
-        const querySelectorAllMock = Mock.ofInstance((_: string) => null as NodeListOf<Element>);
+        const querySelectorAllMock = Mock.ofInstance(
+            (_: string) => null as HTMLCollectionOf<Element>,
+        );
         querySelectorAllMock.setup(qs => qs(selector)).returns(() => expectedElements);
 
         const dom = {
@@ -212,13 +228,13 @@ describe('HTMLElementUtilsTest', () => {
         expect(containerElement.querySelectorAll('.do-not-delete').length).toBe(1);
     });
 
-    function createElementWithId(id: string) {
+    function createElementWithId(id: string): Element {
         const element = document.createElement('p');
         element.id = id;
         return element;
     }
 
-    function createElementWithClassName(className: string) {
+    function createElementWithClassName(className: string): Element {
         const element = document.createElement('p');
         element.className = className;
         return element;

@@ -1,8 +1,7 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 import { IPoint } from '@uifabric/utilities';
-import { IMock, Mock, Times } from 'typemoq';
-
+import { IMock, Mock } from 'typemoq';
 import { TabbableElementsHelper } from '../../../../../common/tabbable-elements-helper';
 import { WindowUtils } from '../../../../../common/window-utils';
 import { ClientUtils } from '../../../../../injected/client-utils';
@@ -14,7 +13,6 @@ import { DrawerUtilsMockBuilder } from './drawer-utils-mock-builder';
 describe('CenterPositionCalculatorTest', () => {
     let windowUtilsMock: IMock<WindowUtils>;
     let tabbableElementsHelperMock: IMock<TabbableElementsHelper>;
-    let querySelectorMock: IMock<any>;
     let documentMock;
     const bodyStub = { bodyStub: true } as any;
     const styleStub = { styleStub: true } as any;
@@ -22,10 +20,9 @@ describe('CenterPositionCalculatorTest', () => {
     beforeEach(() => {
         windowUtilsMock = Mock.ofType(WindowUtils);
         tabbableElementsHelperMock = Mock.ofType(TabbableElementsHelper);
-        querySelectorMock = Mock.ofInstance(() => HTMLElement);
         documentMock = {
             documentElement: { docElement: true },
-            querySelector: querySelectorMock.object,
+            body: bodyStub,
         };
     });
 
@@ -47,7 +44,6 @@ describe('CenterPositionCalculatorTest', () => {
             y: 12,
         };
 
-        setupDefaultQuerySelectorMock();
         setupDefaultWindowUtilsMock();
         const drawerUtilsMock = new DrawerUtilsMockBuilder(documentMock, styleStub)
             .setupGetContainerOffset(10)
@@ -56,10 +52,11 @@ describe('CenterPositionCalculatorTest', () => {
 
         const centerPositionCalculator = createCenterPositionCalculator(drawerUtilsMock.object);
 
-        expect(centerPositionCalculator.getElementCenterPosition(element)).toEqual(expectedPosition);
+        expect(centerPositionCalculator.getElementCenterPosition(element)).toEqual(
+            expectedPosition,
+        );
 
         drawerUtilsMock.verifyAll();
-        querySelectorMock.verifyAll();
         windowUtilsMock.verifyAll();
     });
 
@@ -75,7 +72,6 @@ describe('CenterPositionCalculatorTest', () => {
         const area: HTMLElement = dom.querySelector('#id1') as HTMLElement;
         const map: HTMLMapElement = dom.querySelector('#map1') as HTMLMapElement;
 
-        setupDefaultQuerySelectorMock();
         setupDefaultWindowUtilsMock();
         const drawerUtilsMock = new DrawerUtilsMockBuilder(documentMock, styleStub)
             .setupIsOutsideOfDocument(true)
@@ -89,29 +85,27 @@ describe('CenterPositionCalculatorTest', () => {
         expect(centerPositionCalculator.getElementCenterPosition(area)).toBeNull();
 
         drawerUtilsMock.verifyAll();
-        querySelectorMock.verifyAll();
         windowUtilsMock.verifyAll();
     });
 
     test('getElementCenterPosition: default area', () => {
         const expectedPosition: IPoint = {
-            x: 12,
-            y: 12,
+            x: 10,
+            y: 10,
         };
         const dom = TestDocumentCreator.createTestDocument(`
-                    <img id="img1" src="planets.gif" width="145" height="126" alt="Planets" usemap="#planetmap">
+                    <img id="img1" src="planets.gif" width="145" height="126" alt="Planets" usemap="#planetmap"/>
                     <map id="map1" name="planetmap">
-                        <area id="id1" shape="default" alt="Venus" href="venus.htm">
+                        <area id="id1" shape="default" coords="0,0" alt="Venus" href="venus.htm"/>
                     </map>
                 `);
         const img: HTMLImageElement = dom.querySelector('#img1') as HTMLImageElement;
         const area: HTMLElement = dom.querySelector('#id1') as HTMLElement;
         const map: HTMLMapElement = dom.querySelector('#map1') as HTMLMapElement;
 
-        setupDefaultQuerySelectorMock();
         setupDefaultWindowUtilsMock();
 
-        const drawerUtilsMock = new DrawerUtilsMockBuilder(documentMock, styleStub)
+        const drawerUtilsMock = new DrawerUtilsMockBuilder(dom, styleStub)
             .setupGetContainerOffset(10)
             .setupGetContainerSize(4)
             .build();
@@ -123,7 +117,6 @@ describe('CenterPositionCalculatorTest', () => {
         expect(centerPositionCalculator.getElementCenterPosition(area)).toEqual(expectedPosition);
 
         drawerUtilsMock.verifyAll();
-        querySelectorMock.verifyAll();
         windowUtilsMock.verifyAll();
     });
 
@@ -148,7 +141,6 @@ describe('CenterPositionCalculatorTest', () => {
 
         setupDefaultTabbableElementsHelperMock(area, map, img);
 
-        setupDefaultQuerySelectorMock();
         setupDefaultWindowUtilsMock();
 
         const centerPositionCalculator = createCenterPositionCalculator(drawerUtilsMock.object);
@@ -156,7 +148,6 @@ describe('CenterPositionCalculatorTest', () => {
         expect(centerPositionCalculator.getElementCenterPosition(area)).toEqual(expectedPosition);
 
         drawerUtilsMock.verifyAll();
-        querySelectorMock.verifyAll();
         windowUtilsMock.verifyAll();
     });
 
@@ -180,7 +171,6 @@ describe('CenterPositionCalculatorTest', () => {
             .setupGetContainerSizeNeverCall()
             .build();
 
-        setupDefaultQuerySelectorMock();
         setupDefaultWindowUtilsMock();
         setupDefaultTabbableElementsHelperMock(area, map, img);
 
@@ -189,7 +179,6 @@ describe('CenterPositionCalculatorTest', () => {
         expect(centerPositionCalculator.getElementCenterPosition(area)).toEqual(expectedPosition);
 
         drawerUtilsMock.verifyAll();
-        querySelectorMock.verifyAll();
         windowUtilsMock.verifyAll();
     });
 
@@ -213,7 +202,6 @@ describe('CenterPositionCalculatorTest', () => {
             .setupGetContainerSizeNeverCall()
             .build();
 
-        setupDefaultQuerySelectorMock();
         setupDefaultWindowUtilsMock();
         setupDefaultTabbableElementsHelperMock(area, map, img);
 
@@ -222,7 +210,6 @@ describe('CenterPositionCalculatorTest', () => {
         expect(centerPositionCalculator.getElementCenterPosition(area)).toEqual(expectedPosition);
 
         drawerUtilsMock.verifyAll();
-        querySelectorMock.verifyAll();
         windowUtilsMock.verifyAll();
     });
 
@@ -246,7 +233,6 @@ describe('CenterPositionCalculatorTest', () => {
             .setupGetContainerSizeNeverCall()
             .build();
 
-        setupDefaultQuerySelectorMock();
         setupDefaultWindowUtilsMock();
         setupDefaultTabbableElementsHelperMock(area, map, img);
 
@@ -255,7 +241,6 @@ describe('CenterPositionCalculatorTest', () => {
         expect(centerPositionCalculator.getElementCenterPosition(area)).toEqual(expectedPosition);
 
         drawerUtilsMock.verifyAll();
-        querySelectorMock.verifyAll();
         windowUtilsMock.verifyAll();
     });
 
@@ -267,7 +252,6 @@ describe('CenterPositionCalculatorTest', () => {
             .setupGetContainerOffsetNeverCall()
             .build();
 
-        setupDefaultQuerySelectorMock();
         setupDefaultWindowUtilsMock();
 
         const centerPositionCalculator = createCenterPositionCalculator(drawerUtilsMock.object);
@@ -275,38 +259,56 @@ describe('CenterPositionCalculatorTest', () => {
         expect(centerPositionCalculator.getElementCenterPosition(element)).toBeNull();
 
         drawerUtilsMock.verifyAll();
-        querySelectorMock.verifyAll();
         windowUtilsMock.verifyAll();
     });
 
-    function setupDefaultQuerySelectorMock(): void {
-        querySelectorMock
-            .setup(q => q('body'))
-            .returns(selector => bodyStub)
-            .verifiable(Times.once());
-    }
+    test('getElementCenterPosition: no coords', () => {
+        const expectedPosition: IPoint = {
+            x: 20,
+            y: 20,
+        };
+        const dom = TestDocumentCreator.createTestDocument(`
+                    <img id="img1" src="planets.gif" width="145" height="126" alt="Planets" usemap="#planetmap"/>
+                    <map id="map1" name="planetmap">
+                        <area id="id1" shape="default" alt="Venus" href="venus.htm"/>
+                    </map>
+                `);
+        const img: HTMLImageElement = dom.querySelector('#img1') as HTMLImageElement;
+        const area: HTMLElement = dom.querySelector('#id1') as HTMLElement;
+        const map: HTMLMapElement = dom.querySelector('#map1') as HTMLMapElement;
+
+        setupDefaultWindowUtilsMock();
+
+        const drawerUtilsMock = new DrawerUtilsMockBuilder(dom, styleStub)
+            .setupGetContainerOffset(20)
+            .setupGetContainerSize(4)
+            .build();
+
+        setupDefaultTabbableElementsHelperMock(area, map, img);
+
+        const centerPositionCalculator = createCenterPositionCalculator(drawerUtilsMock.object);
+
+        expect(centerPositionCalculator.getElementCenterPosition(area)).toEqual(expectedPosition);
+
+        drawerUtilsMock.verifyAll();
+        windowUtilsMock.verifyAll();
+    });
 
     function setupDefaultWindowUtilsMock(): void {
         windowUtilsMock
             .setup(w => w.getComputedStyle(bodyStub as any))
-            .returns(() => styleStub as any)
-            .verifiable(Times.once());
-
+            .returns(() => styleStub as any);
         windowUtilsMock
             .setup(w => w.getComputedStyle(documentMock.documentElement))
-            .returns(() => styleStub as any)
-            .verifiable(Times.once());
+            .returns(() => styleStub as any);
     }
 
-    function setupDefaultTabbableElementsHelperMock(area: HTMLElement, map: HTMLMapElement, img: HTMLImageElement): void {
-        tabbableElementsHelperMock
-            .setup(t => t.getAncestorMap(area))
-            .returns(() => map)
-            .verifiable(Times.once());
-
-        tabbableElementsHelperMock
-            .setup(t => t.getMappedImage(map))
-            .returns(() => img)
-            .verifiable(Times.once());
+    function setupDefaultTabbableElementsHelperMock(
+        area: HTMLElement,
+        map: HTMLMapElement,
+        img: HTMLImageElement,
+    ): void {
+        tabbableElementsHelperMock.setup(t => t.getAncestorMap(area)).returns(() => map);
+        tabbableElementsHelperMock.setup(t => t.getMappedImage(map)).returns(() => img);
     }
 });

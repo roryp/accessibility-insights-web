@@ -2,26 +2,30 @@
 // Licensed under the MIT License.
 import { flatten } from 'lodash';
 
-import { Assessment } from '../../../../assessments/types/iassessment';
-import { ReportInstanceFields } from '../../../../assessments/types/report-instance-field';
-import { ManualTestStatus, ManualTestStatusData } from '../../../../common/types/manual-test-status';
+import { Assessment } from 'assessments/types/iassessment';
+import { ReportInstanceFields } from 'assessments/types/report-instance-field';
 import {
-    IAssessmentData,
-    IAssessmentStoreData,
-    IGeneratedAssessmentInstance,
-    IManualTestStepResult,
-    PersistedTabInfo,
-} from '../../../../common/types/store-data/iassessment-result-data';
-import { excludePassingInstancesFromAssessmentReport } from '../../../../DetailsView/extensions/exclude-passing-instances-from-assessment-report';
-import {
-    IAssessmentDetailsReportModel,
-    IInstanceReportModel,
+    AssessmentDetailsReportModel,
     InstanceElementKey,
-    IOverviewSummaryReportModel,
-    IReportModel,
-    IRequirementReportModel,
-    IScanDetailsReportModel,
-} from '../../../../DetailsView/reports/assessment-report-model';
+    InstanceReportModel,
+    OverviewSummaryReportModel,
+    ReportModel,
+    RequirementReportModel,
+    ScanDetailsReportModel,
+} from 'reports/assessment-report-model';
+import {
+    ManualTestStatus,
+    ManualTestStatusData,
+} from '../../../../common/types/manual-test-status';
+import {
+    AssessmentData,
+    AssessmentStoreData,
+    GeneratedAssessmentInstance,
+    ManualTestStepResult,
+    PersistedTabInfo,
+} from '../../../../common/types/store-data/assessment-result-data';
+import { excludePassingInstancesFromAssessmentReport } from '../../../../DetailsView/extensions/exclude-passing-instances-from-assessment-report';
+import { DictionaryStringTo } from '../../../../types/common-types';
 
 export class AssessmentReportBuilderTestHelper {
     public static defaultMessageComponent = null;
@@ -32,7 +36,7 @@ export class AssessmentReportBuilderTestHelper {
 
     public static readonly reportDate = new Date(Date.UTC(2000, 0, 1, 0, 0));
 
-    private static getAssistedInstances(): DictionaryStringTo<IGeneratedAssessmentInstance> {
+    private static getAssistedInstances(): DictionaryStringTo<GeneratedAssessmentInstance> {
         return {
             ['instance1']: {
                 id: 'id1',
@@ -72,10 +76,10 @@ export class AssessmentReportBuilderTestHelper {
                 },
                 target: ['target2'],
             },
-        } as DictionaryStringTo<IGeneratedAssessmentInstance>;
+        } as DictionaryStringTo<GeneratedAssessmentInstance>;
     }
 
-    private static getManualInstance1(): DictionaryStringTo<IManualTestStepResult> {
+    private static getManualInstance1(): DictionaryStringTo<ManualTestStepResult> {
         return {
             ['step1a']: {
                 status: ManualTestStatus.FAIL,
@@ -104,17 +108,17 @@ export class AssessmentReportBuilderTestHelper {
                     },
                 ],
             },
-        } as DictionaryStringTo<IManualTestStepResult>;
+        } as DictionaryStringTo<ManualTestStepResult>;
     }
 
-    private static getManualInstance2(): DictionaryStringTo<IManualTestStepResult> {
+    private static getManualInstance2(): DictionaryStringTo<ManualTestStepResult> {
         return {
             ['step1b']: {
                 status: ManualTestStatus.FAIL,
                 id: 'id1',
                 instances: [],
             },
-        } as DictionaryStringTo<IManualTestStepResult>;
+        } as DictionaryStringTo<ManualTestStepResult>;
     }
 
     private static getManualTestStatus1(): ManualTestStatusData {
@@ -151,25 +155,25 @@ export class AssessmentReportBuilderTestHelper {
         };
     }
 
-    private static getAssessmentData1(): IAssessmentData {
+    private static getAssessmentData1(): AssessmentData {
         return {
             fullAxeResultsMap: null,
             generatedAssessmentInstancesMap: this.getAssistedInstances(),
             manualTestStepResultMap: this.getManualInstance1(),
             testStepStatus: this.getManualTestStatus1(),
-        } as IAssessmentData;
+        } as AssessmentData;
     }
 
-    private static getAssessmentData2(): IAssessmentData {
+    private static getAssessmentData2(): AssessmentData {
         return {
             fullAxeResultsMap: null,
             generatedAssessmentInstancesMap: null,
             manualTestStepResultMap: this.getManualInstance2(),
             testStepStatus: this.getManualTestStatus2(),
-        } as IAssessmentData;
+        } as AssessmentData;
     }
 
-    public static getAssessmentStoreData(): IAssessmentStoreData {
+    public static getAssessmentStoreData(): AssessmentStoreData {
         return {
             persistedTabInfo: {} as PersistedTabInfo,
             assessments: {
@@ -177,11 +181,14 @@ export class AssessmentReportBuilderTestHelper {
                 ['assessment2']: this.getAssessmentData2(),
             },
             assessmentNavState: null,
-        } as IAssessmentStoreData;
+            resultDescription: '',
+        } as AssessmentStoreData;
     }
 
     public static getAssessmentProviderAll(getDefaultMessage): Assessment[] {
-        const manualFields: ReportInstanceFields = [{ key: 'comment', label: 'Comment', getValue: i => i.description }];
+        const manualFields: ReportInstanceFields = [
+            { key: 'comment', label: 'Comment', getValue: i => i.description },
+        ];
 
         const automaticFields: ReportInstanceFields = [
             { key: 'path', label: 'Path', getValue: i => i.target && i.target.join(', ') },
@@ -192,7 +199,7 @@ export class AssessmentReportBuilderTestHelper {
             {
                 key: 'assessment1',
                 title: 'Assessment1',
-                steps: [
+                requirements: [
                     {
                         key: 'step1a',
                         name: 'Step1A',
@@ -248,7 +255,7 @@ export class AssessmentReportBuilderTestHelper {
             {
                 key: 'assessment2',
                 title: 'Assessment2',
-                steps: [
+                requirements: [
                     {
                         key: 'step1b',
                         name: 'Step1B',
@@ -281,13 +288,13 @@ export class AssessmentReportBuilderTestHelper {
             data
                 .filter(assessmentContent => assessmentContent.key === assessmentKey)
                 .map(assessmentContent => {
-                    return assessmentContent.steps.map(step => step.key);
+                    return assessmentContent.requirements.map(step => step.key);
                 }),
         );
     }
 
-    public static getInstanceReportModelStep1PassStep2Fail(): IInstanceReportModel[] {
-        const model: IInstanceReportModel[] = [
+    public static getInstanceReportModelStep1PassStep2Fail(): InstanceReportModel[] {
+        const model: InstanceReportModel[] = [
             {
                 props: [
                     {
@@ -304,8 +311,8 @@ export class AssessmentReportBuilderTestHelper {
         return model;
     }
 
-    public static getInstanceReportModelStep3Unknown(): IInstanceReportModel[] {
-        const model: IInstanceReportModel[] = [
+    public static getInstanceReportModelStep3Unknown(): InstanceReportModel[] {
+        const model: InstanceReportModel[] = [
             {
                 props: [
                     {
@@ -322,7 +329,7 @@ export class AssessmentReportBuilderTestHelper {
         return model;
     }
 
-    public static getInstanceWithObjectValueProp(): IInstanceReportModel[] {
+    public static getInstanceWithObjectValueProp(): InstanceReportModel[] {
         return [
             {
                 props: [
@@ -334,10 +341,10 @@ export class AssessmentReportBuilderTestHelper {
                     },
                 ],
             },
-        ] as IInstanceReportModel[];
+        ] as InstanceReportModel[];
     }
 
-    public static getInstanceWithMixOfSimpleAndComplexValues(): IInstanceReportModel[] {
+    public static getInstanceWithMixOfSimpleAndComplexValues(): InstanceReportModel[] {
         return [
             {
                 props: [
@@ -371,11 +378,11 @@ export class AssessmentReportBuilderTestHelper {
                     },
                 ],
             },
-        ] as IInstanceReportModel[];
+        ] as InstanceReportModel[];
     }
 
-    public static getInstanceReportModelManualStep4Fail(): IInstanceReportModel[] {
-        const model: IInstanceReportModel[] = [
+    public static getInstanceReportModelManualStep4Fail(): InstanceReportModel[] {
+        const model: InstanceReportModel[] = [
             {
                 props: [
                     {
@@ -388,7 +395,7 @@ export class AssessmentReportBuilderTestHelper {
         return model;
     }
 
-    public static getRequirementReportModelPass(): IRequirementReportModel[] {
+    public static getRequirementReportModelPass(): RequirementReportModel[] {
         return [
             {
                 key: 'step1a',
@@ -407,10 +414,10 @@ export class AssessmentReportBuilderTestHelper {
                 defaultMessageComponent: AssessmentReportBuilderTestHelper.defaultMessageComponent,
                 showPassingInstances: false,
             },
-        ] as IRequirementReportModel[];
+        ] as RequirementReportModel[];
     }
 
-    public static getRequirementReportModelFail(): IRequirementReportModel[] {
+    public static getRequirementReportModelFail(): RequirementReportModel[] {
         return [
             {
                 key: 'step2a',
@@ -436,10 +443,10 @@ export class AssessmentReportBuilderTestHelper {
                 defaultMessageComponent: AssessmentReportBuilderTestHelper.defaultMessageComponent,
                 showPassingInstances: false,
             },
-        ] as IRequirementReportModel[];
+        ] as RequirementReportModel[];
     }
 
-    private static getRequirementReportModelFailAssessment2(): IRequirementReportModel[] {
+    private static getRequirementReportModelFailAssessment2(): RequirementReportModel[] {
         return [
             {
                 key: 'step2b',
@@ -453,10 +460,10 @@ export class AssessmentReportBuilderTestHelper {
                 defaultMessageComponent: AssessmentReportBuilderTestHelper.defaultMessageComponent,
                 showPassingInstances: true,
             },
-        ] as IRequirementReportModel[];
+        ] as RequirementReportModel[];
     }
 
-    public static getRequirementReportModelUnknownStep3(): IRequirementReportModel[] {
+    public static getRequirementReportModelUnknownStep3(): RequirementReportModel[] {
         return [
             {
                 key: 'step3a',
@@ -470,10 +477,10 @@ export class AssessmentReportBuilderTestHelper {
                 defaultMessageComponent: AssessmentReportBuilderTestHelper.defaultMessageComponent,
                 showPassingInstances: false,
             },
-        ] as IRequirementReportModel[];
+        ] as RequirementReportModel[];
     }
 
-    private static getRequirementReportModelUnknownStep1(): IRequirementReportModel[] {
+    private static getRequirementReportModelUnknownStep1(): RequirementReportModel[] {
         return [
             {
                 key: 'step1b',
@@ -487,20 +494,20 @@ export class AssessmentReportBuilderTestHelper {
                 instances: [],
                 showPassingInstances: true,
             },
-        ] as IRequirementReportModel[];
+        ] as RequirementReportModel[];
     }
 
-    public static getAssessmentDetailsReportModelPass(): IAssessmentDetailsReportModel[] {
+    public static getAssessmentDetailsReportModelPass(): AssessmentDetailsReportModel[] {
         return [
             {
                 key: 'assessment1',
                 displayName: 'Assessment1',
                 steps: this.getRequirementReportModelPass(),
             },
-        ] as IAssessmentDetailsReportModel[];
+        ] as AssessmentDetailsReportModel[];
     }
 
-    public static getAssessmentDetailsReportModelFail(): IAssessmentDetailsReportModel[] {
+    public static getAssessmentDetailsReportModelFail(): AssessmentDetailsReportModel[] {
         return [
             {
                 key: 'assessment1',
@@ -512,10 +519,10 @@ export class AssessmentReportBuilderTestHelper {
                 displayName: 'Assessment2',
                 steps: this.getRequirementReportModelFailAssessment2(),
             },
-        ] as IAssessmentDetailsReportModel[];
+        ] as AssessmentDetailsReportModel[];
     }
 
-    public static getAssessmentDetailsReportModelUnknown(): IAssessmentDetailsReportModel[] {
+    public static getAssessmentDetailsReportModelUnknown(): AssessmentDetailsReportModel[] {
         return [
             {
                 key: 'assessment1',
@@ -527,10 +534,10 @@ export class AssessmentReportBuilderTestHelper {
                 displayName: 'Assessment2',
                 steps: this.getRequirementReportModelUnknownStep1(),
             },
-        ] as IAssessmentDetailsReportModel[];
+        ] as AssessmentDetailsReportModel[];
     }
 
-    public static getAssessmentsSummaryReportModel(): IOverviewSummaryReportModel {
+    public static getAssessmentsSummaryReportModel(): OverviewSummaryReportModel {
         return {
             byPercentage: {
                 pass: 13,
@@ -556,10 +563,10 @@ export class AssessmentReportBuilderTestHelper {
                     incomplete: 1,
                 },
             ],
-        } as IOverviewSummaryReportModel;
+        } as OverviewSummaryReportModel;
     }
 
-    private static getAssessmentScanDetailsReportModel(): IScanDetailsReportModel {
+    private static getAssessmentScanDetailsReportModel(): ScanDetailsReportModel {
         const dateWithFakeTimeZone = new Date(this.reportDate);
         dateWithFakeTimeZone.toLocaleTimeString = () => {
             return 'blah FTZ';
@@ -581,16 +588,16 @@ export class AssessmentReportBuilderTestHelper {
             targetPage: 'title',
             url: 'url',
             reportDate: dateWithFakeTimeZone,
-        } as IScanDetailsReportModel;
+        } as ScanDetailsReportModel;
     }
 
-    public static getAssessmentReportModel(): IReportModel {
+    public static getAssessmentReportModel(): ReportModel {
         return {
             summary: this.getAssessmentsSummaryReportModel(),
             scanDetails: this.getAssessmentScanDetailsReportModel(),
             passedDetailsData: this.getAssessmentDetailsReportModelPass(),
             failedDetailsData: this.getAssessmentDetailsReportModelFail(),
             incompleteDetailsData: this.getAssessmentDetailsReportModelUnknown(),
-        } as IReportModel;
+        } as ReportModel;
     }
 }

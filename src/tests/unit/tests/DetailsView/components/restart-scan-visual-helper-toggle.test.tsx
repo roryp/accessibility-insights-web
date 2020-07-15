@@ -1,39 +1,35 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
-import * as Enzyme from 'enzyme';
-import * as _ from 'lodash';
+import { shallow, ShallowWrapper } from 'enzyme';
+import { forEach } from 'lodash';
 import * as React from 'react';
 import { IMock, Mock, Times } from 'typemoq';
-
-import { VisualHelperToggleConfig } from '../../../../../assessments/types/test-step';
-import { VisualizationToggle, VisualizationToggleProps } from '../../../../../common/components/visualization-toggle';
-import { ManualTestStatus } from '../../../../../common/types/manual-test-status';
 import {
-    IAssessmentResultType,
-    IGeneratedAssessmentInstance,
-    ITestStepResult,
-} from '../../../../../common/types/store-data/iassessment-result-data';
-import { VisualizationType } from '../../../../../common/types/visualization-type';
+    VisualizationToggle,
+    VisualizationToggleProps,
+} from '../../../../../common/components/visualization-toggle';
 import { DetailsViewActionMessageCreator } from '../../../../../DetailsView/actions/details-view-action-message-creator';
+import { visualHelperText } from '../../../../../DetailsView/components/base-visual-helper-toggle';
 import { RestartScanVisualHelperToggle } from '../../../../../DetailsView/components/restart-scan-visual-helper-toggle';
-import { BaseDataBuilder } from '../../../common/base-data-builder';
+import { VisualHelperToggleConfigBuilder } from '../../../common/visual-helper-toggle-config-builder';
+import { VisualizationTogglePropsBuilder } from '../../../common/visualization-toggle-props-builder';
 
 describe('RestartScanVisualHelperToggleTest', () => {
     const stepKey = 'assessment-1-step-1';
-    let actionMessageCreatorMock: IMock<DetailsViewActionMessageCreator>;
+    let detailsViewActionMessageCreatorMock: IMock<DetailsViewActionMessageCreator>;
 
     beforeEach(() => {
-        actionMessageCreatorMock = Mock.ofType(DetailsViewActionMessageCreator);
+        detailsViewActionMessageCreatorMock = Mock.ofType(DetailsViewActionMessageCreator);
     });
 
     test('render', () => {
-        const props = new VisualHelperToggleTestPropsBuilder()
+        const props = new VisualHelperToggleConfigBuilder()
             .withToggleStepEnabled(true)
             .withToggleStepScanned(false)
-            .withActionMessageCreator(actionMessageCreatorMock.object)
+            .withActionMessageCreator(detailsViewActionMessageCreatorMock.object)
             .build();
 
-        const wrapper = Enzyme.shallow(<RestartScanVisualHelperToggle {...props} />);
+        const wrapper = shallow(<RestartScanVisualHelperToggle {...props} />);
 
         const visualHelperClass = 'visual-helper';
         const toggleDiv = wrapper.find(`.${visualHelperClass}`);
@@ -43,7 +39,6 @@ describe('RestartScanVisualHelperToggleTest', () => {
         const textDiv = toggleDiv.find(`.${visualHelperClass}-text`);
 
         expect(textDiv.exists()).toBe(true);
-        expect(textDiv.childAt(0).text()).toBe('Visual helper');
 
         const toggle = wrapper.find(VisualizationToggle);
 
@@ -53,162 +48,54 @@ describe('RestartScanVisualHelperToggleTest', () => {
             .build();
 
         assertVisualizationToggle(expectedToggleProps, toggle);
+        assertSnapshotMatch(wrapper);
     });
 
-    test('onClick: step enabled', () => {
-        const props = new VisualHelperToggleTestPropsBuilder()
-            .withToggleStepEnabled(true)
+    test.each([true, false])('onClick: step enabled = %s', stepIsEnabled => {
+        const props = new VisualHelperToggleConfigBuilder()
+            .withToggleStepEnabled(stepIsEnabled)
             .withToggleStepScanned(false)
-            .withActionMessageCreator(actionMessageCreatorMock.object)
+            .withActionMessageCreator(detailsViewActionMessageCreatorMock.object)
             .build();
-
-        const wrapper = Enzyme.shallow(<RestartScanVisualHelperToggle {...props} />);
-        actionMessageCreatorMock.reset();
-        actionMessageCreatorMock
-            .setup(acm => acm.disableVisualHelper(props.assessmentNavState.selectedTestType, props.assessmentNavState.selectedTestStep))
+        const wrapper = shallow(<RestartScanVisualHelperToggle {...props} />);
+        detailsViewActionMessageCreatorMock.reset();
+        detailsViewActionMessageCreatorMock
+            .setup(acm => {
+                return stepIsEnabled
+                    ? acm.disableVisualHelper(
+                          props.assessmentNavState.selectedTestType,
+                          props.assessmentNavState.selectedTestSubview,
+                      )
+                    : acm.enableVisualHelper(props.assessmentNavState.selectedTestType, stepKey);
+            })
             .verifiable(Times.once());
 
         wrapper.find(VisualizationToggle).simulate('click');
 
-        actionMessageCreatorMock.verifyAll();
-    });
-
-    test('onClick: step disabled', () => {
-        const props = new VisualHelperToggleTestPropsBuilder()
-            .withToggleStepEnabled(false)
-            .withToggleStepScanned(false)
-            .withActionMessageCreator(actionMessageCreatorMock.object)
-            .build();
-
-        const wrapper = Enzyme.shallow(<RestartScanVisualHelperToggle {...props} />);
-        actionMessageCreatorMock.reset();
-        actionMessageCreatorMock
-            .setup(acm => acm.enableVisualHelper(props.assessmentNavState.selectedTestType, stepKey))
-            .verifiable(Times.once());
-
-        wrapper.find(VisualizationToggle).simulate('click');
-
-        actionMessageCreatorMock.verifyAll();
+        detailsViewActionMessageCreatorMock.verifyAll();
+        assertSnapshotMatch(wrapper);
     });
 
     function assertVisualizationToggle(
         expectedProps: VisualizationToggleProps,
-        visualizationToggle: Enzyme.ShallowWrapper<VisualizationToggleProps>,
-    ) {
+        visualizationToggle: ShallowWrapper<VisualizationToggleProps>,
+    ): void {
         expect(visualizationToggle.exists()).toBe(true);
 
         const actualProps = visualizationToggle.props();
 
-        _.forEach(expectedProps, (value, key) => {
+        forEach(expectedProps, (value, key) => {
             expect(actualProps[key]).toBe(value);
         });
     }
 
-    function getDefaultVisualizationTogglePropsBuilder() {
-        return new VisualizationTogglePropsBuilder().with('visualizationName', 'Visual helper').with('className', 'visual-helper-toggle');
+    function assertSnapshotMatch(toggleWrapper: ShallowWrapper): void {
+        expect(toggleWrapper.getElement()).toMatchSnapshot();
+    }
+
+    function getDefaultVisualizationTogglePropsBuilder(): VisualizationTogglePropsBuilder {
+        return new VisualizationTogglePropsBuilder()
+            .with('visualizationName', visualHelperText)
+            .with('className', 'visual-helper-toggle');
     }
 });
-
-export class VisualHelperToggleTestPropsBuilder extends BaseDataBuilder<VisualHelperToggleConfig> {
-    private stepKey = 'assessment-1-step-1';
-    private otherKey = 'assessment-1-step-2';
-    constructor() {
-        super();
-
-        this.data = {
-            assessmentNavState: {
-                selectedTestStep: this.stepKey,
-                selectedTestType: -1 as VisualizationType,
-            },
-            actionMessageCreator: null,
-            instancesMap: {
-                'assessment-1-step-1': {
-                    html: 'html',
-                    propertyBag: {},
-                    target: ['element2'],
-                } as IGeneratedAssessmentInstance,
-            } as DictionaryStringTo<IGeneratedAssessmentInstance>,
-            isStepEnabled: true,
-            isStepScanned: false,
-        };
-    }
-
-    public withActionMessageCreator(actionMessageCreator: DetailsViewActionMessageCreator): VisualHelperToggleTestPropsBuilder {
-        this.data.actionMessageCreator = actionMessageCreator;
-        return this;
-    }
-
-    public withToggleStepEnabled(stepEnabled: boolean): VisualHelperToggleTestPropsBuilder {
-        this.data.isStepEnabled = stepEnabled;
-        return this;
-    }
-
-    public withToggleStepScanned(stepScanned: boolean): VisualHelperToggleTestPropsBuilder {
-        this.data.isStepScanned = stepScanned;
-        return this;
-    }
-
-    public withNonEmptyFilteredMap(isVisualizationEnabled: boolean = false): VisualHelperToggleTestPropsBuilder {
-        this.data.instancesMap = {
-            'selector-1': {
-                testStepResults: {
-                    [this.stepKey]: {
-                        id: 'id1',
-                        status: ManualTestStatus.UNKNOWN,
-                        isVisualizationEnabled: isVisualizationEnabled,
-                    } as ITestStepResult,
-                } as IAssessmentResultType<any>,
-            } as IGeneratedAssessmentInstance,
-            'selector-2': {
-                testStepResults: {
-                    [this.stepKey]: {
-                        id: 'id1',
-                        status: ManualTestStatus.FAIL,
-                        isVisualizationEnabled: isVisualizationEnabled,
-                    } as ITestStepResult,
-                } as IAssessmentResultType<any>,
-            } as IGeneratedAssessmentInstance,
-        };
-        return this;
-    }
-
-    public withEmptyFilteredMap(): VisualHelperToggleTestPropsBuilder {
-        this.data.instancesMap = {
-            'selector-1': {
-                testStepResults: {
-                    [this.otherKey]: {
-                        id: 'id2',
-                        status: ManualTestStatus.UNKNOWN,
-                    } as ITestStepResult,
-                } as IAssessmentResultType<any>,
-            } as IGeneratedAssessmentInstance,
-        };
-        return this;
-    }
-
-    public withPassingFilteredMap(): VisualHelperToggleTestPropsBuilder {
-        this.data.instancesMap = {
-            'selector-1': {
-                testStepResults: {
-                    [this.stepKey]: {
-                        id: 'id2',
-                        status: ManualTestStatus.PASS,
-                    } as ITestStepResult,
-                } as IAssessmentResultType<any>,
-            } as IGeneratedAssessmentInstance,
-            'selector-2': null,
-        };
-        return this;
-    }
-}
-
-export class VisualizationTogglePropsBuilder extends BaseDataBuilder<VisualizationToggleProps> {
-    constructor() {
-        super();
-        this.data = {
-            checked: false,
-            disabled: false,
-            visualizationName: null,
-        } as VisualizationToggleProps;
-    }
-}

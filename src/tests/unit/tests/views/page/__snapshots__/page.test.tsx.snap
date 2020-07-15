@@ -2,18 +2,15 @@
 
 exports[`page view renders 1`] = `
 <React.Fragment>
-  <header
-    className="header-bar"
-  >
-    <class_1
-      deps={Object {}}
-    />
-    <div
-      className="ms-font-m header-text"
-    >
-      EXTENSION_NAME
-    </div>
-  </header>
+  <NarrowModeDetector
+    Component={[Function]}
+    childrenProps={
+      Object {
+        "deps": Object {},
+      }
+    }
+    isNarrowModeEnabled={true}
+  />
   <main>
     INSIDE
   </main>

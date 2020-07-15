@@ -1,22 +1,31 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
-import { CheckboxVisibility, ConstrainMode, DetailsList } from 'office-ui-fabric-react/lib/DetailsList';
+import { CheckboxVisibility, ConstrainMode, DetailsList } from 'office-ui-fabric-react';
 import * as React from 'react';
 
-import { IAssessmentsProvider } from '../../assessments/types/iassessments-provider';
+import { AssessmentsProvider } from 'assessments/types/assessments-provider';
 import { ManualTestStatus } from '../../common/types/manual-test-status';
-import { IManualTestStepResult } from '../../common/types/store-data/iassessment-result-data';
+import { ManualTestStepResult } from '../../common/types/store-data/assessment-result-data';
+import { FeatureFlagStoreData } from '../../common/types/store-data/feature-flag-store-data';
+import { PathSnippetStoreData } from '../../common/types/store-data/path-snippet-store-data';
 import { VisualizationType } from '../../common/types/visualization-type';
+import { DictionaryStringTo } from '../../types/common-types';
 import { AssessmentInstanceTableHandler } from '../handlers/assessment-instance-table-handler';
-import { CapturedInstanceActionType, FailureInstancePanelControl } from './failure-instance-panel-control';
+import {
+    CapturedInstanceActionType,
+    FailureInstanceData,
+    FailureInstancePanelControl,
+} from './failure-instance-panel-control';
 import { TestStatusChoiceGroup } from './test-status-choice-group';
 
 export interface ManualTestStepViewProps {
     step: string;
     test: VisualizationType;
     assessmentInstanceTableHandler: AssessmentInstanceTableHandler;
-    manualTestStepResultMap: DictionaryStringTo<IManualTestStepResult>;
-    assessmentsProvider: IAssessmentsProvider;
+    manualTestStepResultMap: DictionaryStringTo<ManualTestStepResult>;
+    assessmentsProvider: AssessmentsProvider;
+    featureFlagStoreData: FeatureFlagStoreData;
+    pathSnippetStoreData: PathSnippetStoreData;
 }
 
 export class ManualTestStepView extends React.Component<ManualTestStepViewProps> {
@@ -30,8 +39,12 @@ export class ManualTestStepView extends React.Component<ManualTestStepViewProps>
                         step={this.props.step}
                         status={status}
                         originalStatus={ManualTestStatus.UNKNOWN}
-                        onGroupChoiceChange={this.props.assessmentInstanceTableHandler.changeStepStatus}
-                        onUndoClicked={this.props.assessmentInstanceTableHandler.undoStepStatusChange}
+                        onGroupChoiceChange={
+                            this.props.assessmentInstanceTableHandler.changeRequirementStatus
+                        }
+                        onUndoClicked={
+                            this.props.assessmentInstanceTableHandler.undoRequirementStatusChange
+                        }
                         isLabelVisible={true}
                     />
                 </div>
@@ -49,16 +62,32 @@ export class ManualTestStepView extends React.Component<ManualTestStepViewProps>
             this.props.manualTestStepResultMap[this.props.step].instances,
             this.props.test,
             this.props.step,
+            this.props.featureFlagStoreData,
+            this.props.pathSnippetStoreData,
         );
+        const instance: FailureInstanceData = {
+            path: this.props.pathSnippetStoreData.path,
+            snippet: this.props.pathSnippetStoreData.snippet,
+        };
         return (
             <React.Fragment>
                 <h3 className="test-step-instances-header">Instances</h3>
                 <FailureInstancePanelControl
                     step={this.props.step}
                     test={this.props.test}
-                    addFailureInstance={this.props.assessmentInstanceTableHandler.addFailureInstance}
+                    addFailureInstance={
+                        this.props.assessmentInstanceTableHandler.addFailureInstance
+                    }
+                    addPathForValidation={
+                        this.props.assessmentInstanceTableHandler.addPathForValidation
+                    }
+                    clearPathSnippetData={
+                        this.props.assessmentInstanceTableHandler.clearPathSnippetData
+                    }
                     actionType={CapturedInstanceActionType.CREATE}
                     assessmentsProvider={this.props.assessmentsProvider}
+                    featureFlagStoreData={this.props.featureFlagStoreData}
+                    failureInstance={instance}
                 />
                 <DetailsList
                     items={items}

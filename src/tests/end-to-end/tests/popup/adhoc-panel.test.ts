@@ -3,20 +3,22 @@
 import { Browser } from '../../common/browser';
 import { launchBrowser } from '../../common/browser-factory';
 import { popupPageElementIdentifiers } from '../../common/element-identifiers/popup-page-element-identifiers';
-import { Page } from '../../common/page';
+import { PopupPage } from '../../common/page-controllers/popup-page';
+import { TargetPage } from '../../common/page-controllers/target-page';
 import { scanForAccessibilityIssues } from '../../common/scan-for-accessibility-issues';
-import { getTestResourceUrl } from '../../common/test-resources';
 
-describe('Ad hoc tools', () => {
+describe('Popup -> Ad-hoc tools', () => {
     let browser: Browser;
-    let targetPage: Page;
-    let targetPageTabId: number;
-    let popupPage: Page;
+    let targetPage: TargetPage;
+    let popupPage: PopupPage;
 
     beforeEach(async () => {
-        browser = await launchBrowser({ suppressFirstTimeDialog: true });
-        await setupNewTargetPage();
-        popupPage = await browser.newExtensionPopupPage(targetPageTabId);
+        browser = await launchBrowser({
+            suppressFirstTimeDialog: true,
+            addExtraPermissionsToManifest: 'fake-activeTab',
+        });
+        targetPage = await browser.newTargetPage();
+        popupPage = await browser.newPopupPage(targetPage);
         await popupPage.bringToFront();
     });
 
@@ -27,48 +29,48 @@ describe('Ad hoc tools', () => {
         }
     });
 
-    async function setupNewTargetPage(): Promise<void> {
-        targetPage = await browser.newPage(getTestResourceUrl('all.html'));
-
-        await targetPage.bringToFront();
-        targetPageTabId = await browser.getActivePageTabId();
-    }
-
     it('should have launchpad link that takes us to adhoc panel & is sticky', async () => {
-        await popupPage.clickSelectorXPath(popupPageElementIdentifiers.adhocLaunchPadLinkXPath);
-
-        await verifyAdhocPanelLoaded();
+        await popupPage.gotoAdhocPanel();
 
         // verify adhoc panel state is sticky
-        await setupNewTargetPage();
-        popupPage = await browser.newExtensionPopupPage(targetPageTabId);
-        await verifyAdhocPanelLoaded();
+        targetPage = await browser.newTargetPage();
+        popupPage = await browser.newPopupPage(targetPage);
+        await popupPage.verifyAdhocPanelLoaded();
     });
 
     it('should take back to Launch pad on clicking "Back to Launch pad" link & is sticky', async () => {
-        await popupPage.clickSelectorXPath(popupPageElementIdentifiers.adhocLaunchPadLinkXPath);
+        await popupPage.clickSelector(popupPageElementIdentifiers.gotoAdhocToolsButton);
         await popupPage.clickSelector(popupPageElementIdentifiers.backToLaunchPadLink);
 
-        await verifyLaunchPadLoaded();
+        await popupPage.verifyLaunchPadLoaded();
 
         // verify adhoc panel state is sticky
-        await setupNewTargetPage();
-        popupPage = await browser.newExtensionPopupPage(targetPageTabId);
-        await verifyLaunchPadLoaded();
+        targetPage = await browser.newTargetPage();
+        popupPage = await browser.newPopupPage(targetPage);
+        await popupPage.verifyLaunchPadLoaded();
     });
 
-    it('should pass accessibility validation', async () => {
-        await popupPage.clickSelectorXPath(popupPageElementIdentifiers.adhocLaunchPadLinkXPath);
+    it.each([true, false])(
+        'should pass accessibility validation with highContrastMode=%s',
+        async highContrastMode => {
+            await browser.setHighContrastMode(highContrastMode);
+            await popupPage.waitForHighContrastMode(highContrastMode);
 
-        const results = await scanForAccessibilityIssues(popupPage, '*');
-        expect(results).toHaveLength(0);
-    });
+            await popupPage.gotoAdhocPanel();
 
-    async function verifyAdhocPanelLoaded() {
-        await popupPage.waitForSelector(popupPageElementIdentifiers.adhocPanel);
-    }
+            const results = await scanForAccessibilityIssues(popupPage, '*');
+            expect(results).toHaveLength(0);
+        },
+    );
 
-    async function verifyLaunchPadLoaded() {
-        await popupPage.waitForSelector(popupPageElementIdentifiers.launchPad);
-    }
+    it.each(['Automated checks', 'Landmarks', 'Headings', 'Color'])(
+        'should display the pinned target page visualizations when enabling the "%s" toggle',
+        async (toggleAriaLabel: string) => {
+            await popupPage.gotoAdhocPanel();
+            await popupPage.enableToggleByAriaLabel(toggleAriaLabel);
+
+            await targetPage.bringToFront();
+            expect(await targetPage.waitForShadowRootHtmlSnapshot()).toMatchSnapshot();
+        },
+    );
 });

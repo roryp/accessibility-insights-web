@@ -1,16 +1,14 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
-import { autobind } from '@uifabric/utilities';
-
-import { createDefaultLogger } from '../common/logging/default-logger';
+import { BrowserAdapter } from '../common/browser-adapters/browser-adapter';
+import { Tab } from '../common/itab';
 import { Logger } from '../common/logging/logger';
-import { ITab } from './../common/itab.d';
-import { BrowserAdapter } from './browser-adapter';
+import { InterpreterMessage } from '../common/message';
 import { GlobalContext } from './global-context';
 import { TabToContextMap } from './tab-context';
 
 export interface Sender {
-    tab?: ITab;
+    tab?: Tab;
 }
 
 export class MessageDistributor {
@@ -18,15 +16,14 @@ export class MessageDistributor {
         private readonly globalContext: GlobalContext,
         private readonly tabToContextMap: TabToContextMap,
         private readonly browserAdapter: BrowserAdapter,
-        private readonly logger: Logger = createDefaultLogger(),
+        private readonly logger: Logger,
     ) {}
 
     public initialize(): void {
         this.browserAdapter.addListenerOnMessage(this.distributeMessage);
     }
 
-    @autobind
-    private distributeMessage(message: IMessage, sender?: Sender) {
+    private distributeMessage = (message: InterpreterMessage, sender?: Sender): void => {
         message.tabId = this.getTabId(message, sender);
 
         const isInterpretedUsingGlobalContext = this.globalContext.interpreter.interpret(message);
@@ -35,9 +32,9 @@ export class MessageDistributor {
         if (!isInterpretedUsingGlobalContext && !isInterpretedUsingTabContext) {
             this.logger.log('Unable to interpret message - ', message);
         }
-    }
+    };
 
-    private getTabId(message: IMessage, sender?: Sender): number {
+    private getTabId(message: InterpreterMessage, sender?: Sender): number {
         if (message != null && message.tabId != null) {
             return message.tabId;
         } else if (sender != null && sender.tab != null && sender.tab.id != null) {
@@ -47,7 +44,7 @@ export class MessageDistributor {
         return null;
     }
 
-    private tryInterpretUsingTabContext(message: IMessage) {
+    private tryInterpretUsingTabContext(message: InterpreterMessage): boolean {
         let hasInterpreted: boolean;
         const tabContext = this.tabToContextMap[message.tabId];
 

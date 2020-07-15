@@ -1,10 +1,13 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
-import { IScopingPayload, ScopingActions } from '../../../../../../background/actions/scoping-actions';
-import { ScopingInputTypes } from '../../../../../../background/scoping-input-types';
-import { ScopingStore } from '../../../../../../background/stores/global/scoping-store';
+import { ScopingActions, ScopingPayload } from 'background/actions/scoping-actions';
+import { ScopingInputTypes } from 'background/scoping-input-types';
+import { ScopingStore } from 'background/stores/global/scoping-store';
 import { StoreNames } from '../../../../../../common/stores/store-names';
-import { ISingleElementSelector } from '../../../../../../common/types/store-data/scoping-store-data';
+import {
+    ScopingStoreData,
+    SingleElementSelector,
+} from '../../../../../../common/types/store-data/scoping-store-data';
 import { createStoreWithNullParams, StoreTester } from '../../../../common/store-tester';
 
 describe('ScopingStoreTest', () => {
@@ -20,7 +23,7 @@ describe('ScopingStoreTest', () => {
 
     test('test defaultState has empty selectors arrays', () => {
         const defaultState = getDefaultState();
-        const emptyArray: ISingleElementSelector = [];
+        const emptyArray: SingleElementSelector = [];
 
         Object.keys(ScopingInputTypes).forEach(inputType => {
             expect(defaultState.selectors[inputType]).toEqual(emptyArray);
@@ -31,12 +34,15 @@ describe('ScopingStoreTest', () => {
         const initialState = getDefaultState();
         const finalState = getDefaultState();
 
-        createStoreForScopingActions('getCurrentState').testListenerToBeCalledOnce(initialState, finalState);
+        createStoreForScopingActions('getCurrentState').testListenerToBeCalledOnce(
+            initialState,
+            finalState,
+        );
     });
 
     test('on addSelector', () => {
         const initialState = getDefaultState();
-        const payload: IScopingPayload = {
+        const payload: ScopingPayload = {
             inputType: 'include',
             selector: ['iframe', 'selector'],
         };
@@ -49,7 +55,7 @@ describe('ScopingStoreTest', () => {
     });
 
     test('on addSelector prevent duplicate selector', () => {
-        const payload: IScopingPayload = {
+        const payload: ScopingPayload = {
             inputType: 'include',
             selector: ['iframe', 'selector'],
         };
@@ -65,7 +71,7 @@ describe('ScopingStoreTest', () => {
 
     test('on deleteSelector with an actual selector', () => {
         const initialState = getDefaultState();
-        const payload: IScopingPayload = {
+        const payload: ScopingPayload = {
             inputType: ScopingInputTypes.include,
             selector: ['iframe', 'selector'],
         };
@@ -80,7 +86,7 @@ describe('ScopingStoreTest', () => {
     test('on deleteSelector prevent deletion of non-existent selector', () => {
         const initialState = getDefaultState();
         const actualSelector = ['iframe', 'selector'];
-        const payload: IScopingPayload = {
+        const payload: ScopingPayload = {
             inputType: ScopingInputTypes.include,
             selector: ['selector'],
         };
@@ -93,11 +99,13 @@ describe('ScopingStoreTest', () => {
             .testListenerToNeverBeCalled(initialState, finalState);
     });
 
-    function getDefaultState() {
+    function getDefaultState(): ScopingStoreData {
         return createStoreWithNullParams(ScopingStore).getDefaultState();
     }
 
-    function createStoreForScopingActions(actionName: keyof ScopingActions) {
+    function createStoreForScopingActions(
+        actionName: keyof ScopingActions,
+    ): StoreTester<ScopingStoreData, ScopingActions> {
         const factory = (actions: ScopingActions) => new ScopingStore(actions);
 
         return new StoreTester(ScopingActions, actionName, factory);

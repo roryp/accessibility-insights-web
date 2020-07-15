@@ -13,4 +13,13 @@ export enum StoreNames {
     ScopingPanelStateStore,
     InspectStore,
     UserConfigurationStore,
+    PathSnippetStore,
+    UnifiedScanResultStore,
+    CardSelectionStore,
+    DeviceStore,
+    WindowStateStore,
+    ScanStore,
+    PermissionsStateStore,
+    DebugToolsNavStore,
+    AndroidSetupStore,
 }

@@ -2,20 +2,27 @@
 // Licensed under the MIT License.
 import { IMock, It, Mock, MockBehavior, Times } from 'typemoq';
 
-import { getDefaultFeatureFlagValues } from '../../../../common/feature-flags';
+import { getDefaultFeatureFlagsWeb } from '../../../../common/feature-flags';
 import { VisualizationType } from '../../../../common/types/visualization-type';
-import { DrawingController, VisualizationWindowMessage } from '../../../../injected/drawing-controller';
+import {
+    DrawingController,
+    VisualizationWindowMessage,
+} from '../../../../injected/drawing-controller';
 import { DrawingInitiator } from '../../../../injected/drawing-initiator';
-import { IAssessmentVisualizationInstance } from '../../../../injected/frameCommunicators/html-element-axe-results-helper';
-import { IPropertyBags, IVisualizationInstanceProcessorCallback } from '../../../../injected/visualization-instance-processor';
+import { AssessmentVisualizationInstance } from '../../../../injected/frameCommunicators/html-element-axe-results-helper';
+import {
+    PropertyBags,
+    VisualizationInstanceProcessorCallback,
+} from '../../../../injected/visualization-instance-processor';
+import { DictionaryStringTo } from '../../../../types/common-types';
 
 class DrawingControllerStub extends DrawingController {
-    public processRequest(message: VisualizationWindowMessage) {}
+    public processRequest = (message: VisualizationWindowMessage): void => {};
 }
 
 describe('DrawingInitiatorTest', () => {
     let drawingControllerMock: IMock<DrawingController>;
-    let processorMock: IMock<IVisualizationInstanceProcessorCallback<IPropertyBags, IPropertyBags>>;
+    let processorMock: IMock<VisualizationInstanceProcessorCallback<PropertyBags, PropertyBags>>;
     let testObject: DrawingInitiator;
 
     beforeEach(() => {
@@ -24,61 +31,49 @@ describe('DrawingInitiatorTest', () => {
         testObject = new DrawingInitiator(drawingControllerMock.object);
     });
 
-    function verifyAll() {
+    function verifyAll(): void {
         processorMock.verifyAll();
         drawingControllerMock.verifyAll();
     }
 
     test('enableVisualization', () => {
-        const type = -1 as VisualizationType;
+        const visualizationType = -1 as VisualizationType;
         const configId = 'id';
-        const selectorMap: DictionaryStringTo<IAssessmentVisualizationInstance> = {
+        const selectorMap: DictionaryStringTo<AssessmentVisualizationInstance> = {
             key1: {
                 target: ['element1'],
-                isVisible: true,
                 isFailure: false,
                 isVisualizationEnabled: false,
-                html: 'test',
                 ruleResults: null,
-                identifier: 'some id',
             },
             key2: {
                 target: ['element2'],
-                isVisible: true,
                 isFailure: false,
                 isVisualizationEnabled: false,
-                html: 'test',
                 ruleResults: null,
-                identifier: 'some id',
             },
         };
 
         const expectedvisualizationMessage: VisualizationWindowMessage = {
-            visualizationType: type,
+            visualizationType: visualizationType,
             isEnabled: true,
             elementResults: [
                 {
-                    isVisible: true,
                     isFailure: false,
                     isVisualizationEnabled: false,
-                    html: 'test',
                     target: ['element1'],
                     targetIndex: 0,
                     ruleResults: null,
-                    identifier: 'some id',
                 },
                 {
-                    isVisible: true,
                     isFailure: false,
                     isVisualizationEnabled: false,
-                    html: 'test',
                     target: ['element2'],
                     targetIndex: 0,
                     ruleResults: null,
-                    identifier: 'some id',
                 },
             ],
-            featureFlagStoreData: getDefaultFeatureFlagValues(),
+            featureFlagStoreData: getDefaultFeatureFlagsWeb(),
             configId: configId,
         };
         setupProcessorMock();
@@ -89,18 +84,24 @@ describe('DrawingInitiatorTest', () => {
             })
             .verifiable();
 
-        testObject.enableVisualization(type, getDefaultFeatureFlagValues(), selectorMap, configId, processorMock.object);
+        testObject.enableVisualization(
+            visualizationType,
+            getDefaultFeatureFlagsWeb(),
+            selectorMap,
+            configId,
+            processorMock.object,
+        );
 
         verifyAll();
     });
 
     test('disableVisualization', () => {
-        const type = -1 as VisualizationType;
+        const visualizationType = -1 as VisualizationType;
         const configId = 'id';
         const expectedvisualizationMessage: VisualizationWindowMessage = {
-            visualizationType: type,
+            visualizationType: visualizationType,
             isEnabled: false,
-            featureFlagStoreData: getDefaultFeatureFlagValues(),
+            featureFlagStoreData: getDefaultFeatureFlagsWeb(),
             configId: configId,
         };
 
@@ -111,32 +112,38 @@ describe('DrawingInitiatorTest', () => {
             })
             .verifiable();
 
-        testObject.disableVisualization(type, getDefaultFeatureFlagValues(), configId);
+        testObject.disableVisualization(visualizationType, getDefaultFeatureFlagsWeb(), configId);
 
         verifyAll();
     });
 
     test('enableVisualiztion: selectorMap is null', () => {
-        const type = -1 as VisualizationType;
+        const visualizationType = -1 as VisualizationType;
         const step = null;
         const featureFlagStoreData = {};
 
         drawingControllerMock.setup(x => x.processRequest(It.isAny())).verifiable(Times.never());
 
-        testObject.enableVisualization(type, featureFlagStoreData, null, step, processorMock.object);
+        testObject.enableVisualization(
+            visualizationType,
+            featureFlagStoreData,
+            null,
+            step,
+            processorMock.object,
+        );
 
         verifyAll();
     });
 
     test('enableVisualization: selectorMap is empty', () => {
-        const type = -1 as VisualizationType;
+        const visualizationType = -1 as VisualizationType;
         const configId = 'id';
 
         const expectedvisualizationMessage: VisualizationWindowMessage = {
-            visualizationType: type,
+            visualizationType: visualizationType,
             isEnabled: true,
             elementResults: [],
-            featureFlagStoreData: getDefaultFeatureFlagValues(),
+            featureFlagStoreData: getDefaultFeatureFlagsWeb(),
             configId: configId,
         };
         setupProcessorMock();
@@ -147,7 +154,13 @@ describe('DrawingInitiatorTest', () => {
             })
             .verifiable();
 
-        testObject.enableVisualization(type, getDefaultFeatureFlagValues(), {}, configId, processorMock.object);
+        testObject.enableVisualization(
+            visualizationType,
+            getDefaultFeatureFlagsWeb(),
+            {},
+            configId,
+            processorMock.object,
+        );
 
         verifyAll();
     });

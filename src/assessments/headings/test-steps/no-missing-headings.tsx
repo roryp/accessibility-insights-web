@@ -2,19 +2,20 @@
 // Licensed under the MIT License.
 import * as React from 'react';
 
-import { VisualizationType } from '../../../common/types/visualization-type';
-import { link } from '../../../content/link';
-import * as content from '../../../content/test/headings/no-missing-headings';
-import { AssessmentVisualizationEnabledToggle } from '../../../DetailsView/components/assessment-visualization-enabled-toggle';
+import { VisualizationType } from 'common/types/visualization-type';
+import { link } from 'content/link';
+import * as content from 'content/test/headings/no-missing-headings';
+import { AssessmentVisualizationEnabledToggle } from 'DetailsView/components/assessment-visualization-enabled-toggle';
 import { AnalyzerConfigurationFactory } from '../../common/analyzer-configuration-factory';
-import ManualTestRecordYourResults from '../../common/manual-test-record-your-results';
+import { ManualTestRecordYourResults } from '../../common/manual-test-record-your-results';
 import * as Markup from '../../markup';
-import { TestStep } from '../../types/test-step';
+import { Requirement } from '../../types/requirement';
 import { HeadingsTestStep } from './test-steps';
 
 const missingHeadingsDescription: JSX.Element = (
     <span>
-        Text that <Markup.Emphasis>looks like</Markup.Emphasis> a heading must be <Markup.Emphasis>coded</Markup.Emphasis> as a heading.
+        Text that <Markup.Emphasis>looks like</Markup.Emphasis> a heading must be{' '}
+        <Markup.Emphasis>coded</Markup.Emphasis> as a heading.
     </span>
 );
 
@@ -23,7 +24,8 @@ const missingHeadingsHowToTest: JSX.Element = (
         <p>The visual helper for this requirement highlights coded headings in the target page.</p>
         <ol>
             <li>
-                Examine the target page to verify that each element that <Markup.Emphasis>looks like a</Markup.Emphasis> heading is{' '}
+                Examine the target page to verify that each element that{' '}
+                <Markup.Emphasis>looks like a</Markup.Emphasis> heading is{' '}
                 <Markup.Emphasis>coded</Markup.Emphasis> as a heading (highlighted).
             </li>
             <ManualTestRecordYourResults isMultipleFailurePossible={true} />
@@ -31,7 +33,7 @@ const missingHeadingsHowToTest: JSX.Element = (
     </div>
 );
 
-export const NoMissingHeadings: TestStep = {
+export const NoMissingHeadings: Requirement = {
     key: HeadingsTestStep.missingHeadings,
     name: 'No missing headings',
     description: missingHeadingsDescription,

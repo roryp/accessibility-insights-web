@@ -6,11 +6,21 @@ export class WindowUtils {
         win.postMessage(JSON.stringify(data), targetOrigin);
     }
 
-    public addEventListener(win: Window, command: string, callback: (e: MessageEvent) => void, useCapture: boolean): void {
+    public addEventListener(
+        win: Window,
+        command: string,
+        callback: (e: MessageEvent) => void,
+        useCapture: boolean,
+    ): void {
         win.addEventListener(command, callback, useCapture);
     }
 
-    public removeEventListener(win: Window, command: string, callback: (e: MessageEvent) => void, useCapture: boolean): void {
+    public removeEventListener(
+        win: Window,
+        command: string,
+        callback: (e: MessageEvent) => void,
+        useCapture: boolean,
+    ): void {
         win.removeEventListener(command, callback);
     }
 
@@ -20,6 +30,10 @@ export class WindowUtils {
 
     public setInterval(handler: Function, timeout: number): number {
         return window.setInterval(handler, timeout);
+    }
+
+    public createObjectURL(sourceObject: Blob | File | MediaSource): string {
+        return window.URL.createObjectURL(sourceObject);
     }
 
     public clearTimeout(timeout: number): void {

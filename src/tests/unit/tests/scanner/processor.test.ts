@@ -1,13 +1,12 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
-import { IDictionaryStringTo } from '../../../../scanner/dictionary-types';
 import { AxeNodeResult, AxeRule, FormattedCheckResult } from '../../../../scanner/iruleresults';
 import { Processor } from '../../../../scanner/processor';
+import { DictionaryStringTo } from '../../../../types/common-types';
 
 describe('getDefaultAxeRules', () => {
-    let suppressedChecks: IDictionaryStringTo<FormattedCheckResult>;
+    let suppressedChecks: DictionaryStringTo<FormattedCheckResult>;
     let nonSuppressedCheck: FormattedCheckResult;
-    let suppressedCheckData: FormattedCheckResult;
 
     beforeEach(() => {
         Processor.suppressedMessages = [
@@ -38,7 +37,11 @@ describe('getDefaultAxeRules', () => {
 
     it('suppressChecksByMessages: removes only suppressed checks.', () => {
         const initialRuleResult: AxeNodeResult = {
-            any: [suppressedChecks.requiredChildrenListbox, suppressedChecks.requiredChildrenTextbox, nonSuppressedCheck],
+            any: [
+                suppressedChecks.requiredChildrenListbox,
+                suppressedChecks.requiredChildrenTextbox,
+                nonSuppressedCheck,
+            ],
             none: [],
             all: [],
             html: null,
@@ -174,14 +177,6 @@ describe('getDefaultAxeRules', () => {
     it('suppressChecksByMessages: return null if no nodes are left', () => {
         const removedResult: AxeNodeResult = {
             any: [suppressedChecks.requiredChildrenListbox],
-            none: [],
-            all: [],
-            html: null,
-            target: null,
-        };
-
-        const nonRemovedResult: AxeNodeResult = {
-            any: [nonSuppressedCheck],
             none: [],
             all: [],
             html: null,

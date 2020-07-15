@@ -2,10 +2,10 @@
 // Licensed under the MIT License.
 import * as React from 'react';
 
-import { link } from '../../../content/link';
-import * as content from '../../../content/test/sensory/instructions';
-import ManualTestRecordYourResults from '../../common/manual-test-record-your-results';
-import { TestStep } from '../../types/test-step';
+import { link } from 'content/link';
+import * as content from 'content/test/sensory/instructions';
+import { ManualTestRecordYourResults } from '../../common/manual-test-record-your-results';
+import { Requirement } from '../../types/requirement';
 import { ColorSensoryTestStep } from './test-steps';
 
 const sensoryCharacteristicsDescription: JSX.Element = (
@@ -16,7 +16,8 @@ const sensoryCharacteristicsHowToTest: JSX.Element = (
     <div>
         <ol>
             <li>
-                Examine the target page to identify any instances where instructions refer to an element's sensory characteristics, such as:
+                Examine the target page to identify any instances where instructions refer to an
+                element's sensory characteristics, such as:
                 <ol>
                     <li>Color</li>
                     <li>Shape</li>
@@ -27,15 +28,16 @@ const sensoryCharacteristicsHowToTest: JSX.Element = (
                 </ol>
             </li>
             <li>
-                For each instance, verify that the instructions also include additional information sufficient to locate and identify the
-                element without knowing its sensory characteristics. (For example, "Press the green button").
+                For each instance, verify that the instructions also include additional information
+                sufficient to locate and identify the element without knowing its sensory
+                characteristics. (For example, "Press the green button").
             </li>
             <ManualTestRecordYourResults isMultipleFailurePossible={true} />
         </ol>
     </div>
 );
 
-export const SensoryCharacteristics: TestStep = {
+export const SensoryCharacteristics: Requirement = {
     key: ColorSensoryTestStep.sensoryCharacteristics,
     name: 'Instructions',
     description: sensoryCharacteristicsDescription,
@@ -43,5 +45,4 @@ export const SensoryCharacteristics: TestStep = {
     isManual: true,
     ...content,
     guidanceLinks: [link.WCAG_1_3_3],
-    updateVisibility: false,
 };

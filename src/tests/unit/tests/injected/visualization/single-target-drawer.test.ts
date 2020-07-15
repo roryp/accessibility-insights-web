@@ -1,11 +1,12 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 import { IMock, Mock, Times } from 'typemoq';
-import { getDefaultFeatureFlagValues } from '../../../../../common/feature-flags';
-import { IHtmlElementAxeResults } from '../../../../../injected/scanner-utils';
+
+import { getDefaultFeatureFlagsWeb } from '../../../../../common/feature-flags';
+import { HtmlElementAxeResults } from '../../../../../injected/scanner-utils';
+import { DrawerInitData } from '../../../../../injected/visualization/drawer';
 import { DrawerUtils } from '../../../../../injected/visualization/drawer-utils';
 import { SingleTargetDrawerConfiguration } from '../../../../../injected/visualization/formatter';
-import { IDrawerInitData } from '../../../../../injected/visualization/idrawer';
 import { SingleTargetDrawer } from '../../../../../injected/visualization/single-target-drawer';
 import { SingleTargetFormatter } from '../../../../../injected/visualization/single-target-formatter';
 import { TestDocumentCreator } from '../../../common/test-document-creator';
@@ -28,13 +29,13 @@ describe('SingleTargetDrawer Tests', () => {
 
         const testSubject = new SingleTargetDrawer(drawerUtilsMock.object, formatterMock.object);
 
-        const drawerInfo: IDrawerInitData<IHtmlElementAxeResults> = {
+        const drawerInfo: DrawerInitData<HtmlElementAxeResults> = {
             data: [
                 {
                     target: ['body'],
                 },
-            ] as IHtmlElementAxeResults[],
-            featureFlagStoreData: getDefaultFeatureFlagValues(),
+            ] as HtmlElementAxeResults[],
+            featureFlagStoreData: getDefaultFeatureFlagsWeb(),
         };
 
         testSubject.initialize(drawerInfo);
@@ -52,13 +53,13 @@ describe('SingleTargetDrawer Tests', () => {
 
         const testSubject = new SingleTargetDrawer(drawerUtilsMock.object, formatterMock.object);
 
-        const drawerInfo: IDrawerInitData<IHtmlElementAxeResults> = {
+        const drawerInfo: DrawerInitData<HtmlElementAxeResults> = {
             data: [
                 {
                     target: ['body'],
                 },
-            ] as IHtmlElementAxeResults[],
-            featureFlagStoreData: getDefaultFeatureFlagValues(),
+            ] as HtmlElementAxeResults[],
+            featureFlagStoreData: getDefaultFeatureFlagsWeb(),
         };
 
         testSubject.initialize(drawerInfo);
@@ -83,20 +84,20 @@ describe('SingleTargetDrawer Tests', () => {
 
         const testSubject = new SingleTargetDrawer(drawerUtilsMock.object, formatterMock.object);
 
-        const drawerInfo: IDrawerInitData<IHtmlElementAxeResults> = {
+        const drawerInfo: DrawerInitData<HtmlElementAxeResults> = {
             data: [
                 {
                     target: ['body'],
                 },
-            ] as IHtmlElementAxeResults[],
-            featureFlagStoreData: getDefaultFeatureFlagValues(),
+            ] as HtmlElementAxeResults[],
+            featureFlagStoreData: getDefaultFeatureFlagsWeb(),
         };
 
         testSubject.initialize(drawerInfo);
         expect(testSubject.isOverlayEnabled).toBe(false);
 
         testSubject.drawLayout();
-        testSubject.initialize({ data: [], featureFlagStoreData: getDefaultFeatureFlagValues() });
+        testSubject.initialize({ data: [], featureFlagStoreData: getDefaultFeatureFlagsWeb() });
 
         expect(testSubject.isOverlayEnabled).toBe(false);
 
@@ -114,13 +115,13 @@ describe('SingleTargetDrawer Tests', () => {
 
         const testSubject = new SingleTargetDrawer(drawerUtilsMock.object, formatterMock.object);
 
-        const drawerInfo: IDrawerInitData<IHtmlElementAxeResults> = {
+        const drawerInfo: DrawerInitData<HtmlElementAxeResults> = {
             data: [
                 {
                     target: ['body'],
                 },
-            ] as IHtmlElementAxeResults[],
-            featureFlagStoreData: getDefaultFeatureFlagValues(),
+            ] as HtmlElementAxeResults[],
+            featureFlagStoreData: getDefaultFeatureFlagsWeb(),
         };
 
         testSubject.initialize(drawerInfo);
@@ -136,16 +137,14 @@ describe('SingleTargetDrawer Tests', () => {
         formatterMock.verifyAll();
     });
 
-    function setupDrawerUtilsMockDefault(dom) {
+    function setupDrawerUtilsMockDefault(dom: Document): void {
         drawerUtilsMock
             .setup(d => d.getDocumentElement())
-            .returns(() => {
-                return dom.ownerDocument || (dom as Document);
-            })
+            .returns(() => dom)
             .verifiable(Times.atLeastOnce());
     }
 
-    function setupFormatterMock() {
+    function setupFormatterMock(): void {
         formatterMock
             .setup(f => f.getDrawerConfiguration())
             .returns(() => {

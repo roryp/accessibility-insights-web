@@ -1,26 +1,32 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
-import { IBaseStore } from '../common/istore';
-import { BugActionMessageCreator } from '../common/message-creators/bug-action-message-creator';
+import { ToolData } from 'common/types/store-data/unified-data-interface';
+import { BaseStore } from '../common/base-store';
 import { DevToolActionMessageCreator } from '../common/message-creators/dev-tool-action-message-creator';
-import { DevToolState } from '../common/types/store-data/idev-tool-state';
+import { IssueFilingActionMessageCreator } from '../common/message-creators/issue-filing-action-message-creator';
+import { DevToolStoreData } from '../common/types/store-data/dev-tool-store-data';
 import { UserConfigurationStoreData } from '../common/types/store-data/user-configuration-store';
+import { UserConfigMessageCreator } from './../common/message-creators/user-config-message-creator';
+import { IssueFilingServiceProvider } from './../issue-filing/issue-filing-service-provider';
 import { TargetPageActionMessageCreator } from './target-page-action-message-creator';
 
 export class MainWindowContext {
     public constructor(
-        private devToolStore: IBaseStore<DevToolState>,
-        private userConfigStore: IBaseStore<UserConfigurationStoreData>,
+        private devToolStore: BaseStore<DevToolStoreData>,
+        private userConfigStore: BaseStore<UserConfigurationStoreData>,
         private devToolActionMessageCreator: DevToolActionMessageCreator,
         private targetPageActionMessageCreator: TargetPageActionMessageCreator,
-        private bugActionMessageCreator: BugActionMessageCreator,
+        private issueFilingActionMessageCreator: IssueFilingActionMessageCreator,
+        private userConfigMessageCreator: UserConfigMessageCreator,
+        private toolData: ToolData,
+        private issueFilingServiceProvider: IssueFilingServiceProvider,
     ) {}
 
-    public getDevToolStore(): IBaseStore<DevToolState> {
+    public getDevToolStore(): BaseStore<DevToolStoreData> {
         return this.devToolStore;
     }
 
-    public getUserConfigStore(): IBaseStore<UserConfigurationStoreData> {
+    public getUserConfigStore(): BaseStore<UserConfigurationStoreData> {
         return this.userConfigStore;
     }
 
@@ -32,27 +38,45 @@ export class MainWindowContext {
         return this.targetPageActionMessageCreator;
     }
 
-    public getBugActionMessageCreator(): BugActionMessageCreator {
-        return this.bugActionMessageCreator;
+    public getIssueFilingActionMessageCreator(): IssueFilingActionMessageCreator {
+        return this.issueFilingActionMessageCreator;
+    }
+
+    public getUserConfigMessageCreator(): UserConfigMessageCreator {
+        return this.userConfigMessageCreator;
+    }
+
+    public getToolData(): ToolData {
+        return this.toolData;
+    }
+
+    public getIssueFilingServiceProvider(): IssueFilingServiceProvider {
+        return this.issueFilingServiceProvider;
     }
 
     public static initialize(
-        devToolStore: IBaseStore<DevToolState>,
-        userConfigStore: IBaseStore<UserConfigurationStoreData>,
+        devToolStore: BaseStore<DevToolStoreData>,
+        userConfigStore: BaseStore<UserConfigurationStoreData>,
         devToolActionMessageCreator: DevToolActionMessageCreator,
         targetPageActionMessageCreator: TargetPageActionMessageCreator,
-        bugActionMessageCreator: BugActionMessageCreator,
+        issueFilingActionMessageCreator: IssueFilingActionMessageCreator,
+        userConfigMessageCreator: UserConfigMessageCreator,
+        toolData: ToolData,
+        issueFilingServiceProvider: IssueFilingServiceProvider,
     ): void {
         window.mainWindowContext = new MainWindowContext(
             devToolStore,
             userConfigStore,
             devToolActionMessageCreator,
             targetPageActionMessageCreator,
-            bugActionMessageCreator,
+            issueFilingActionMessageCreator,
+            userConfigMessageCreator,
+            toolData,
+            issueFilingServiceProvider,
         );
     }
 
-    public static get(): MainWindowContext {
+    public static getMainWindowContext(): MainWindowContext {
         return window.mainWindowContext;
     }
 
@@ -60,6 +84,6 @@ export class MainWindowContext {
         if (given) {
             return given;
         }
-        return MainWindowContext.get();
+        return MainWindowContext.getMainWindowContext();
     }
 }

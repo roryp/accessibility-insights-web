@@ -1,13 +1,13 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 import { forEach } from 'lodash';
-import { ColumnActionsMode, IColumn } from 'office-ui-fabric-react/lib/DetailsList';
+import { ColumnActionsMode, IColumn } from 'office-ui-fabric-react';
 import * as React from 'react';
 import { IMock, It, Mock, Times } from 'typemoq';
 
-import { AssessmentNavState } from '../../../../../common/types/store-data/iassessment-result-data';
+import { AssessmentNavState } from '../../../../../common/types/store-data/assessment-result-data';
 import { AssessmentInstanceDetailsColumn } from '../../../../../DetailsView/components/assessment-instance-details-column';
-import { ICapturedInstanceRowData } from '../../../../../DetailsView/components/assessment-instance-table';
+import { CapturedInstanceRowData } from '../../../../../DetailsView/components/assessment-instance-table';
 import { AssessmentTableColumnConfigHandler } from '../../../../../DetailsView/components/assessment-table-column-config-handler';
 import { MasterCheckBoxConfigProvider } from '../../../../../DetailsView/handlers/master-checkbox-config-provider';
 import {
@@ -25,10 +25,10 @@ describe('AssessmentTableColumnConfigHandlerTest', () => {
     test('verify configurations for generated instances', () => {
         const provider = CreateTestAssessmentProvider();
         const assessment = provider.all()[0];
-        const step = assessment.steps[0];
+        const step = assessment.requirements[0];
         const navState: AssessmentNavState = {
-            selectedTestType: assessment.type,
-            selectedTestStep: step.key,
+            selectedTestType: assessment.visualizationType,
+            selectedTestSubview: step.key,
         };
 
         const baseConfig = {
@@ -40,7 +40,10 @@ describe('AssessmentTableColumnConfigHandlerTest', () => {
 
         setConfigProvider(navState, baseConfig);
 
-        const testObject = new AssessmentTableColumnConfigHandler(masterCheckboxConfigProviderMock.object, provider);
+        const testObject = new AssessmentTableColumnConfigHandler(
+            masterCheckboxConfigProviderMock.object,
+            provider,
+        );
         const actualColumns = testObject.getColumnConfigs(navState, true, true);
 
         assertMasterCheckBox(baseConfig, actualColumns);
@@ -58,10 +61,10 @@ describe('AssessmentTableColumnConfigHandlerTest', () => {
     test('verify configurations for automated instances', () => {
         const provider = CreateTestAssessmentProviderAutomated();
         const assessment = provider.all()[0];
-        const step = assessment.steps[0];
+        const step = assessment.requirements[0];
         const navState: AssessmentNavState = {
-            selectedTestType: assessment.type,
-            selectedTestStep: step.key,
+            selectedTestType: assessment.visualizationType,
+            selectedTestSubview: step.key,
         };
 
         const baseConfig = {
@@ -73,7 +76,10 @@ describe('AssessmentTableColumnConfigHandlerTest', () => {
 
         setConfigProvider(navState, baseConfig);
 
-        const testObject = new AssessmentTableColumnConfigHandler(masterCheckboxConfigProviderMock.object, provider);
+        const testObject = new AssessmentTableColumnConfigHandler(
+            masterCheckboxConfigProviderMock.object,
+            provider,
+        );
         const actualColumns = testObject.getColumnConfigs(navState, true, true);
 
         expect(actualColumns.length).toBe(1);
@@ -83,22 +89,20 @@ describe('AssessmentTableColumnConfigHandlerTest', () => {
     test('verify configurations for generated instances without visual helper', () => {
         const provider = CreateTestAssessmentProvider();
         const assessment = provider.all()[0];
-        const step = assessment.steps[0];
+        const step = assessment.requirements[0];
         const navState: AssessmentNavState = {
-            selectedTestType: assessment.type,
-            selectedTestStep: step.key,
+            selectedTestType: assessment.visualizationType,
+            selectedTestSubview: step.key,
         };
 
-        const baseConfig = {
-            iconName: 'iconName',
-            name: 'toggle all visualization',
-            ariaLabel: 'toggle all visualization',
-            onColumnClick: () => null,
-        };
+        masterCheckboxConfigProviderMock
+            .setup(m => m.getMasterCheckBoxProperty(It.isAny(), It.isAny()))
+            .verifiable(Times.never());
 
-        masterCheckboxConfigProviderMock.setup(m => m.getMasterCheckBoxProperty(It.isAny(), It.isAny())).verifiable(Times.never());
-
-        const testObject = new AssessmentTableColumnConfigHandler(masterCheckboxConfigProviderMock.object, provider);
+        const testObject = new AssessmentTableColumnConfigHandler(
+            masterCheckboxConfigProviderMock.object,
+            provider,
+        );
         const actualColumns = testObject.getColumnConfigs(navState, true, false);
 
         assertNoMasterCheckBox(actualColumns);
@@ -115,14 +119,23 @@ describe('AssessmentTableColumnConfigHandlerTest', () => {
     });
 
     test('verify CapturedInstancesTableConfigurations: headings static configs', () => {
-        const config = new AssessmentTableColumnConfigHandler(null, null).getColumnConfigsForCapturedInstances();
-        compareStaticPropertiesForCaptured(getExpectedCapturedHeadingInstanceTableConfigs(), config);
+        const config = new AssessmentTableColumnConfigHandler(
+            null,
+            null,
+        ).getColumnConfigsForCapturedInstances();
+        compareStaticPropertiesForCaptured(
+            getExpectedCapturedHeadingInstanceTableConfigs(),
+            config,
+        );
     });
 
     test('onRenderCapturedHeadingsInstanceDetailsColumn', () => {
-        const col = new AssessmentTableColumnConfigHandler(null, null).getColumnConfigsForCapturedInstances()[0];
+        const col = new AssessmentTableColumnConfigHandler(
+            null,
+            null,
+        ).getColumnConfigsForCapturedInstances()[0];
         const onRender = col.onRender;
-        const item: ICapturedInstanceRowData = {
+        const item: CapturedInstanceRowData = {
             instance: {
                 id: 'id',
                 description: 'comment',
@@ -132,7 +145,7 @@ describe('AssessmentTableColumnConfigHandlerTest', () => {
         const expected = (
             <AssessmentInstanceDetailsColumn
                 background={'#767676'}
-                labelText={'N/A'}
+                headerText={'Comment:'}
                 textContent={item.instance.description}
                 tooltipId={item.instance.id}
                 customClassName="not-applicable"
@@ -172,7 +185,7 @@ describe('AssessmentTableColumnConfigHandlerTest', () => {
         ];
     }
 
-    function compareStaticPropertiesForCaptured(expected: IColumn[], actual: IColumn[]) {
+    function compareStaticPropertiesForCaptured(expected: IColumn[], actual: IColumn[]): void {
         expect(actual.length).toBe(expected.length);
         expected.forEach((col: IColumn, index: number) => {
             expect(actual[index].key).toBe(col.key);
@@ -194,16 +207,24 @@ describe('AssessmentTableColumnConfigHandlerTest', () => {
             ...baseConfig,
         };
 
-        const masterCheckboxConfig = config.find(col => col.key === AssessmentTableColumnConfigHandler.MASTER_CHECKBOX_KEY);
+        const masterCheckboxConfig = config.find(
+            col => col.key === AssessmentTableColumnConfigHandler.MASTER_CHECKBOX_KEY,
+        );
         assertColumn(expectedConfig, masterCheckboxConfig, 'master checkbox config');
     }
 
     function assertNoMasterCheckBox(config: IColumn[]): void {
-        const masterCheckboxConfig = config.find(col => col.key === AssessmentTableColumnConfigHandler.MASTER_CHECKBOX_KEY);
+        const masterCheckboxConfig = config.find(
+            col => col.key === AssessmentTableColumnConfigHandler.MASTER_CHECKBOX_KEY,
+        );
         expect(masterCheckboxConfig).toBeUndefined();
     }
 
-    function assertColumn(expectedColumn: Partial<IColumn>, actualColumn: Partial<IColumn>, messagePrefix?: string): void {
+    function assertColumn(
+        expectedColumn: Partial<IColumn>,
+        actualColumn: Partial<IColumn>,
+        messagePrefix?: string,
+    ): void {
         forEach(expectedColumn, (expectedValue, expectedName) => {
             expect(actualColumn[expectedName]).toBe(expectedValue);
         });

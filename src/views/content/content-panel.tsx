@@ -1,10 +1,10 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
-import { Panel, PanelType } from 'office-ui-fabric-react/lib/Panel';
+import { Panel, PanelType } from 'office-ui-fabric-react';
 import * as React from 'react';
 
 import { ContentActionMessageCreator } from '../../common/message-creators/content-action-message-creator';
-import { NamedSFC } from '../../common/react/named-sfc';
+import { NamedFC } from '../../common/react/named-fc';
 import { ContentPageDeps, ContentProvider, ContentReference } from './content-page';
 
 export type ContentPanelDeps = {
@@ -15,29 +15,36 @@ export type ContentPanelDeps = {
 export type ContentPanelProps = {
     deps: ContentPanelDeps;
     content: ContentReference;
+    contentTitle: string;
     isOpen: boolean;
 };
 
-export const ContentPanel = NamedSFC<ContentPanelProps>('ContentPanel', ({ deps, content, isOpen }) => {
-    const { contentProvider, contentActionMessageCreator } = deps;
+export const ContentPanel = NamedFC<ContentPanelProps>(
+    'ContentPanel',
+    ({ deps, content, contentTitle, isOpen }) => {
+        const { contentProvider, contentActionMessageCreator } = deps;
 
-    if (!content) {
-        return null;
-    }
+        if (!content) {
+            return null;
+        }
 
-    const ContentPage = contentProvider.contentFromReference(content);
+        const ContentPage = contentProvider.contentFromReference(content);
 
-    return (
-        <Panel
-            isOpen={isOpen}
-            onDismiss={contentActionMessageCreator.closeContentPanel}
-            type={PanelType.medium}
-            isLightDismiss={true}
-            closeButtonAriaLabel="Close panel"
-        >
-            <div className="content">
-                <ContentPage deps={deps} />
-            </div>
-        </Panel>
-    );
-});
+        return (
+            <Panel
+                isOpen={isOpen}
+                onDismiss={contentActionMessageCreator.closeContentPanel}
+                type={PanelType.medium}
+                isLightDismiss={true}
+                closeButtonAriaLabel="Close panel"
+                headerText={contentTitle}
+                headerTextProps={{ role: 'heading', 'aria-level': 1 }}
+                headerClassName={'content-header'}
+            >
+                <div className="content">
+                    <ContentPage deps={deps} />
+                </div>
+            </Panel>
+        );
+    },
+);

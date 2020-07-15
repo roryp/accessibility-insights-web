@@ -1,26 +1,30 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
-import { autobind } from '@uifabric/utilities';
 import * as classNames from 'classnames';
-import { IColumn } from 'office-ui-fabric-react/lib/DetailsList';
+import { IColumn } from 'office-ui-fabric-react';
 
-import { AssessmentNavState } from '../../common/types/store-data/iassessment-result-data';
-import { DetailsViewActionMessageCreator } from './../actions/details-view-action-message-creator';
+import { AssessmentNavState } from '../../common/types/store-data/assessment-result-data';
+import { DetailsViewActionMessageCreator } from '../actions/details-view-action-message-creator';
 
 export class MasterCheckBoxConfigProvider {
     private static MASTER_CHECKBOX_ICON_NAME_ENABLED: string = 'view';
     private static MASTER_CHECKBOX_ICON_NAME_DISABLED: string = 'checkbox';
-    private actionMessageCreator: DetailsViewActionMessageCreator;
+    private detailsViewActionMessageCreator: DetailsViewActionMessageCreator;
 
-    constructor(actionMessageCreator: DetailsViewActionMessageCreator) {
-        this.actionMessageCreator = actionMessageCreator;
+    constructor(detailsViewActionMessageCreator: DetailsViewActionMessageCreator) {
+        this.detailsViewActionMessageCreator = detailsViewActionMessageCreator;
     }
 
-    public getMasterCheckBoxProperty(assessmentNavState: AssessmentNavState, allEnabled: boolean): Partial<IColumn> {
+    public getMasterCheckBoxProperty(
+        assessmentNavState: AssessmentNavState,
+        allEnabled: boolean,
+    ): Partial<IColumn> {
         const iconName = allEnabled
             ? MasterCheckBoxConfigProvider.MASTER_CHECKBOX_ICON_NAME_ENABLED
             : MasterCheckBoxConfigProvider.MASTER_CHECKBOX_ICON_NAME_DISABLED;
-        const iconClassName = classNames({ 'master-visualization-column-header-selected': iconName === 'view' });
+        const iconClassName = classNames({
+            'master-visualization-column-header-selected': iconName === 'view',
+        });
         const name = 'Visualization toggle';
         const label = `${allEnabled ? 'Hide' : 'Show'} all visualizations`;
         const onColumnClick = this.getMasterCheckBoxClickHandler(assessmentNavState, allEnabled);
@@ -34,17 +38,16 @@ export class MasterCheckBoxConfigProvider {
         };
     }
 
-    @autobind
-    private getMasterCheckBoxClickHandler(
+    private getMasterCheckBoxClickHandler = (
         assessmentNavState: AssessmentNavState,
         allEnabled: boolean,
-    ): (ev: React.MouseEvent<HTMLElement>, column: IColumn) => void {
+    ): ((ev: React.MouseEvent<HTMLElement>, column: IColumn) => void) => {
         return (ev: React.MouseEvent<HTMLElement>, column: IColumn) => {
-            this.actionMessageCreator.changeAssessmentVisualizationStateForAll(
+            this.detailsViewActionMessageCreator.changeAssessmentVisualizationStateForAll(
                 !allEnabled,
                 assessmentNavState.selectedTestType,
-                assessmentNavState.selectedTestStep,
+                assessmentNavState.selectedTestSubview,
             );
         };
-    }
+    };
 }

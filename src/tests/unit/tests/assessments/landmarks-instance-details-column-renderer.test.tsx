@@ -2,10 +2,10 @@
 // Licensed under the MIT License.
 import * as React from 'react';
 
-import { landmarksAssessmentInstanceDetailsColumnRenderer } from '../../../../assessments/landmarks/landmarks-instance-details-column-renderer';
-import { ILandmarksAssessmentProperties } from '../../../../common/types/store-data/iassessment-result-data';
+import { landmarksAssessmentInstanceDetailsColumnRenderer } from 'assessments/landmarks/landmarks-instance-details-column-renderer';
+import { LandmarksAssessmentProperties } from '../../../../common/types/store-data/assessment-result-data';
 import { AssessmentInstanceDetailsColumn } from '../../../../DetailsView/components/assessment-instance-details-column';
-import { IAssessmentInstanceRowData } from '../../../../DetailsView/components/assessment-instance-table';
+import { AssessmentInstanceRowData } from '../../../../DetailsView/components/assessment-instance-table';
 import { LandmarkFormatter } from '../../../../injected/visualization/landmark-formatter';
 
 describe('LandmarksInstanceDetailsColumnRendererTest', () => {
@@ -17,7 +17,7 @@ describe('LandmarksInstanceDetailsColumnRendererTest', () => {
                     label: 'label',
                 },
             },
-        } as IAssessmentInstanceRowData<ILandmarksAssessmentProperties>;
+        } as AssessmentInstanceRowData<LandmarksAssessmentProperties>;
         const expected = (
             <AssessmentInstanceDetailsColumn
                 background={LandmarkFormatter.getStyleForLandmarkRole('banner').borderColor}
@@ -37,7 +37,7 @@ describe('LandmarksInstanceDetailsColumnRendererTest', () => {
                     label: null,
                 },
             },
-        } as IAssessmentInstanceRowData<ILandmarksAssessmentProperties>;
+        } as AssessmentInstanceRowData<LandmarksAssessmentProperties>;
         const expected = (
             <AssessmentInstanceDetailsColumn
                 background={LandmarkFormatter.getStyleForLandmarkRole('banner').borderColor}

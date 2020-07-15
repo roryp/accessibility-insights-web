@@ -6,6 +6,8 @@ function iconSet(key) {
         icon16: `icons/brand/${key}/brand-${key}-16px.png`,
         icon48: `icons/brand/${key}/brand-${key}-48px.png`,
         icon128: `icons/brand/${key}/brand-${key}-128px.png`,
+        // should have .icns, .ico, and 512x512 .png variants; generate with electron-icon-maker
+        electronIconBaseName: `icons/brand/${key}/electron-icons/icon`,
     };
 }
 
@@ -17,89 +19,142 @@ const icons = {
     production: iconSet('blue'),
 };
 
-const commonOptions = {
-    extensionFullName: 'Accessibility Insights for Web',
-    extensionDescription: 'Accessibility Insights for Web helps developers quickly find and fix accessibility issues.',
-    ...icons.production,
+const commonExtensionOptions = {
+    fullName: 'Accessibility Insights for Web',
+    extensionDescription:
+        'Accessibility Insights for Web helps developers quickly find and fix accessibility issues.',
     bundled: true,
+    productCategory: 'extension',
 };
 
-const publicOptions = {
-    ...commonOptions,
-    requireSignInForPreviewFeatures: false,
-};
-
-const internalOptions = {
-    ...commonOptions,
-    requireSignInForPreviewFeatures: true,
+const commonUnifiedOptions = {
+    fullName: 'Accessibility Insights for Android',
+    bundled: true,
+    productCategory: 'electron',
 };
 
 module.exports = {
     dev: {
         config: {
             options: {
-                ...internalOptions,
+                ...commonExtensionOptions,
                 ...icons.dev,
-                debug: true,
-                extensionFullName: 'Accessibility Insights for Web - Dev',
+                fullName: 'Accessibility Insights for Web - Dev',
                 telemetryBuildName: 'Dev',
             },
         },
+        bundleFolder: 'devBundle',
+        mustExistFile: 'background.bundle.js',
     },
     playground: {
         release: true,
         config: {
             options: {
-                ...publicOptions,
+                ...commonExtensionOptions,
                 ...icons.playground,
-                debug: true,
-                extensionFullName: 'Accessibility Insights for Web - Playground',
+                fullName: 'Accessibility Insights for Web - Playground',
                 telemetryBuildName: 'Playground',
             },
         },
+        bundleFolder: 'devBundle',
+        mustExistFile: 'background.bundle.js',
     },
     canary: {
         release: true,
         config: {
             options: {
-                ...internalOptions,
+                ...commonExtensionOptions,
                 ...icons.canary,
-                debug: true,
-                extensionFullName: 'Accessibility Insights for Web - Canary',
+                fullName: 'Accessibility Insights for Web - Canary',
                 telemetryBuildName: 'Canary',
             },
         },
+        bundleFolder: 'devBundle',
+        mustExistFile: 'background.bundle.js',
     },
     insider: {
         release: true,
         config: {
             options: {
-                ...internalOptions,
+                ...commonExtensionOptions,
                 ...icons.insider,
-                extensionFullName: 'Accessibility Insights for Web - Insider',
+                fullName: 'Accessibility Insights for Web - Insider',
                 telemetryBuildName: 'Insider',
             },
         },
+        bundleFolder: 'prodBundle',
+        mustExistFile: 'background.bundle.js',
     },
     production: {
         release: true,
         config: {
             options: {
-                ...internalOptions,
+                ...commonExtensionOptions,
                 ...icons.production,
                 telemetryBuildName: 'Production',
             },
         },
+        bundleFolder: 'prodBundle',
+        mustExistFile: 'background.bundle.js',
     },
-    preview: {
+    'unified-dev': {
+        config: {
+            options: {
+                ...commonUnifiedOptions,
+                ...icons.dev,
+                fullName: 'Accessibility Insights for Android - Dev',
+                telemetryBuildName: 'AI Android - Dev',
+            },
+        },
+        bundleFolder: 'unifiedBundle',
+        mustExistFile: 'main.bundle.js',
+    },
+    'unified-canary': {
         release: true,
         config: {
             options: {
-                ...publicOptions,
-                ...icons.production,
-                extensionFullName: 'Accessibility Insights for Web - Preview',
-                telemetryBuildName: 'Preview',
+                ...commonUnifiedOptions,
+                ...icons.canary,
+                fullName: 'Accessibility Insights for Android - Canary',
+                telemetryBuildName: 'AI Android - Canary',
             },
         },
+        bundleFolder: 'unifiedBundle',
+        mustExistFile: 'main.bundle.js',
+        appId: 'com.microsoft.accessibilityinsights.unified.canary',
+        publishUrl: 'https://a11yunifiedcanaryblob.blob.core.windows.net/a11yunified-canary',
+        telemetryKeyIdentifier: 'unified-canary-instrumentation-key',
+    },
+    'unified-insider': {
+        release: true,
+        config: {
+            options: {
+                ...commonUnifiedOptions,
+                ...icons.insider,
+                fullName: 'Accessibility Insights for Android - Insider',
+                telemetryBuildName: 'AI Android - Insider',
+            },
+        },
+        bundleFolder: 'unifiedBundle',
+        mustExistFile: 'main.bundle.js',
+        appId: 'com.microsoft.accessibilityinsights.unified.insider',
+        publishUrl: 'https://a11yunifiedinsiderblob.blob.core.windows.net/a11yunified-insider',
+        telemetryKeyIdentifier: 'unified-insider-instrumentation-key',
+    },
+    'unified-production': {
+        release: true,
+        config: {
+            options: {
+                ...commonUnifiedOptions,
+                ...icons.production,
+                fullName: 'Accessibility Insights for Android',
+                telemetryBuildName: 'AI Android - Production',
+            },
+        },
+        bundleFolder: 'unifiedBundle',
+        mustExistFile: 'main.bundle.js',
+        appId: 'com.microsoft.accessibilityinsights.unified.production',
+        publishUrl: 'https://a11yunifiedprodblob.blob.core.windows.net/a11yunified-prod',
+        telemetryKeyIdentifier: 'unified-prod-instrumentation-key',
     },
 };

@@ -2,27 +2,31 @@
 // Licensed under the MIT License.
 import { Mock, MockBehavior } from 'typemoq';
 
+import { VisualizationConfiguration } from '../../../../../common/configs/visualization-configuration';
 import {
-    IDisplayableVisualizationTypeData,
-    IVisualizationConfiguration,
+    DisplayableVisualizationTypeData,
     VisualizationConfigurationFactory,
 } from '../../../../../common/configs/visualization-configuration-factory';
-import { getOverviewTitle, getTestViewTitle, GetTestViewTitleProps } from '../../../../../DetailsView/handlers/get-document-title';
+import {
+    getOverviewTitle,
+    getTestViewTitle,
+    GetTestViewTitleProps,
+} from '../../../../../DetailsView/handlers/get-document-title';
 
 describe('getTestViewTitle', () => {
     it('should get title from displayable data from config factory', () => {
         const configFactory = Mock.ofType(VisualizationConfigurationFactory, MockBehavior.Strict);
         const displayableDataStub = {
             title: 'fake title',
-        } as IDisplayableVisualizationTypeData;
-        const type = -1;
-        const configStub = { displayableData: displayableDataStub } as IVisualizationConfiguration;
+        } as DisplayableVisualizationTypeData;
+        const visualizationType = -1;
+        const configStub = { displayableData: displayableDataStub } as VisualizationConfiguration;
 
-        configFactory.setup(cf => cf.getConfiguration(type)).returns(() => configStub);
+        configFactory.setup(cf => cf.getConfiguration(visualizationType)).returns(() => configStub);
 
         const props: GetTestViewTitleProps = {
             visualizationConfigurationFactory: configFactory.object,
-            selectedDetailsView: type,
+            selectedDetailsView: visualizationType,
         };
 
         expect(getTestViewTitle(props)).toEqual(displayableDataStub.title);

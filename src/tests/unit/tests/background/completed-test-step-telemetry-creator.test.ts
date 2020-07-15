@@ -1,30 +1,33 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
+import { CompletedTestStepTelemetryCreator } from 'background/completed-test-step-telemetry-creator';
+import { Interpreter } from 'background/interpreter';
+import { AssessmentStore } from 'background/stores/assessment-store';
+import { TabStore } from 'background/stores/tab-store';
 import { It, Mock, MockBehavior, Times } from 'typemoq';
-
-import { CompletedTestStepTelemetryCreator } from '../../../../background/completed-test-step-telemetry-creator';
-import { Interpreter } from '../../../../background/interpreter';
-import { AssessmentStore } from '../../../../background/stores/assessment-store';
-import { TabStore } from '../../../../background/stores/tab-store';
-import { Messages } from '../../../../common/messages';
-import { TelemetryDataFactory } from '../../../../common/telemetry-data-factory';
 import {
     CHANGE_OVERALL_REQUIREMENT_STATUS,
     RequirementStatusTelemetryData,
     TelemetryEventSource,
     TriggeredByNotApplicable,
-} from '../../../../common/telemetry-events';
+} from '../../../../common/extension-telemetry-events';
+import { Message } from '../../../../common/message';
+import { Messages } from '../../../../common/messages';
+import { TelemetryDataFactory } from '../../../../common/telemetry-data-factory';
 import { ManualTestStatus } from '../../../../common/types/manual-test-status';
-import { IAssessmentData, IAssessmentStoreData } from '../../../../common/types/store-data/iassessment-result-data';
-import { ITabStoreData } from '../../../../common/types/store-data/itab-store-data';
+import {
+    AssessmentData,
+    AssessmentStoreData,
+} from '../../../../common/types/store-data/assessment-result-data';
+import { TabStoreData } from '../../../../common/types/store-data/tab-store-data';
 import { CreateTestAssessmentProvider } from '../../common/test-assessment-provider';
 
 function testBeforeAfterAssessmentData(
     expectedTelemetry: RequirementStatusTelemetryData,
     expectedTimes: Times,
-    before: IAssessmentStoreData,
-    after: IAssessmentStoreData,
-) {
+    before: AssessmentStoreData,
+    after: AssessmentStoreData,
+): void {
     const assessmentStoreMock = Mock.ofType(AssessmentStore, MockBehavior.Strict);
     const assessmentProvider = CreateTestAssessmentProvider();
     const telemetryFactoryMock = Mock.ofType(TelemetryDataFactory, MockBehavior.Strict);
@@ -36,8 +39,8 @@ function testBeforeAfterAssessmentData(
         interpreterMock.object,
     );
 
-    const expectedMessage: IMessage = {
-        type: Messages.Telemetry.Send,
+    const expectedMessage: Message = {
+        messageType: Messages.Telemetry.Send,
         tabId: 1,
         payload: {
             eventName: CHANGE_OVERALL_REQUIREMENT_STATUS,
@@ -45,25 +48,18 @@ function testBeforeAfterAssessmentData(
         },
     };
 
-    const tabStoreData: ITabStoreData = {
-        title: 'DetailsViewContainerTest title',
-        url: 'http://detailsViewContainerTest/url/',
-        id: 1,
-        isClosed: false,
-        isChanged: false,
-        isPageHidden: false,
-    };
-
     interpreterMock.setup(m => m.interpret(It.isValue(expectedMessage))).verifiable(expectedTimes);
 
     telemetryFactoryMock
         .setup(m => m.forRequirementStatus(It.isAny(), It.isAny(), It.isAny(), It.isAny()))
-        .returns((viz, step, passed, instances) => getMockTelemetryData(viz, step, passed, instances))
+        .returns((viz, step, passed, instances) =>
+            getMockTelemetryData(viz, step, passed, instances),
+        )
         .verifiable(Times.atLeastOnce());
 
     let callback;
     assessmentStoreMock
-        .setup(as => as.addChangedListener(It.is(param => param instanceof Function)))
+        .setup(store => store.addChangedListener(It.is(param => param instanceof Function)))
         .callback(listenerCallback => {
             callback = listenerCallback;
         })
@@ -96,7 +92,8 @@ describe('CompletedTestStepTelemetryCreatorTest', () => {
     test('initialize: onAssessmentChange, telemetry sent because one test step switches to PASS', () => {
         const before = getMockAssessmentStoreDataUnknowns();
         const after = getMockAssessmentStoreDataUnknowns();
-        after.assessments['assessment-1'].testStepStatus['assessment-1-step-1'].stepFinalResult = ManualTestStatus.PASS;
+        after.assessments['assessment-1'].testStepStatus['assessment-1-step-1'].stepFinalResult =
+            ManualTestStatus.PASS;
 
         const expectedTelemetry = getMockTelemetryData(-1, 'assessment-1-step-1', true, 1);
         testBeforeAfterAssessmentData(expectedTelemetry, Times.once(), before, after);
@@ -105,7 +102,8 @@ describe('CompletedTestStepTelemetryCreatorTest', () => {
     test('initialize: onAssessmentChange, no telemetry sent because tabId is null', () => {
         const before = getMockAssessmentStoreDataUnknowns();
         const after = getMockAssessmentStoreDataUnknowns();
-        after.assessments['assessment-1'].testStepStatus['assessment-1-step-1'].stepFinalResult = ManualTestStatus.PASS;
+        after.assessments['assessment-1'].testStepStatus['assessment-1-step-1'].stepFinalResult =
+            ManualTestStatus.PASS;
         after.persistedTabInfo = null;
 
         const expectedTelemetry = getMockTelemetryData(-1, 'assessment-1-step-1', true, 1);
@@ -115,7 +113,8 @@ describe('CompletedTestStepTelemetryCreatorTest', () => {
     test('initialize: onAssessmentChange, telemetry sent because one manual test step switches to FAIL with failure instance', () => {
         const before = getMockAssessmentStoreDataUnknowns();
         const after = getMockAssessmentStoreDataUnknowns();
-        after.assessments['assessment-1'].testStepStatus['assessment-1-step-2'].stepFinalResult = ManualTestStatus.FAIL;
+        after.assessments['assessment-1'].testStepStatus['assessment-1-step-2'].stepFinalResult =
+            ManualTestStatus.FAIL;
 
         const expectedTelemetry = getMockTelemetryData(-1, 'assessment-1-step-2', false, 1);
         testBeforeAfterAssessmentData(expectedTelemetry, Times.once(), before, after);
@@ -123,7 +122,8 @@ describe('CompletedTestStepTelemetryCreatorTest', () => {
 
     test('initialize: onAssessmentChange, no telemetry sent because one test step switches from PASS to UNKNOWN', () => {
         const before = getMockAssessmentStoreDataUnknowns();
-        before.assessments['assessment-1'].testStepStatus['assessment-1-step-1'].stepFinalResult = ManualTestStatus.PASS;
+        before.assessments['assessment-1'].testStepStatus['assessment-1-step-1'].stepFinalResult =
+            ManualTestStatus.PASS;
         const after = getMockAssessmentStoreDataUnknowns();
 
         const expectedTelemetry = getMockTelemetryData(-1, 'assessment-1-step-1', true, 1);
@@ -133,7 +133,8 @@ describe('CompletedTestStepTelemetryCreatorTest', () => {
     test('initialize: onAssessmentChange, telemetry sent because one test step switches from UNKNOWN to FAIL', () => {
         const before = getMockAssessmentStoreDataUnknowns();
         const after = getMockAssessmentStoreDataUnknowns();
-        after.assessments['assessment-1'].testStepStatus['assessment-1-step-1'].stepFinalResult = ManualTestStatus.FAIL;
+        after.assessments['assessment-1'].testStepStatus['assessment-1-step-1'].stepFinalResult =
+            ManualTestStatus.FAIL;
 
         const expectedTelemetry = getMockTelemetryData(-1, 'assessment-1-step-1', false, 1);
         testBeforeAfterAssessmentData(expectedTelemetry, Times.once(), before, after);
@@ -141,7 +142,8 @@ describe('CompletedTestStepTelemetryCreatorTest', () => {
 
     test('initialize: onAssessmentChange, no telemetry sent because one test step switches from FAIL to UNKNOWN', () => {
         const before = getMockAssessmentStoreDataUnknowns();
-        before.assessments['assessment-1'].testStepStatus['assessment-1-step-1'].stepFinalResult = ManualTestStatus.FAIL;
+        before.assessments['assessment-1'].testStepStatus['assessment-1-step-1'].stepFinalResult =
+            ManualTestStatus.FAIL;
         const after = getMockAssessmentStoreDataUnknowns();
 
         const expectedTelemetry = getMockTelemetryData(-1, 'assessment-1-step-1', false, 1);
@@ -150,9 +152,11 @@ describe('CompletedTestStepTelemetryCreatorTest', () => {
 
     test('initialize: onAssessmentChange, no telemetry sent because one test step remains PASS and PASS', () => {
         const before = getMockAssessmentStoreDataUnknowns();
-        before.assessments['assessment-1'].testStepStatus['assessment-1-step-1'].stepFinalResult = ManualTestStatus.PASS;
+        before.assessments['assessment-1'].testStepStatus['assessment-1-step-1'].stepFinalResult =
+            ManualTestStatus.PASS;
         const after = getMockAssessmentStoreDataUnknowns();
-        after.assessments['assessment-1'].testStepStatus['assessment-1-step-1'].stepFinalResult = ManualTestStatus.PASS;
+        after.assessments['assessment-1'].testStepStatus['assessment-1-step-1'].stepFinalResult =
+            ManualTestStatus.PASS;
 
         const expectedTelemetry = getMockTelemetryData(-1, 'assessment-1-step-1', true, 1);
         testBeforeAfterAssessmentData(expectedTelemetry, Times.never(), before, after);
@@ -161,8 +165,10 @@ describe('CompletedTestStepTelemetryCreatorTest', () => {
     test('initialize: onAssessmentChange, single telemetry sent because two test steps switch from UNKNOWN to PASS', () => {
         const before = getMockAssessmentStoreDataUnknowns();
         const after = getMockAssessmentStoreDataUnknowns();
-        after.assessments['assessment-1'].testStepStatus['assessment-1-step-1'].stepFinalResult = ManualTestStatus.PASS;
-        after.assessments['assessment-1'].testStepStatus['assessment-1-step-2'].stepFinalResult = ManualTestStatus.PASS;
+        after.assessments['assessment-1'].testStepStatus['assessment-1-step-1'].stepFinalResult =
+            ManualTestStatus.PASS;
+        after.assessments['assessment-1'].testStepStatus['assessment-1-step-2'].stepFinalResult =
+            ManualTestStatus.PASS;
 
         const expectedTelemetry = getMockTelemetryData(-1, 'assessment-1-step-1', true, 1);
         testBeforeAfterAssessmentData(expectedTelemetry, Times.once(), before, after);
@@ -187,16 +193,18 @@ describe('CompletedTestStepTelemetryCreatorTest', () => {
 
         let callback;
         assessmentStoreMock
-            .setup(as => as.addChangedListener(It.is(param => param instanceof Function)))
+            .setup(store => store.addChangedListener(It.is(param => param instanceof Function)))
             .callback(listenerCallback => {
                 callback = listenerCallback;
             })
             .verifiable(Times.atLeastOnce());
 
-        const expectedMessage: IMessage = {
-            type: Messages.Telemetry.Send,
+        const expectedMessage: Message = {
+            messageType: Messages.Telemetry.Send,
         };
-        interpreterMock.setup(im => im.interpret(It.isValue(expectedMessage))).verifiable(Times.never());
+        interpreterMock
+            .setup(im => im.interpret(It.isValue(expectedMessage)))
+            .verifiable(Times.never());
 
         testSubject.initialize();
         callback();
@@ -214,21 +222,22 @@ describe('CompletedTestStepTelemetryCreatorTest', () => {
         const interpreterMock = Mock.ofType(Interpreter, MockBehavior.Strict);
         const data = getMockAssessmentStoreDataUnknowns();
         const expectedTelemetry = getMockTelemetryData(-1, 'assessment-1-step-1', true, 1);
-        const expectedMessage: IMessage = {
-            type: Messages.Telemetry.Send,
+        const expectedMessage: Message = {
+            messageType: Messages.Telemetry.Send,
             tabId: 1,
             payload: {
                 eventName: CHANGE_OVERALL_REQUIREMENT_STATUS,
                 telemetry: expectedTelemetry,
             },
         };
-        const tabStoreData: ITabStoreData = {
+        const tabStoreData: TabStoreData = {
             title: 'DetailsViewContainerTest title',
             url: 'http://detailsViewContainerTest/url/',
             id: 1,
             isClosed: false,
             isChanged: false,
             isPageHidden: false,
+            isOriginChanged: false,
         };
         const testSubject = new CompletedTestStepTelemetryCreator(
             assessmentStoreMock.object,
@@ -241,11 +250,13 @@ describe('CompletedTestStepTelemetryCreatorTest', () => {
 
         telemetryFactoryMock
             .setup(m => m.forRequirementStatus(It.isAny(), It.isAny(), It.isAny(), It.isAny()))
-            .returns((viz, step, passed, instances) => getMockTelemetryData(viz, step, passed, instances))
+            .returns((viz, step, passed, instances) =>
+                getMockTelemetryData(viz, step, passed, instances),
+            )
             .verifiable();
 
         assessmentStoreMock
-            .setup(as => as.addChangedListener(It.is(param => param instanceof Function)))
+            .setup(store => store.addChangedListener(It.is(param => param instanceof Function)))
             .callback(listenerCallback => {
                 callback = listenerCallback;
             })
@@ -256,10 +267,13 @@ describe('CompletedTestStepTelemetryCreatorTest', () => {
             .returns(() => data)
             .verifiable(Times.atLeastOnce());
 
-        interpreterMock.setup(im => im.interpret(It.isValue(expectedMessage))).verifiable(Times.once());
+        interpreterMock
+            .setup(im => im.interpret(It.isValue(expectedMessage)))
+            .verifiable(Times.once());
 
         testSubject.initialize();
-        data.assessments['assessment-1'].testStepStatus['assessment-1-step-1'].stepFinalResult = ManualTestStatus.PASS;
+        data.assessments['assessment-1'].testStepStatus['assessment-1-step-1'].stepFinalResult =
+            ManualTestStatus.PASS;
         callback();
 
         assessmentStoreMock.verifyAll();
@@ -267,9 +281,14 @@ describe('CompletedTestStepTelemetryCreatorTest', () => {
     });
 });
 
-function getMockTelemetryData(test: number, step: string, passed: boolean, instances: number): RequirementStatusTelemetryData {
+function getMockTelemetryData(
+    test: number,
+    requirement: string,
+    passed: boolean,
+    instances: number,
+): RequirementStatusTelemetryData {
     return {
-        selectedStep: step,
+        selectedRequirement: requirement,
         selectedTest: test.toString(),
         passed: passed,
         numInstances: instances,
@@ -278,14 +297,23 @@ function getMockTelemetryData(test: number, step: string, passed: boolean, insta
     };
 }
 
-function getMockAssessmentStoreDataUnknowns(): IAssessmentStoreData {
-    const assessments: { [key: string]: IAssessmentData } = {
+function getMockAssessmentStoreDataUnknowns(): AssessmentStoreData {
+    const assessments: { [key: string]: AssessmentData } = {
         'assessment-1': {
             fullAxeResultsMap: null,
             testStepStatus: {
-                'assessment-1-step-1': { stepFinalResult: ManualTestStatus.UNKNOWN, isStepScanned: false },
-                'assessment-1-step-2': { stepFinalResult: ManualTestStatus.UNKNOWN, isStepScanned: false },
-                'assessment-1-step-3': { stepFinalResult: ManualTestStatus.UNKNOWN, isStepScanned: false },
+                'assessment-1-step-1': {
+                    stepFinalResult: ManualTestStatus.UNKNOWN,
+                    isStepScanned: false,
+                },
+                'assessment-1-step-2': {
+                    stepFinalResult: ManualTestStatus.UNKNOWN,
+                    isStepScanned: false,
+                },
+                'assessment-1-step-3': {
+                    stepFinalResult: ManualTestStatus.UNKNOWN,
+                    isStepScanned: false,
+                },
             },
             generatedAssessmentInstancesMap: {
                 h1: {
@@ -327,8 +355,14 @@ function getMockAssessmentStoreDataUnknowns(): IAssessmentStoreData {
         'assessment-2': {
             fullAxeResultsMap: null,
             testStepStatus: {
-                'assessment-2-step-1': { stepFinalResult: ManualTestStatus.UNKNOWN, isStepScanned: false },
-                'assessment-2-step-2': { stepFinalResult: ManualTestStatus.UNKNOWN, isStepScanned: false },
+                'assessment-2-step-1': {
+                    stepFinalResult: ManualTestStatus.UNKNOWN,
+                    isStepScanned: false,
+                },
+                'assessment-2-step-2': {
+                    stepFinalResult: ManualTestStatus.UNKNOWN,
+                    isStepScanned: false,
+                },
             },
             generatedAssessmentInstancesMap: {
                 h1: {
@@ -365,6 +399,6 @@ function getMockAssessmentStoreDataUnknowns(): IAssessmentStoreData {
             url: 'url',
             title: 'title',
         },
-    } as IAssessmentStoreData;
+    } as AssessmentStoreData;
     return assessmentStoreMockData;
 }

@@ -6,33 +6,43 @@ import { IMock, Mock, Times } from 'typemoq';
 import { ManualTestStatus } from '../../../../../common/types/manual-test-status';
 import {
     AssessmentNavState,
-    IGeneratedAssessmentInstance,
-    IUserCapturedInstance,
-} from '../../../../../common/types/store-data/iassessment-result-data';
+    GeneratedAssessmentInstance,
+    UserCapturedInstance,
+} from '../../../../../common/types/store-data/assessment-result-data';
+import { FeatureFlagStoreData } from '../../../../../common/types/store-data/feature-flag-store-data';
 import { VisualizationType } from '../../../../../common/types/visualization-type';
 import { DetailsViewActionMessageCreator } from '../../../../../DetailsView/actions/details-view-action-message-creator';
 import { AssessmentInstanceEditAndRemoveControl } from '../../../../../DetailsView/components/assessment-instance-edit-and-remove-control';
 import { AssessmentInstanceSelectedButton } from '../../../../../DetailsView/components/assessment-instance-selected-button';
-import { IAssessmentInstanceRowData, ICapturedInstanceRowData } from '../../../../../DetailsView/components/assessment-instance-table';
+import {
+    AssessmentInstanceRowData,
+    CapturedInstanceRowData,
+} from '../../../../../DetailsView/components/assessment-instance-table';
 import { AssessmentTableColumnConfigHandler } from '../../../../../DetailsView/components/assessment-table-column-config-handler';
 import { TestStatusChoiceGroup } from '../../../../../DetailsView/components/test-status-choice-group';
 import { AssessmentInstanceTableHandler } from '../../../../../DetailsView/handlers/assessment-instance-table-handler';
+import { DictionaryStringTo } from '../../../../../types/common-types';
 import { CreateTestAssessmentProvider } from '../../../common/test-assessment-provider';
 
 describe('AssessmentInstanceTableHandlerTest', () => {
     let testSubject: AssessmentInstanceTableHandler;
-    let actionMessageCreatorMock: IMock<DetailsViewActionMessageCreator>;
+    let detailsViewActionMessageCreatorMock: IMock<DetailsViewActionMessageCreator>;
     let configFactoryMock: IMock<AssessmentTableColumnConfigHandler>;
     const assessmentsProvider = CreateTestAssessmentProvider();
+    const featureFlagStoreData = {} as FeatureFlagStoreData;
 
     beforeEach(() => {
-        actionMessageCreatorMock = Mock.ofType(DetailsViewActionMessageCreator);
+        detailsViewActionMessageCreatorMock = Mock.ofType(DetailsViewActionMessageCreator);
         configFactoryMock = Mock.ofType(AssessmentTableColumnConfigHandler);
-        testSubject = new AssessmentInstanceTableHandler(actionMessageCreatorMock.object, configFactoryMock.object, assessmentsProvider);
+        testSubject = new AssessmentInstanceTableHandler(
+            detailsViewActionMessageCreatorMock.object,
+            configFactoryMock.object,
+            assessmentsProvider,
+        );
     });
 
     test('createAssessmentInstanceTableItems', () => {
-        const instancesMap: DictionaryStringTo<IGeneratedAssessmentInstance> = {
+        const instancesMap: DictionaryStringTo<GeneratedAssessmentInstance> = {
             selector1: {
                 target: ['target1'],
                 html: 'html',
@@ -58,15 +68,15 @@ describe('AssessmentInstanceTableHandlerTest', () => {
             },
         };
         const assessmentNavState: AssessmentNavState = {
-            selectedTestStep: 'step1',
+            selectedTestSubview: 'step1',
             selectedTestType: 5,
         };
 
-        actionMessageCreatorMock.setup(a => a.changeManualTestStatus).verifiable(Times.atLeastOnce());
-
-        actionMessageCreatorMock.setup(a => a.undoManualTestStatusChange).verifiable(Times.atLeastOnce());
-
-        const rows = testSubject.createAssessmentInstanceTableItems(instancesMap, assessmentNavState, true);
+        const rows = testSubject.createAssessmentInstanceTableItems(
+            instancesMap,
+            assessmentNavState,
+            true,
+        );
         const choiceGroup: JSX.Element = (
             <TestStatusChoiceGroup
                 test={5}
@@ -74,8 +84,12 @@ describe('AssessmentInstanceTableHandlerTest', () => {
                 selector={'selector1'}
                 status={ManualTestStatus.FAIL}
                 originalStatus={2}
-                onGroupChoiceChange={actionMessageCreatorMock.object.changeManualTestStatus}
-                onUndoClicked={actionMessageCreatorMock.object.undoManualTestStatusChange}
+                onGroupChoiceChange={
+                    detailsViewActionMessageCreatorMock.object.changeManualTestStatus
+                }
+                onUndoClicked={
+                    detailsViewActionMessageCreatorMock.object.undoManualTestStatusChange
+                }
             />
         );
         const selectedButton: JSX.Element = (
@@ -85,11 +99,13 @@ describe('AssessmentInstanceTableHandlerTest', () => {
                 selector={'selector1'}
                 isVisualizationEnabled={false}
                 isVisible={false}
-                onSelected={actionMessageCreatorMock.object.changeAssessmentVisualizationState}
+                onSelected={
+                    detailsViewActionMessageCreatorMock.object.changeAssessmentVisualizationState
+                }
             />
         );
 
-        const expectedRows: IAssessmentInstanceRowData[] = [
+        const expectedRows: AssessmentInstanceRowData[] = [
             {
                 instance: {
                     target: ['target1'],
@@ -108,54 +124,124 @@ describe('AssessmentInstanceTableHandlerTest', () => {
                 visualizationButton: selectedButton,
             },
         ];
-        actionMessageCreatorMock.verifyAll();
         configFactoryMock.verifyAll();
         expect(expectedRows).toEqual(rows);
     });
 
-    test('createCapturedInstanceTableItems', () => {
-        const instance: IUserCapturedInstance = {
+    test('createCapturedInstanceTableItems with PathSnippetStoreData', () => {
+        const instance: UserCapturedInstance = {
             id: '1',
             description: 'des',
         };
         const assessmentNavState: AssessmentNavState = {
-            selectedTestStep: 'step1',
+            selectedTestSubview: 'step1',
             selectedTestType: 5,
         };
 
-        actionMessageCreatorMock.setup(a => a.removeFailureInstance).verifiable(Times.atLeastOnce());
+        const pathSnippetStoreData = {
+            path: 'test path',
+            snippet: 'test snippet for path',
+        };
 
         const rows = testSubject.createCapturedInstanceTableItems(
             [instance],
             assessmentNavState.selectedTestType,
-            assessmentNavState.selectedTestStep,
+            assessmentNavState.selectedTestSubview,
+            featureFlagStoreData,
+            pathSnippetStoreData,
         );
+
+        const currentInstance = {
+            failureDescription: instance.description,
+            path: pathSnippetStoreData.path,
+            snippet: pathSnippetStoreData.snippet,
+        };
 
         const instanceActionButtons: JSX.Element = (
             <AssessmentInstanceEditAndRemoveControl
                 test={assessmentNavState.selectedTestType}
-                step={assessmentNavState.selectedTestStep}
+                step={assessmentNavState.selectedTestSubview}
                 id={instance.id}
-                onRemove={actionMessageCreatorMock.object.removeFailureInstance}
-                onEdit={actionMessageCreatorMock.object.editFailureInstance}
-                description={instance.description}
+                currentInstance={currentInstance}
+                onRemove={detailsViewActionMessageCreatorMock.object.removeFailureInstance}
+                onEdit={detailsViewActionMessageCreatorMock.object.editFailureInstance}
+                onAddPath={detailsViewActionMessageCreatorMock.object.addPathForValidation}
+                onClearPathSnippetData={
+                    detailsViewActionMessageCreatorMock.object.clearPathSnippetData
+                }
                 assessmentsProvider={assessmentsProvider}
+                featureFlagStoreData={featureFlagStoreData}
             />
         );
-        const expectedRows: ICapturedInstanceRowData[] = [
+        const expectedRows: CapturedInstanceRowData[] = [
             {
                 instance: instance,
                 instanceActionButtons: instanceActionButtons,
             },
         ];
-        actionMessageCreatorMock.verifyAll();
+        expect(expectedRows).toEqual(rows);
+    });
+
+    test('createCapturedInstanceTableItems without PathSnippetStoreData', () => {
+        const instance: UserCapturedInstance = {
+            id: '1',
+            description: 'des',
+            selector: 'saved path',
+            html: 'saved instance',
+        };
+        const assessmentNavState: AssessmentNavState = {
+            selectedTestSubview: 'step1',
+            selectedTestType: 5,
+        };
+
+        const pathSnippetStoreData = {
+            path: null,
+            snippet: null,
+        };
+
+        const rows = testSubject.createCapturedInstanceTableItems(
+            [instance],
+            assessmentNavState.selectedTestType,
+            assessmentNavState.selectedTestSubview,
+            featureFlagStoreData,
+            pathSnippetStoreData,
+        );
+
+        const currentInstance = {
+            failureDescription: instance.description,
+            path: instance.selector,
+            snippet: instance.html,
+        };
+
+        const instanceActionButtons: JSX.Element = (
+            <AssessmentInstanceEditAndRemoveControl
+                test={assessmentNavState.selectedTestType}
+                step={assessmentNavState.selectedTestSubview}
+                id={instance.id}
+                currentInstance={currentInstance}
+                onRemove={detailsViewActionMessageCreatorMock.object.removeFailureInstance}
+                onEdit={detailsViewActionMessageCreatorMock.object.editFailureInstance}
+                onAddPath={detailsViewActionMessageCreatorMock.object.addPathForValidation}
+                onClearPathSnippetData={
+                    detailsViewActionMessageCreatorMock.object.clearPathSnippetData
+                }
+                assessmentsProvider={assessmentsProvider}
+                featureFlagStoreData={featureFlagStoreData}
+            />
+        );
+        const expectedRows: CapturedInstanceRowData[] = [
+            {
+                instance: instance,
+                instanceActionButtons: instanceActionButtons,
+            },
+        ];
         expect(expectedRows).toEqual(rows);
     });
 
     test('getColumnConfigs', () => {
         const navState: AssessmentNavState = {
             selectedTestType: VisualizationType.HeadingsAssessment,
-            selectedTestStep: 'step',
+            selectedTestSubview: 'step',
         };
         const instanceMap = {
             selector1: {
@@ -168,22 +254,28 @@ describe('AssessmentInstanceTableHandlerTest', () => {
                 html: '',
             },
         };
-        configFactoryMock.setup(c => c.getColumnConfigs(navState, true, true)).verifiable(Times.once());
+        configFactoryMock
+            .setup(c => c.getColumnConfigs(navState, true, true))
+            .verifiable(Times.once());
 
-        testSubject.getColumnConfigs(instanceMap as DictionaryStringTo<IGeneratedAssessmentInstance>, navState, true);
+        testSubject.getColumnConfigs(
+            instanceMap as DictionaryStringTo<GeneratedAssessmentInstance>,
+            navState,
+            true,
+        );
 
         configFactoryMock.verifyAll();
     });
 
-    test('changeStepStatus', () => {
+    test('changeRequirementStatus', () => {
         const status = ManualTestStatus.FAIL;
         const test = VisualizationType.HeadingsAssessment;
-        const step = 'step';
+        const requirement = 'requirement';
         const actionMessageCreatorStub = {
-            changeManualTestStepStatus: (paramA, paramB, paramC) => {
+            changeManualRequirementStatus: (paramA, paramB, paramC) => {
                 expect(paramA).toBe(status);
                 expect(paramB).toBe(test);
-                expect(paramC).toBe(step);
+                expect(paramC).toBe(requirement);
             },
         };
         const testObject = new AssessmentInstanceTableHandler(
@@ -191,16 +283,16 @@ describe('AssessmentInstanceTableHandlerTest', () => {
             configFactoryMock.object,
             assessmentsProvider,
         );
-        testObject.changeStepStatus(status, test, step);
+        testObject.changeRequirementStatus(status, test, requirement);
     });
 
-    test('undoStepStatusChange', () => {
+    test('undoRequirementStatusChange', () => {
         const test = VisualizationType.HeadingsAssessment;
-        const step = 'step';
+        const requirement = 'requirement';
         const actionMessageCreatorStub = {
-            undoManualTestStepStatusChange: (paramA, paramB) => {
+            undoManualRequirementStatusChange: (paramA, paramB) => {
                 expect(paramA).toBe(test);
-                expect(paramB).toBe(step);
+                expect(paramB).toBe(requirement);
             },
         };
         const testObject = new AssessmentInstanceTableHandler(
@@ -208,30 +300,66 @@ describe('AssessmentInstanceTableHandlerTest', () => {
             configFactoryMock.object,
             assessmentsProvider,
         );
-        testObject.undoStepStatusChange(test, step);
+        testObject.undoRequirementStatusChange(test, requirement);
+    });
+
+    test('addPathForValidation', () => {
+        const path = 'test path';
+        detailsViewActionMessageCreatorMock
+            .setup(a => a.addPathForValidation(path))
+            .verifiable(Times.once());
+        testSubject.addPathForValidation(path);
+
+        detailsViewActionMessageCreatorMock.verifyAll();
+    });
+
+    test('clearPathSnippetData', () => {
+        detailsViewActionMessageCreatorMock
+            .setup(a => a.clearPathSnippetData())
+            .verifiable(Times.once());
+        testSubject.clearPathSnippetData();
+
+        detailsViewActionMessageCreatorMock.verifyAll();
     });
 
     test('addFailureInstance', () => {
         const test = VisualizationType.HeadingsAssessment;
-        const step = 'step';
-        const description = 'description';
-        actionMessageCreatorMock.setup(a => a.addFailureInstance(description, test, step)).verifiable(Times.once());
+        const requirement = 'requirement';
+        const instanceData = {
+            failureDescription: 'description',
+            path: 'path',
+            snippet: 'snippet',
+        };
 
-        testSubject.addFailureInstance(description, test, step);
+        detailsViewActionMessageCreatorMock
+            .setup(a => a.addFailureInstance(instanceData, test, requirement))
+            .verifiable(Times.once());
+
+        testSubject.addFailureInstance(instanceData, test, requirement);
+
+        detailsViewActionMessageCreatorMock.verifyAll();
     });
 
     test('passUnmarkedInstances', () => {
         const test = VisualizationType.HeadingsAssessment;
-        const step = 'missingHeadings';
-        actionMessageCreatorMock.setup(a => a.passUnmarkedInstances(test, step)).verifiable(Times.once());
+        const requirement = 'missingHeadings';
+        detailsViewActionMessageCreatorMock
+            .setup(a => a.passUnmarkedInstances(test, requirement))
+            .verifiable(Times.once());
 
-        testSubject.passUnmarkedInstances(test, step);
+        testSubject.passUnmarkedInstances(test, requirement);
+
+        detailsViewActionMessageCreatorMock.verifyAll();
     });
 
     test('updateFocusedInstance', () => {
         const targetStub = ['target'];
-        actionMessageCreatorMock.setup(a => a.updateFocusedInstanceTarget(targetStub)).verifiable(Times.once());
+        detailsViewActionMessageCreatorMock
+            .setup(a => a.updateFocusedInstanceTarget(targetStub))
+            .verifiable(Times.once());
         testSubject.updateFocusedTarget(targetStub);
+
+        detailsViewActionMessageCreatorMock.verifyAll();
     });
 
     test('renderSelectedButton should trigger addOneInstance', () => {
@@ -245,10 +373,10 @@ describe('AssessmentInstanceTableHandlerTest', () => {
                     isVisualizationEnabled: true,
                 },
             },
-        } as IGeneratedAssessmentInstance;
+        } as GeneratedAssessmentInstance;
 
         const assessmentNavState: AssessmentNavState = {
-            selectedTestStep: 'step1',
+            selectedTestSubview: 'step1',
             selectedTestType: 5,
         };
 
@@ -258,7 +386,9 @@ describe('AssessmentInstanceTableHandlerTest', () => {
     });
 
     test('getColumnConfigsForCapturedInstance', () => {
-        configFactoryMock.setup(c => c.getColumnConfigsForCapturedInstances()).verifiable(Times.once());
+        configFactoryMock
+            .setup(c => c.getColumnConfigsForCapturedInstances())
+            .verifiable(Times.once());
 
         testSubject.getColumnConfigsForCapturedInstance();
 

@@ -2,56 +2,84 @@
 // Licensed under the MIT License.
 import { getRTL } from '@uifabric/utilities';
 import * as ReactDOM from 'react-dom';
-import { GlobalMock, GlobalScope, IGlobalMock, IMock, It, Mock, MockBehavior, Times } from 'typemoq';
+import {
+    GlobalMock,
+    GlobalScope,
+    IGlobalMock,
+    IMock,
+    It,
+    Mock,
+    MockBehavior,
+    Times,
+} from 'typemoq';
 
-import { DevToolStore } from '../../../../background/stores/dev-tools-store';
-import { UserConfigurationStore } from '../../../../background/stores/global/user-configuration-store';
-import { ClientBrowserAdapter } from '../../../../common/client-browser-adapter';
-import { FeatureFlags, getDefaultFeatureFlagValues } from '../../../../common/feature-flags';
+import { DevToolStore } from 'background/stores/dev-tools-store';
+import { UserConfigurationStore } from 'background/stores/global/user-configuration-store';
+import { NavigatorUtils } from 'common/navigator-utils';
+import { ToolData } from 'common/types/store-data/unified-data-interface';
+import { BrowserAdapter } from '../../../../common/browser-adapters/browser-adapter';
+import { FeatureFlags, getDefaultFeatureFlagsWeb } from '../../../../common/feature-flags';
 import { HTMLElementUtils } from '../../../../common/html-element-utils';
-import { BugActionMessageCreator } from '../../../../common/message-creators/bug-action-message-creator';
 import { DevToolActionMessageCreator } from '../../../../common/message-creators/dev-tool-action-message-creator';
+import { IssueFilingActionMessageCreator } from '../../../../common/message-creators/issue-filing-action-message-creator';
+import { UserConfigMessageCreator } from '../../../../common/message-creators/user-config-message-creator';
 import { FeatureFlagStoreData } from '../../../../common/types/store-data/feature-flag-store-data';
 import { WindowUtils } from '../../../../common/window-utils';
 import { rootContainerId } from '../../../../injected/constants';
+import { DetailsDialogHandler } from '../../../../injected/details-dialog-handler';
 import { DetailsDialogWindowMessage, DialogRenderer } from '../../../../injected/dialog-renderer';
-import { FrameCommunicator, IMessageRequest } from '../../../../injected/frameCommunicators/frame-communicator';
+import { ErrorMessageContent } from '../../../../injected/frameCommunicators/error-message-content';
+import {
+    FrameCommunicator,
+    MessageRequest,
+} from '../../../../injected/frameCommunicators/frame-communicator';
 import { FrameMessageResponseCallback } from '../../../../injected/frameCommunicators/window-message-handler';
-import { IErrorMessageContent } from '../../../../injected/frameCommunicators/window-message-marshaller';
 import { LayeredDetailsDialogComponent } from '../../../../injected/layered-details-dialog-component';
 import { MainWindowContext } from '../../../../injected/main-window-context';
-import { DecoratedAxeNodeResult, IHtmlElementAxeResults } from '../../../../injected/scanner-utils';
+import { DecoratedAxeNodeResult, HtmlElementAxeResults } from '../../../../injected/scanner-utils';
 import { ShadowUtils } from '../../../../injected/shadow-utils';
 import { TargetPageActionMessageCreator } from '../../../../injected/target-page-action-message-creator';
+import { IssueFilingServiceProvider } from '../../../../issue-filing/issue-filing-service-provider';
+import { DictionaryStringTo } from '../../../../types/common-types';
 
 describe('DialogRendererTests', () => {
     let htmlElementUtilsMock: IMock<HTMLElementUtils>;
     let windowUtilsMock: IMock<WindowUtils>;
+    let navigatorUtilsMock: IMock<NavigatorUtils>;
     let frameCommunicator: IMock<FrameCommunicator>;
     let mainWindowContext: MainWindowContext;
     let shadowUtilMock: IMock<ShadowUtils>;
-    let clientBrowserAdapter: IMock<ClientBrowserAdapter>;
+    let browserAdapter: IMock<BrowserAdapter>;
     let shadowContainerMock: IMock<HTMLElement>;
     let domMock: IMock<Document>;
     let shadowRootMock: IMock<Element>;
     let getRTLMock: IMock<typeof getRTL>;
-    let shadowRoot: Element;
     let renderMock: IMock<typeof ReactDOM.render>;
+    let detailsDialogHandlerMock: IMock<DetailsDialogHandler>;
+
     let subscribeCallback: (
         message: DetailsDialogWindowMessage,
-        error: IErrorMessageContent,
+        error: ErrorMessageContent,
         responder?: FrameMessageResponseCallback,
     ) => void;
     let getMainWindoContextMock: IGlobalMock<() => MainWindowContext>;
     let rootContainerMock: IMock<HTMLElement>;
 
+    const toolData = {} as ToolData;
+
     beforeEach(() => {
         htmlElementUtilsMock = Mock.ofType(HTMLElementUtils);
         windowUtilsMock = Mock.ofType(WindowUtils);
+        navigatorUtilsMock = Mock.ofType(NavigatorUtils);
         shadowUtilMock = Mock.ofType(ShadowUtils);
-        clientBrowserAdapter = Mock.ofType<ClientBrowserAdapter>();
+        browserAdapter = Mock.ofType<BrowserAdapter>();
+        detailsDialogHandlerMock = Mock.ofType<DetailsDialogHandler>();
 
-        getMainWindoContextMock = GlobalMock.ofInstance(MainWindowContext.get, 'get', MainWindowContext);
+        getMainWindoContextMock = GlobalMock.ofInstance(
+            MainWindowContext.getMainWindowContext,
+            'getMainWindowContext',
+            MainWindowContext,
+        );
         frameCommunicator = Mock.ofType(FrameCommunicator);
         domMock = Mock.ofInstance({
             createElement: selector => null,
@@ -70,25 +98,30 @@ describe('DialogRendererTests', () => {
         shadowRootMock = Mock.ofInstance({
             querySelector: selector => null,
         } as any);
-        shadowRoot = {
-            shadowRoot: shadowRootMock.object,
-        } as any;
         renderMock = Mock.ofInstance(() => null);
         getRTLMock = Mock.ofInstance(() => null);
         rootContainerMock = Mock.ofType<HTMLElement>();
 
         const devToolStoreStrictMock = Mock.ofType<DevToolStore>(null, MockBehavior.Strict);
-        const userConfigStoreStrictMock = Mock.ofType<UserConfigurationStore>(null, MockBehavior.Strict);
+        const userConfigStoreStrictMock = Mock.ofType<UserConfigurationStore>(
+            null,
+            MockBehavior.Strict,
+        );
         const devToolActionMessageCreatorMock = Mock.ofType(DevToolActionMessageCreator);
         const targetActionPageMessageCreatorMock = Mock.ofType(TargetPageActionMessageCreator);
-        const bugActionMessageCreatorMock = Mock.ofType(BugActionMessageCreator);
+        const issueFilingActionMessageCreatorMock = Mock.ofType(IssueFilingActionMessageCreator);
+        const issueFilingServiceProviderMock = Mock.ofType(IssueFilingServiceProvider);
+        const userConfigMessageCreatorMock = Mock.ofType(UserConfigMessageCreator);
 
         mainWindowContext = new MainWindowContext(
             devToolStoreStrictMock.object,
             userConfigStoreStrictMock.object,
             devToolActionMessageCreatorMock.object,
             targetActionPageMessageCreatorMock.object,
-            bugActionMessageCreatorMock.object,
+            issueFilingActionMessageCreatorMock.object,
+            userConfigMessageCreatorMock.object,
+            toolData,
+            issueFilingServiceProviderMock.object,
         );
     });
 
@@ -107,15 +140,12 @@ describe('DialogRendererTests', () => {
             id: 'id1',
             guidanceLinks: [],
             helpUrl: 'help',
-            fingerprint: 'fp1',
-            snippet: 'html',
         };
         const expectedFailedRules: DictionaryStringTo<DecoratedAxeNodeResult> = {};
         expectedFailedRules[ruleId] = nodeResult;
-        const testData: IHtmlElementAxeResults = {
+        const testData: HtmlElementAxeResults = {
             ruleResults: expectedFailedRules,
             target: [ruleId],
-            isVisible: true,
         };
 
         setupDomMockForMainWindow(true);
@@ -127,7 +157,9 @@ describe('DialogRendererTests', () => {
         const testObject = createDialogRenderer();
 
         GlobalScope.using(getMainWindoContextMock).with(() => {
-            expect(testObject.render(testData, getDefaultFeatureFlagValuesWithShadowOn())).toBeUndefined();
+            expect(
+                testObject.render(testData, getDefaultFeatureFlagValuesWithShadowOn()),
+            ).toBeUndefined();
         });
 
         attachShadowToDomVerify();
@@ -151,15 +183,12 @@ describe('DialogRendererTests', () => {
             id: 'id',
             guidanceLinks: [],
             helpUrl: 'help',
-            fingerprint: 'fp1',
-            snippet: 'html',
         };
         const expectedFailedRules: DictionaryStringTo<DecoratedAxeNodeResult> = {};
         expectedFailedRules[ruleId] = nodeResult;
-        const testData: IHtmlElementAxeResults = {
+        const testData: HtmlElementAxeResults = {
             ruleResults: expectedFailedRules,
             target: [ruleId],
-            isVisible: true,
         };
 
         setupDomMockForMainWindow(false);
@@ -169,7 +198,7 @@ describe('DialogRendererTests', () => {
         const testObject = createDialogRenderer();
 
         GlobalScope.using(getMainWindoContextMock).with(() => {
-            expect(testObject.render(testData, getDefaultFeatureFlagValues())).toBeUndefined();
+            expect(testObject.render(testData, getDefaultFeatureFlagsWeb())).toBeUndefined();
         });
 
         setupDomMockVerify();
@@ -193,15 +222,12 @@ describe('DialogRendererTests', () => {
             id: 'id',
             guidanceLinks: [],
             helpUrl: 'help',
-            fingerprint: 'fp',
-            snippet: 'html',
         };
         const expectedFailedRules: DictionaryStringTo<DecoratedAxeNodeResult> = {};
         expectedFailedRules[ruleId] = nodeResult;
-        const testData: IHtmlElementAxeResults = {
+        const testData: HtmlElementAxeResults = {
             ruleResults: expectedFailedRules,
             target: [ruleId],
-            isVisible: true,
         };
 
         attachShadowToDom(true);
@@ -237,15 +263,12 @@ describe('DialogRendererTests', () => {
             id: 'id1',
             guidanceLinks: [],
             helpUrl: 'help',
-            fingerprint: 'fp1',
-            snippet: 'html',
         };
         const expectedFailedRules: DictionaryStringTo<DecoratedAxeNodeResult> = {};
         expectedFailedRules[ruleId] = nodeResult;
-        const testData: IHtmlElementAxeResults = {
+        const testData: HtmlElementAxeResults = {
             ruleResults: expectedFailedRules,
             target: [ruleId],
-            isVisible: true,
         };
 
         setupDomMockForMainWindow(false);
@@ -256,7 +279,7 @@ describe('DialogRendererTests', () => {
         const testObject = createDialogRenderer();
 
         GlobalScope.using(getMainWindoContextMock).with(() => {
-            testObject.render(testData, getDefaultFeatureFlagValues());
+            testObject.render(testData, getDefaultFeatureFlagsWeb());
         });
 
         setupDomMockVerify();
@@ -266,15 +289,17 @@ describe('DialogRendererTests', () => {
     });
 
     test('test render in iframe: shadow FF on', () => {
-        const testData: IHtmlElementAxeResults = {
+        const testData: HtmlElementAxeResults = {
             ruleResults: null,
             target: [],
-            isVisible: true,
         };
-        const windowMessageRequest: IMessageRequest<DetailsDialogWindowMessage> = {
+        const windowMessageRequest: MessageRequest<DetailsDialogWindowMessage> = {
             win: 'this is main window' as any,
             command: 'insights.detailsDialog',
-            message: { data: testData, featureFlagStoreData: getDefaultFeatureFlagValuesWithShadowOn() },
+            message: {
+                data: testData,
+                featureFlagStoreData: getDefaultFeatureFlagValuesWithShadowOn(),
+            },
         };
 
         attachShadowToDom(false);
@@ -294,15 +319,14 @@ describe('DialogRendererTests', () => {
     });
 
     test('test render in iframe: shadow FF off', () => {
-        const testData: IHtmlElementAxeResults = {
+        const testData: HtmlElementAxeResults = {
             ruleResults: null,
             target: [],
-            isVisible: true,
         };
-        const windowMessageRequest: IMessageRequest<DetailsDialogWindowMessage> = {
+        const windowMessageRequest: MessageRequest<DetailsDialogWindowMessage> = {
             win: 'this is main window' as any,
             command: 'insights.detailsDialog',
-            message: { data: testData, featureFlagStoreData: getDefaultFeatureFlagValues() },
+            message: { data: testData, featureFlagStoreData: getDefaultFeatureFlagsWeb() },
         };
 
         setupWindowUtilsMockAndFrameCommunicatorInIframe(windowMessageRequest);
@@ -311,7 +335,7 @@ describe('DialogRendererTests', () => {
         const testObject = createDialogRenderer();
 
         GlobalScope.using(getMainWindoContextMock).with(() => {
-            testObject.render(testData, getDefaultFeatureFlagValues());
+            testObject.render(testData, getDefaultFeatureFlagsWeb());
         });
 
         setupDomMockVerify();
@@ -321,12 +345,14 @@ describe('DialogRendererTests', () => {
     });
 
     test('test main window subsribe and processRequest: shadow FF on', () => {
-        const testData: IHtmlElementAxeResults = {
+        const testData: HtmlElementAxeResults = {
             ruleResults: null,
             target: ['test string'],
-            isVisible: true,
         };
-        const message: DetailsDialogWindowMessage = { data: testData, featureFlagStoreData: getDefaultFeatureFlagValuesWithShadowOn() };
+        const message: DetailsDialogWindowMessage = {
+            data: testData,
+            featureFlagStoreData: getDefaultFeatureFlagValuesWithShadowOn(),
+        };
 
         setupDomMockForMainWindow(true);
         setupWindowUtilsMockAndFrameCommunicatorInMainWindow();
@@ -348,12 +374,14 @@ describe('DialogRendererTests', () => {
     });
 
     test('test main window subsribe and processRequest: shadowDom FF off', () => {
-        const testData: IHtmlElementAxeResults = {
+        const testData: HtmlElementAxeResults = {
             ruleResults: null,
             target: ['test string'],
-            isVisible: true,
         };
-        const message: DetailsDialogWindowMessage = { data: testData, featureFlagStoreData: getDefaultFeatureFlagValues() };
+        const message: DetailsDialogWindowMessage = {
+            data: testData,
+            featureFlagStoreData: getDefaultFeatureFlagsWeb(),
+        };
 
         setupDomMockForMainWindow(false);
         setupWindowUtilsMockAndFrameCommunicatorInMainWindow();
@@ -386,20 +414,14 @@ describe('DialogRendererTests', () => {
         setupWindowUtilsMockAndFrameCommunicatorVerify();
     });
 
-    function setUpGetMainWindowContextCalledOnce() {
+    function setUpGetMainWindowContextCalledOnce(): void {
         getMainWindoContextMock
-            .setup(get => get())
+            .setup(getter => getter())
             .returns(() => mainWindowContext)
             .verifiable(Times.once());
     }
-    function setUpGetMainWindowContexNeverCalled() {
-        getMainWindoContextMock
-            .setup(get => get())
-            .returns(() => mainWindowContext)
-            .verifiable(Times.never());
-    }
 
-    function setupRenderMockForVerifiable() {
+    function setupRenderMockForVerifiable(): void {
         renderMock
             .setup(render =>
                 render(
@@ -412,9 +434,14 @@ describe('DialogRendererTests', () => {
             .verifiable(Times.once());
     }
 
-    function setupRenderMockForNeverVisited() {
+    function setupRenderMockForNeverVisited(): void {
         renderMock
-            .setup(it => it(It.is((detailsDialog: any) => detailsDialog != null), It.is((container: any) => container != null)))
+            .setup(it =>
+                it(
+                    It.is((detailsDialog: any) => detailsDialog != null),
+                    It.is((container: any) => container != null),
+                ),
+            )
             .verifiable(Times.never());
     }
 
@@ -422,7 +449,7 @@ describe('DialogRendererTests', () => {
         renderMock.verifyAll();
     }
 
-    function setupWindowUtilsMockAndFrameCommunicatorInMainWindow() {
+    function setupWindowUtilsMockAndFrameCommunicatorInMainWindow(): void {
         const win = 'this is main window';
         windowUtilsMock
             .setup(wum => wum.getTopWindow())
@@ -445,7 +472,7 @@ describe('DialogRendererTests', () => {
                         (
                             param: (
                                 message: DetailsDialogWindowMessage,
-                                error: IErrorMessageContent,
+                                error: ErrorMessageContent,
                                 sourceWin: Window,
                                 responder?: FrameMessageResponseCallback,
                             ) => void,
@@ -467,7 +494,9 @@ describe('DialogRendererTests', () => {
         frameCommunicator.verifyAll();
     }
 
-    function setupWindowUtilsMockAndFrameCommunicatorInIframe(windowMessageRequest: IMessageRequest<DetailsDialogWindowMessage>) {
+    function setupWindowUtilsMockAndFrameCommunicatorInIframe(
+        windowMessageRequest: MessageRequest<DetailsDialogWindowMessage>,
+    ): void {
         windowUtilsMock
             .setup(wum => wum.getTopWindow())
             .returns(() => {
@@ -481,8 +510,12 @@ describe('DialogRendererTests', () => {
             })
             .verifiable(Times.atLeastOnce());
 
-        frameCommunicator.setup(fcm => fcm.subscribe(It.isAny(), It.isAny())).verifiable(Times.never());
-        frameCommunicator.setup(fcm => fcm.sendMessage(It.isValue(windowMessageRequest))).verifiable(Times.once());
+        frameCommunicator
+            .setup(fcm => fcm.subscribe(It.isAny(), It.isAny()))
+            .verifiable(Times.never());
+        frameCommunicator
+            .setup(fcm => fcm.sendMessage(It.isValue(windowMessageRequest)))
+            .verifiable(Times.once());
     }
 
     function getDefaultFeatureFlagValuesWithShadowOn(): FeatureFlagStoreData {
@@ -500,7 +533,10 @@ describe('DialogRendererTests', () => {
         }
     }
 
-    function attachShadowToDomVerify(needAppendChild: boolean = false, inMainWindow: boolean = true): void {
+    function attachShadowToDomVerify(
+        needAppendChild: boolean = false,
+        inMainWindow: boolean = true,
+    ): void {
         if (inMainWindow) {
             shadowUtilMock.verifyAll();
         }
@@ -515,7 +551,9 @@ describe('DialogRendererTests', () => {
 
     function setupDomMockForMainWindow(underShadowDom: boolean = true): void {
         if (!underShadowDom) {
-            htmlElementUtilsMock.setup(h => h.deleteAllElements('.insights-dialog-container')).verifiable(Times.once());
+            htmlElementUtilsMock
+                .setup(h => h.deleteAllElements('.insights-dialog-container'))
+                .verifiable(Times.once());
 
             domMock
                 .setup(dom => dom.querySelector(`#${rootContainerId}`))
@@ -545,9 +583,11 @@ describe('DialogRendererTests', () => {
             frameCommunicator.object,
             htmlElementUtilsMock.object,
             windowUtilsMock.object,
+            navigatorUtilsMock.object,
             shadowUtilMock.object,
-            clientBrowserAdapter.object,
+            browserAdapter.object,
             getRTLMock.object,
+            detailsDialogHandlerMock.object,
         );
     }
 });

@@ -1,38 +1,40 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
-import { autobind } from '@uifabric/utilities';
-import * as _ from 'lodash/index';
+import { forOwn, map } from 'lodash';
 
-import { forOwn } from 'lodash/index';
 import { StoreNames } from '../../common/stores/store-names';
-import { IVisualizationScanResultData } from '../../common/types/store-data/ivisualization-scan-result-data';
-import { DecoratedAxeNodeResult, IHtmlElementAxeResults } from '../../injected/scanner-utils';
+import { VisualizationScanResultData } from '../../common/types/store-data/visualization-scan-result-data';
+import { ScanCompletedPayload } from '../../injected/analyzers/analyzer';
+import { DecoratedAxeNodeResult, HtmlElementAxeResults } from '../../injected/scanner-utils';
+import { TabStopEvent } from '../../injected/tab-stops-listener';
+import { DictionaryStringTo } from '../../types/common-types';
 import { AddTabbedElementPayload } from '../actions/action-payloads';
 import { TabActions } from '../actions/tab-actions';
 import { VisualizationScanResultActions } from '../actions/visualization-scan-result-actions';
-import { IScanCompletedPayload } from './../../injected/analyzers/ianalyzer';
-import { ITabStopEvent } from './../../injected/tab-stops-listener';
-import { BaseStore } from './base-store';
+import { BaseStoreImpl } from './base-store-impl';
 
-export class VisualizationScanResultStore extends BaseStore<IVisualizationScanResultData> {
+export class VisualizationScanResultStore extends BaseStoreImpl<VisualizationScanResultData> {
     private visualizationScanResultsActions: VisualizationScanResultActions;
     private tabActions: TabActions;
 
-    constructor(visualizationScanResultActions: VisualizationScanResultActions, tabActions: TabActions) {
+    constructor(
+        visualizationScanResultActions: VisualizationScanResultActions,
+        tabActions: TabActions,
+    ) {
         super(StoreNames.VisualizationScanResultStore);
 
         this.visualizationScanResultsActions = visualizationScanResultActions;
         this.tabActions = tabActions;
     }
 
-    public getDefaultState(): IVisualizationScanResultData {
-        const state: Partial<IVisualizationScanResultData> = {
+    public getDefaultState(): VisualizationScanResultData {
+        const state: Partial<VisualizationScanResultData> = {
             tabStops: {
                 tabbedElements: null,
             },
         };
 
-        const keys = ['issues', 'landmarks', 'headings', 'color'];
+        const keys = ['issues', 'landmarks', 'headings', 'color', 'needsReview'];
 
         keys.forEach(key => {
             state[key] = {
@@ -44,57 +46,64 @@ export class VisualizationScanResultStore extends BaseStore<IVisualizationScanRe
             };
         });
 
-        return state as IVisualizationScanResultData;
+        return state as VisualizationScanResultData;
     }
 
     protected addActionListeners(): void {
         this.visualizationScanResultsActions.scanCompleted.addListener(this.onScanCompleted);
         this.visualizationScanResultsActions.getCurrentState.addListener(this.onGetCurrentState);
-        this.visualizationScanResultsActions.updateIssuesSelectedTargets.addListener(this.onUpdateIssuesSelectedTargets);
+        this.visualizationScanResultsActions.updateIssuesSelectedTargets.addListener(
+            this.onUpdateIssuesSelectedTargets,
+        );
         this.visualizationScanResultsActions.disableIssues.addListener(this.onIssuesDisabled);
         this.visualizationScanResultsActions.addTabbedElement.addListener(this.onAddTabbedElement);
         this.visualizationScanResultsActions.disableTabStop.addListener(this.onTabStopsDisabled);
 
-        this.tabActions.tabChange.addListener(this.onTabChange);
+        this.tabActions.existingTabUpdated.addListener(this.onExistingTabUpdated);
     }
 
-    @autobind
-    private onTabStopsDisabled() {
+    private onTabStopsDisabled = (): void => {
         this.state.tabStops.tabbedElements = null;
         this.emitChanged();
-    }
+    };
 
-    @autobind
-    private onAddTabbedElement(payload: AddTabbedElementPayload): void {
+    private onAddTabbedElement = (payload: AddTabbedElementPayload): void => {
         if (!this.state.tabStops.tabbedElements) {
             this.state.tabStops.tabbedElements = [];
         }
 
-        let tabbedElementsWithoutTabOrder: ITabStopEvent[] = _.map(this.state.tabStops.tabbedElements, element => {
-            return {
-                timestamp: element.timestamp,
-                target: element.target,
-                html: element.html,
-            };
-        });
+        let tabbedElementsWithoutTabOrder: TabStopEvent[] = map(
+            this.state.tabStops.tabbedElements,
+            element => {
+                return {
+                    timestamp: element.timestamp,
+                    target: element.target,
+                    html: element.html,
+                };
+            },
+        );
 
-        tabbedElementsWithoutTabOrder = tabbedElementsWithoutTabOrder.concat(payload.tabbedElements);
+        tabbedElementsWithoutTabOrder = tabbedElementsWithoutTabOrder.concat(
+            payload.tabbedElements,
+        );
         tabbedElementsWithoutTabOrder.sort((left, right) => left.timestamp - right.timestamp);
 
-        this.state.tabStops.tabbedElements = _.map(tabbedElementsWithoutTabOrder, (element, index) => {
-            return {
-                timestamp: element.timestamp,
-                target: element.target,
-                html: element.html,
-                tabOrder: index + 1,
-            };
-        });
+        this.state.tabStops.tabbedElements = map(
+            tabbedElementsWithoutTabOrder,
+            (element, index) => {
+                return {
+                    timestamp: element.timestamp,
+                    target: element.target,
+                    html: element.html,
+                    tabOrder: index + 1,
+                };
+            },
+        );
 
         this.emitChanged();
-    }
+    };
 
-    @autobind
-    private onScanCompleted(payload: IScanCompletedPayload<any>): void {
+    private onScanCompleted = (payload: ScanCompletedPayload<any>): void => {
         const selectorMap = payload.selectorMap;
         const result = payload.scanResult;
         const selectedRows = this.getRowToRuleResultMap(selectorMap);
@@ -106,10 +115,9 @@ export class VisualizationScanResultStore extends BaseStore<IVisualizationScanRe
         this.state[payload.key].scanResult = result;
 
         this.emitChanged();
-    }
+    };
 
-    @autobind
-    private onUpdateIssuesSelectedTargets(selected: string[]): void {
+    private onUpdateIssuesSelectedTargets = (selected: string[]): void => {
         const newSelectedRows: DictionaryStringTo<DecoratedAxeNodeResult> = {};
 
         selected.forEach(uid => {
@@ -123,24 +131,24 @@ export class VisualizationScanResultStore extends BaseStore<IVisualizationScanRe
         this.state.issues.selectedAxeResultsMap = this.getSelectorMap(newSelectedRows);
         this.state.issues.selectedIdToRuleResultMap = newSelectedRows;
         this.emitChanged();
-    }
+    };
 
-    @autobind
-    private onIssuesDisabled(): void {
+    private onIssuesDisabled = (): void => {
         this.state.issues.scanResult = null;
         this.emitChanged();
-    }
+    };
 
-    @autobind
-    private onTabChange(): void {
+    private onExistingTabUpdated = (): void => {
         this.state = this.getDefaultState();
         this.emitChanged();
-    }
+    };
 
-    private getRowToRuleResultMap(selectorMap: DictionaryStringTo<IHtmlElementAxeResults>): DictionaryStringTo<DecoratedAxeNodeResult> {
+    private getRowToRuleResultMap(
+        selectorMap: DictionaryStringTo<HtmlElementAxeResults>,
+    ): DictionaryStringTo<DecoratedAxeNodeResult> {
         const selectedRows: DictionaryStringTo<DecoratedAxeNodeResult> = {};
 
-        forOwn(selectorMap, (selector: IHtmlElementAxeResults) => {
+        forOwn(selectorMap, (selector: HtmlElementAxeResults) => {
             const ruleResults = selector.ruleResults;
 
             forOwn(ruleResults, (rule: DecoratedAxeNodeResult) => {
@@ -151,18 +159,20 @@ export class VisualizationScanResultStore extends BaseStore<IVisualizationScanRe
         return selectedRows;
     }
 
-    private getSelectorMap(selectedRows: DictionaryStringTo<DecoratedAxeNodeResult>): DictionaryStringTo<IHtmlElementAxeResults> {
-        const selectorMap: DictionaryStringTo<IHtmlElementAxeResults> = {};
+    private getSelectorMap(
+        selectedRows: DictionaryStringTo<DecoratedAxeNodeResult>,
+    ): DictionaryStringTo<HtmlElementAxeResults> {
+        const selectorMap: DictionaryStringTo<HtmlElementAxeResults> = {};
         forOwn(selectedRows, (selectedRow: DecoratedAxeNodeResult) => {
             const ruleResult = selectedRow;
-            const ruleResults = selectorMap[ruleResult.selector] ? selectorMap[ruleResult.selector].ruleResults : {};
-            const isVisible = selectorMap[ruleResult.selector] ? selectorMap[ruleResult.selector].isVisible : null;
+            const ruleResults = selectorMap[ruleResult.selector]
+                ? selectorMap[ruleResult.selector].ruleResults
+                : {};
 
             ruleResults[ruleResult.ruleId] = ruleResult;
             selectorMap[ruleResult.selector] = {
                 ruleResults: ruleResults,
                 target: ruleResult.selector.split(';'),
-                isVisible: isVisible,
             };
         });
 

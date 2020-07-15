@@ -1,22 +1,21 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 import { FeatureFlags } from '../../common/feature-flags';
-import { createDefaultLogger } from '../../common/logging/default-logger';
 import { Logger } from '../../common/logging/logger';
-import { FeatureFlagsController } from '../feature-flags-controller';
+import { FeatureFlagChecker } from '../feature-flag-checker';
 import { TelemetryBaseData } from './telemetry-base-data';
 
 export class TelemetryLogger {
-    private featureFlagsController: FeatureFlagsController;
+    private featureFlagChecker: FeatureFlagChecker;
 
-    constructor(private logger: Logger = createDefaultLogger()) {}
+    constructor(private logger: Logger) {}
 
-    public initialize(featureFlagsController: FeatureFlagsController): void {
-        this.featureFlagsController = featureFlagsController;
+    public initialize(featureFlagChecker: FeatureFlagChecker): void {
+        this.featureFlagChecker = featureFlagChecker;
     }
 
     public log(data: TelemetryBaseData): void {
-        if (this.featureFlagsController.isEnabled(FeatureFlags.logTelemetryToConsole)) {
+        if (this.featureFlagChecker.isEnabled(FeatureFlags.logTelemetryToConsole)) {
             this.logger.log('eventName: ', data.name, '; customProperties: ', data.properties);
         }
     }

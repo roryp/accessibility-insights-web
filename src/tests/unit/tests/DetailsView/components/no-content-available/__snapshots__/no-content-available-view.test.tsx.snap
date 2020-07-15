@@ -1,0 +1,20 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`NoContentAvailableView renders 1`] = `
+<React.Fragment>
+  <NarrowModeDetector
+    Component={[Function]}
+    childrenProps={
+      Object {
+        "deps": Object {
+          "textContent": Object {
+            "applicationTitle": "test-application-title",
+          },
+        },
+      }
+    }
+    isNarrowModeEnabled={true}
+  />
+  <NoContentAvailable />
+</React.Fragment>
+`;

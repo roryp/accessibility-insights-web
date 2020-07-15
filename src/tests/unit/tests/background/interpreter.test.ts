@@ -1,15 +1,18 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
+import { Interpreter } from 'background/interpreter';
 import { Mock, Times } from 'typemoq';
-
-import { Interpreter } from '../../../../background/interpreter';
+import { PayloadCallback } from '../../../../common/message';
+import { DictionaryStringTo } from '../../../../types/common-types';
 
 class TestableInterpreter extends Interpreter {
-    public getMessageToActionMapping() {
+    public getMessageToActionMapping(): DictionaryStringTo<PayloadCallback<any>> {
         return this.messageToActionMapping;
     }
 
-    public setMessageToActionMapping(messageToActionMapping) {
+    public setMessageToActionMapping(
+        messageToActionMapping: DictionaryStringTo<PayloadCallback<any>>,
+    ): void {
         this.messageToActionMapping = messageToActionMapping;
     }
 }
@@ -31,7 +34,7 @@ describe('InterpreterTest', () => {
 
         expect(
             testSubject.interpret({
-                type: 'test',
+                messageType: 'test',
                 tabId: 1,
                 payload: 'payload',
             }),
@@ -49,7 +52,7 @@ describe('InterpreterTest', () => {
 
         expect(
             testSubject.interpret({
-                type: 'test2',
+                messageType: 'test2',
                 tabId: 1,
                 payload: 'payload',
             }),

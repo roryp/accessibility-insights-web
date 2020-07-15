@@ -2,15 +2,18 @@
 // Licensed under the MIT License.
 import { getRTL } from '@uifabric/utilities';
 import * as ReactDOM from 'react-dom';
-import { ClientBrowserAdapter } from '../../common/client-browser-adapter';
+
+import { NavigatorUtils } from 'common/navigator-utils';
+import { BrowserAdapter } from '../../common/browser-adapters/browser-adapter';
 import { HTMLElementUtils } from '../../common/html-element-utils';
 import { WindowUtils } from '../../common/window-utils';
+import { DetailsDialogHandler } from '../details-dialog-handler';
 import { DialogRenderer } from '../dialog-renderer';
 import { FrameCommunicator } from '../frameCommunicators/frame-communicator';
-import { IHtmlElementAxeResults } from '../scanner-utils';
+import { HtmlElementAxeResults } from '../scanner-utils';
 import { ShadowUtils } from '../shadow-utils';
 import { DrawerConfiguration, Formatter } from './formatter';
-import { IHeadingStyleConfiguration } from './heading-formatter';
+import { HeadingStyleConfiguration } from './heading-formatter';
 
 export class IssuesFormatter implements Formatter {
     private dialogRenderer: DialogRenderer;
@@ -19,9 +22,11 @@ export class IssuesFormatter implements Formatter {
         frameCommunicator: FrameCommunicator,
         htmlElementUtils: HTMLElementUtils,
         windowUtils: WindowUtils,
+        navigatorUtils: NavigatorUtils,
         shadowUtils: ShadowUtils,
-        clientBrowserAdapter: ClientBrowserAdapter,
+        browserAdapter: BrowserAdapter,
         getRTLFunc: typeof getRTL,
+        detailsDialogHandler: DetailsDialogHandler,
     ) {
         this.dialogRenderer = new DialogRenderer(
             document,
@@ -29,18 +34,23 @@ export class IssuesFormatter implements Formatter {
             frameCommunicator,
             htmlElementUtils,
             windowUtils,
+            navigatorUtils,
             shadowUtils,
-            clientBrowserAdapter,
+            browserAdapter,
             getRTLFunc,
+            detailsDialogHandler,
         );
     }
 
-    public static style: IHeadingStyleConfiguration = {
+    public static style: HeadingStyleConfiguration = {
         borderColor: '#CC0000',
         fontColor: '#FFFFFF',
     };
 
-    public getDrawerConfiguration(element: HTMLElement, data: IHtmlElementAxeResults): DrawerConfiguration {
+    public getDrawerConfiguration(
+        element: HTMLElement,
+        data: HtmlElementAxeResults,
+    ): DrawerConfiguration {
         const config: DrawerConfiguration = {
             failureBoxConfig: {
                 background: IssuesFormatter.style.borderColor,
@@ -64,7 +74,7 @@ export class IssuesFormatter implements Formatter {
         return this.dialogRenderer;
     }
 
-    private getText(data: IHtmlElementAxeResults): string {
+    private getText(data: HtmlElementAxeResults): string {
         const ruleIds = Object.keys(data.ruleResults);
         return `Failed rules: ${ruleIds.join(', ')}`;
     }

@@ -1,10 +1,10 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
-import { ActionButton } from 'office-ui-fabric-react/lib/Button';
+import { ActionButton } from 'office-ui-fabric-react';
 import * as React from 'react';
 
 import { ContentActionMessageCreator } from '../../common/message-creators/content-action-message-creator';
-import { NamedSFC } from '../../common/react/named-sfc';
+import { NamedFC } from '../../common/react/named-fc';
 import { ContentProvider, ContentReference } from './content-page';
 
 export type ContentPanelButtonDeps = {
@@ -13,24 +13,33 @@ export type ContentPanelButtonDeps = {
 };
 
 export type ContentPanelButtonProps = {
+    contentTitle: string;
     deps: ContentPanelButtonDeps;
     reference: ContentReference;
     iconName: string;
 };
 
-export const ContentPanelButton = NamedSFC<ContentPanelButtonProps>('ContentPanelButton', ({ deps, reference, children, iconName }) => {
-    const { contentProvider, contentActionMessageCreator } = deps;
+export const ContentPanelButton = NamedFC<ContentPanelButtonProps>(
+    'ContentPanelButton',
+    ({ contentTitle, deps, reference, children, iconName }) => {
+        const { contentProvider, contentActionMessageCreator } = deps;
 
-    if (!reference) {
-        return null;
-    }
+        if (!reference) {
+            return null;
+        }
 
-    const contentPath = contentProvider.pathFromReference(reference);
-    const onClick = ev => contentActionMessageCreator.openContentPanel(ev, contentPath);
+        const contentPath = contentProvider.pathFromReference(reference);
+        const onClick = ev =>
+            contentActionMessageCreator.openContentPanel(ev, contentPath, contentTitle);
 
-    return (
-        <ActionButton iconProps={{ iconName }} onClick={onClick}>
-            {children}
-        </ActionButton>
-    );
-});
+        return (
+            <ActionButton
+                iconProps={{ iconName }}
+                onClick={onClick}
+                ariaLabel={'info and examples'}
+            >
+                {children}
+            </ActionButton>
+        );
+    },
+);

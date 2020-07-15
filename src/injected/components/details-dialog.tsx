@@ -1,25 +1,33 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
-import { DefaultButton, PrimaryButton } from 'office-ui-fabric-react/lib/Button';
-import { Dialog, DialogType } from 'office-ui-fabric-react/lib/Dialog';
-import { Icon } from 'office-ui-fabric-react/lib/Icon';
+import {
+    FixInstructionPanel,
+    FixInstructionPanelDeps,
+} from 'common/components/fix-instruction-panel';
+import { isEmpty, size } from 'lodash';
+import { css } from 'office-ui-fabric-react';
+import { Dialog, DialogType } from 'office-ui-fabric-react';
 import * as React from 'react';
+import { HyperlinkDefinition } from 'views/content/content-page';
 
-import { ClientBrowserAdapter } from '../../common/client-browser-adapter';
-import { CopyIssueDetailsButton, CopyIssueDetailsButtonDeps } from '../../common/components/copy-issue-details-button';
-import { FileIssueDetailsButton, FileIssueDetailsButtonDeps } from '../../common/components/file-issue-details-button';
-import { FlaggedComponent } from '../../common/components/flagged-component';
+import { BaseStore } from '../../common/base-store';
+import { BrowserAdapter } from '../../common/browser-adapters/browser-adapter';
+import { GuidanceLinks } from '../../common/components/guidance-links';
 import { NewTabLink } from '../../common/components/new-tab-link';
 import { FeatureFlags } from '../../common/feature-flags';
-import { IBaseStore } from '../../common/istore';
+import { CancelIcon } from '../../common/icons/cancel-icon';
 import { DevToolActionMessageCreator } from '../../common/message-creators/dev-tool-action-message-creator';
-import { CreateIssueDetailsTextData } from '../../common/types/create-issue-details-text-data';
-import { DevToolState } from '../../common/types/store-data/idev-tool-state';
+import { DevToolStoreData } from '../../common/types/store-data/dev-tool-store-data';
 import { UserConfigurationStoreData } from '../../common/types/store-data/user-configuration-store';
+import { DictionaryStringTo } from '../../types/common-types';
+import { DetailsDialogHandler } from '../details-dialog-handler';
 import { DecoratedAxeNodeResult } from '../scanner-utils';
 import { TargetPageActionMessageCreator } from '../target-page-action-message-creator';
-import { DetailsDialogHandler } from './../details-dialog-handler';
-import { FixInstructionPanel } from './fix-instruction-panel';
+import { CommandBar, CommandBarDeps, CommandBarProps } from './command-bar';
+import {
+    IssueDetailsNavigationControls,
+    IssueDetailsNavigationControlsProps,
+} from './issue-details-navigation-controls';
 
 export enum CheckType {
     All,
@@ -27,20 +35,20 @@ export enum CheckType {
     None,
 }
 
-export type DetailsDialogDeps = CopyIssueDetailsButtonDeps &
-    FileIssueDetailsButtonDeps & {
-        targetPageActionMessageCreator: TargetPageActionMessageCreator;
-        clientBrowserAdapter: ClientBrowserAdapter;
-    };
+export type DetailsDialogDeps = {
+    targetPageActionMessageCreator: TargetPageActionMessageCreator;
+    browserAdapter: BrowserAdapter;
+} & CommandBarDeps &
+    FixInstructionPanelDeps;
 
 export interface DetailsDialogProps {
     deps: DetailsDialogDeps;
-    userConfigStore: IBaseStore<UserConfigurationStoreData>;
+    userConfigStore: BaseStore<UserConfigurationStoreData>;
     elementSelector: string;
     failedRules: DictionaryStringTo<DecoratedAxeNodeResult>;
     target: string[];
     dialogHandler: DetailsDialogHandler;
-    devToolStore: IBaseStore<DevToolState>;
+    devToolStore: BaseStore<DevToolStoreData>;
     devToolActionMessageCreator: DevToolActionMessageCreator;
     featureFlagStoreData: DictionaryStringTo<boolean>;
     devToolsShortcut: string;
@@ -50,7 +58,8 @@ export interface DetailsDialogState {
     showDialog: boolean;
     currentRuleIndex: number;
     canInspect: boolean;
-    issueTrackerPath: string;
+    userConfigurationStoreData: UserConfigurationStoreData;
+    showInspectMessage: boolean;
 }
 
 export class DetailsDialog extends React.Component<DetailsDialogProps, DetailsDialogState> {
@@ -107,7 +116,8 @@ export class DetailsDialog extends React.Component<DetailsDialogProps, DetailsDi
             showDialog: true,
             currentRuleIndex: 0,
             canInspect: true,
-            issueTrackerPath: '',
+            showInspectMessage: false,
+            userConfigurationStoreData: props.userConfigStore.getState(),
         };
     }
 
@@ -131,160 +141,137 @@ export class DetailsDialog extends React.Component<DetailsDialogProps, DetailsDi
         }
     }
 
-    private renderButtonContainer(): JSX.Element {
-        return (
-            <div className="insights-dialog-target-button-container">
-                {this.renderInspectButton()}
-                {this.renderIssueButtons()}
-                {this.renderInspectMessage()}
-            </div>
-        );
-    }
-
-    private renderInspectButton(): JSX.Element {
-        return (
-            <DefaultButton
-                className="insights-dialog-button-inspect"
-                disabled={this.props.dialogHandler.isInspectButtonDisabled(this)}
-                iconProps={{ iconName: 'FileHTML' }}
-                text="Inspect HTML"
-                onClick={this.getOnClickWhenNotInShadowDom(this.onClickInspectButton)}
-            />
-        );
-    }
-
-    private renderCreateBugButton(issueData: CreateIssueDetailsTextData): JSX.Element {
-        return (
-            <FileIssueDetailsButton
-                deps={this.props.deps}
-                issueDetailsData={issueData}
-                issueTrackerPath={this.state.issueTrackerPath}
-                restoreFocus={false}
-            />
-        );
-    }
-
-    private renderIssueButtons(): JSX.Element {
-        const failedRuleIds: string[] = Object.keys(this.props.failedRules);
-        const ruleName: string = failedRuleIds[this.state.currentRuleIndex];
-        const ruleResult: DecoratedAxeNodeResult = this.props.failedRules[ruleName];
-        const issueData: CreateIssueDetailsTextData = {
-            pageTitle: document.title,
-            pageUrl: document.URL,
-            ruleResult,
+    private renderCommandBar(): JSX.Element {
+        const props: CommandBarProps = {
+            currentRuleIndex: this.state.currentRuleIndex,
+            deps: this.props.deps,
+            devToolsShortcut: this.props.devToolsShortcut,
+            failedRules: this.props.failedRules,
+            onClickCopyIssueDetailsButton: this.props.deps.targetPageActionMessageCreator
+                .copyIssueDetailsClicked,
+            onClickInspectButton: this.getOnClickWhenNotInShadowDom(this.onClickInspectButton),
+            shouldShowInspectButtonMessage: () =>
+                this.props.dialogHandler.shouldShowInspectButtonMessage(this),
+            userConfigurationStoreData: this.state.userConfigurationStoreData,
         };
 
+        return <CommandBar {...props} />;
+    }
+
+    private renderCloseIcon(): JSX.Element {
+        return <CancelIcon />;
+    }
+
+    private renderNextAndBackButtons(): JSX.Element {
+        const navigationControlsProps: IssueDetailsNavigationControlsProps = {
+            container: this,
+            dialogHandler: this.props.dialogHandler,
+            featureFlagStoreData: this.props.featureFlagStoreData,
+            failuresCount: size(this.props.failedRules),
+        };
+
+        return <IssueDetailsNavigationControls {...navigationControlsProps} />;
+    }
+
+    private renderSectionTitle(sectionTitle: string, ariaLabel?: string): JSX.Element {
         return (
-            <>
-                <CopyIssueDetailsButton
-                    deps={this.props.deps}
-                    issueDetailsData={issueData}
-                    onClick={this.props.deps.targetPageActionMessageCreator.copyIssueDetailsClicked}
-                />
-                <FlaggedComponent
-                    featureFlagStoreData={this.props.featureFlagStoreData}
-                    featureFlag={FeatureFlags.showBugFiling}
-                    enableJSXElement={this.renderCreateBugButton(issueData)}
-                />
-            </>
+            <h3 className={css('insights-dialog-section-title')} id={ariaLabel}>
+                {sectionTitle}
+            </h3>
         );
     }
 
-    private renderInspectMessage(): JSX.Element {
-        if (this.props.dialogHandler.isInspectButtonDisabled(this)) {
-            return (
-                <div className="insights-dialog-inspect-disabled">
-                    {`To enable the Inspect HTML button, open the Chrome dev tools (${this.props.devToolsShortcut}).`}
-                </div>
-            );
-        }
-    }
-
-    private renderNextAndBackButton(): JSX.Element {
-        return (
-            <div className="ms-Grid">
-                <div className="ms-Grid-row">
-                    <div className="ms-Grid-col ms-sm3 ms-md3 ms-lg3 insights-dialog-button-left">
-                        <PrimaryButton
-                            data-automation-id="back"
-                            disabled={this.props.dialogHandler.isBackButtonDisabled(this)}
-                            text="< Back"
-                            onClick={this.getOnClickWhenNotInShadowDom(this.onClickBackButton)}
-                        />
-                    </div>
-                    <div className="ms-Grid-col ms-sm6 ms-md6 ms-lg6 insights-dialog-footer">
-                        <div>{this.props.dialogHandler.getFailureInfo(this)}</div>
-                    </div>
-                    <div className="ms-Grid-col ms-sm3 ms-md3 ms-lg3 insights-dialog-button-right">
-                        <PrimaryButton
-                            data-automation-id="next"
-                            disabled={this.props.dialogHandler.isNextButtonDisabled(this)}
-                            text="Next >"
-                            onClick={this.getOnClickWhenNotInShadowDom(this.onClickNextButton)}
-                        />
-                    </div>
-                </div>
-            </div>
-        );
-    }
-
-    private renderRuleContainer(rule: DecoratedAxeNodeResult): JSX.Element {
+    private renderRuleName(rule: DecoratedAxeNodeResult): JSX.Element {
         const fixUrl = (url: string) => {
             if (url.indexOf('://') >= 0) {
                 return url;
             } else {
-                const { clientBrowserAdapter } = this.props.deps;
-                return clientBrowserAdapter.getUrl(url);
+                const { browserAdapter } = this.props.deps;
+                return browserAdapter.getUrl(url);
             }
         };
 
+        const ruleNameID = 'rule-name';
+
         return (
-            <div className="insights-dialog-rule-container">
-                <Icon iconName="StatusErrorFull" />
-                <div className="ms-fontSize-mPlus insights-dialog-rule-link">
-                    Rule name: <NewTabLink href={fixUrl(rule.helpUrl)}>{rule.ruleId}</NewTabLink>
+            <section className="insights-dialog-rule-name" aria-labelledby={ruleNameID}>
+                {this.renderSectionTitle('Rule name', ruleNameID)}
+                <NewTabLink href={fixUrl(rule.helpUrl)}>{rule.ruleId}</NewTabLink>
+            </section>
+        );
+    }
+
+    private renderSuccessCriteria(ruleGuidanceLinks: HyperlinkDefinition[]): JSX.Element {
+        if (isEmpty(ruleGuidanceLinks)) {
+            return null;
+        }
+        const sectionTitle: string =
+            ruleGuidanceLinks.length === 1 ? 'Success criterion' : 'Success criteria';
+        const successTitleId = 'success-criteria';
+
+        return (
+            <section className="insights-dialog-success-criteria" aria-labelledby={successTitleId}>
+                {this.renderSectionTitle(sectionTitle, successTitleId)}
+                <div>
+                    <GuidanceLinks
+                        links={ruleGuidanceLinks}
+                        LinkComponent={this.props.deps.LinkComponent}
+                    />
                 </div>
-            </div>
+            </section>
+        );
+    }
+
+    private renderPathSelector(): JSX.Element {
+        return (
+            <section className="insights-dialog-path-selector-container">
+                {this.renderSectionTitle('Path')}
+                {this.props.elementSelector}
+            </section>
         );
     }
 
     private renderFixInstructions(ruleResult: DecoratedAxeNodeResult): JSX.Element {
         return (
             <div className="insights-dialog-fix-instruction-container">
-                <FixInstructionPanel checkType={CheckType.All} checks={ruleResult.all.concat(ruleResult.none)} />
-
-                <FixInstructionPanel checkType={CheckType.Any} checks={ruleResult.any} />
-            </div>
-        );
-    }
-
-    private renderTargetContainer(): JSX.Element {
-        return (
-            <div className="insights-dialog-target-container">
-                <div className="ms-fontWeight-semibold">Path:</div>
-                <div className="insights-dialog-instance-selector">{this.props.elementSelector}</div>
-                {this.renderButtonContainer()}
+                <FixInstructionPanel
+                    deps={this.props.deps}
+                    checkType={CheckType.All}
+                    checks={ruleResult.all.concat(ruleResult.none)}
+                    renderTitleElement={this.renderSectionTitle}
+                />
+                <FixInstructionPanel
+                    deps={this.props.deps}
+                    checkType={CheckType.Any}
+                    checks={ruleResult.any}
+                    renderTitleElement={this.renderSectionTitle}
+                />
             </div>
         );
     }
 
     private renderDialogContent(rule: DecoratedAxeNodeResult): JSX.Element {
         return (
-            <div>
-                {this.renderRuleContainer(rule)}
-                {this.renderTargetContainer()}
+            <div className="insights-dialog-content">
+                {this.renderRuleName(rule)}
+                {this.renderSuccessCriteria(rule.guidanceLinks)}
+                {this.renderPathSelector()}
+                {this.renderCommandBar()}
                 {this.renderFixInstructions(rule)}
-                {this.renderNextAndBackButton()}
+                {this.renderNextAndBackButtons()}
             </div>
         );
     }
 
     private withshadowDomTurnedOn(rule: DecoratedAxeNodeResult): JSX.Element {
         return (
-            <div style={{ visibility: this.state.showDialog ? 'visible' : 'hidden' }} className="insights-dialog-main-override-shadow">
+            <div
+                style={{ visibility: this.state.showDialog ? 'visible' : 'hidden' }}
+                className="insights-dialog-main-override-shadow"
+            >
                 <div className="insights-dialog-container">
                     <div className="insights-dialog-header">
-                        <p className="ms-Dialog-title">{rule.help}</p>
+                        <p className="ms-Dialog-title insights-dialog-title">{rule.help}</p>
                         <div className="ms-Dialog-topButton">
                             <button
                                 type="button"
@@ -292,9 +279,9 @@ export class DetailsDialog extends React.Component<DetailsDialogProps, DetailsDi
                                 aria-label="Close"
                                 data-is-focusable="true"
                             >
-                                <div className="ms-button-flex-container">
-                                    <Icon iconName="Cancel" />
-                                </div>
+                                <span className="ms-button-flex-container">
+                                    <CancelIcon />
+                                </span>
                             </button>
                         </div>
                     </div>
@@ -309,15 +296,25 @@ export class DetailsDialog extends React.Component<DetailsDialogProps, DetailsDi
         return (
             <Dialog
                 hidden={!this.state.showDialog}
+                // Used top button instead of default close button to avoid use of fabric icons that might not load due to target page's Content Security Policy
                 dialogContentProps={{
                     type: DialogType.normal,
+                    showCloseButton: false,
+                    topButtonsProps: [
+                        {
+                            ariaLabel: 'Close',
+                            onRenderIcon: this.renderCloseIcon,
+                            onClick: this.onHideDialog,
+                        },
+                    ],
+                    styles: { title: 'insights-dialog-title' },
                 }}
                 modalProps={{
                     isBlocking: false,
-                    containerClassName: 'insights-dialog-main-container',
+                    containerClassName:
+                        'insights-dialog-main-override insights-dialog-main-container',
                     layerProps: {
                         onLayerDidMount: this.onLayoutDidMount,
-                        className: 'insights-dialog-main-override',
                         hostId: 'insights-dialog-layer-host',
                     },
                 }}

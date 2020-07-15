@@ -1,25 +1,19 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
-import { BrowserAdapter } from './browser-adapter';
-import { IInstallationData } from './installation-data';
+import { StorageAdapter } from 'common/browser-adapters/storage-adapter';
+import { InstallationData } from './installation-data';
 import { LocalStorageDataKeys } from './local-storage-data-keys';
 
 export class InstallDataGenerator {
-    private generateGuid: () => string;
-    private dateGetter: () => Date;
-    private installationData: IInstallationData;
-    private browserAdapter: BrowserAdapter;
+    private installationData: InstallationData;
 
     constructor(
-        initialInstallationData: IInstallationData,
-        generateGuid: () => string,
-        dateGetter: () => Date,
-        browserAdapter: BrowserAdapter,
+        readonly initialInstallationData: InstallationData,
+        private readonly generateGuid: () => string,
+        private readonly dateGetter: () => Date,
+        private readonly storageAdapter: StorageAdapter,
     ) {
-        this.generateGuid = generateGuid;
-        this.dateGetter = dateGetter;
         this.installationData = initialInstallationData;
-        this.browserAdapter = browserAdapter;
     }
 
     public getInstallationId(): string {
@@ -36,7 +30,10 @@ export class InstallDataGenerator {
         const currentMonth = currentDate.getUTCMonth();
         const currentYear = currentDate.getUTCFullYear();
 
-        return currentMonth !== this.installationData.month || currentYear !== this.installationData.year;
+        return (
+            currentMonth !== this.installationData.month ||
+            currentYear !== this.installationData.year
+        );
     }
 
     private generateInstallationData(currentDate: Date): string {
@@ -46,7 +43,9 @@ export class InstallDataGenerator {
             year: currentDate.getUTCFullYear(),
         };
 
-        this.browserAdapter.setUserData({ [LocalStorageDataKeys.installationData]: this.installationData });
+        this.storageAdapter
+            .setUserData({ [LocalStorageDataKeys.installationData]: this.installationData })
+            .catch(console.error);
         return this.installationData.id;
     }
 }

@@ -1,5 +1,6 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
+import { Message } from '../common/message';
 import { Messages } from '../common/messages';
 import { FeatureFlagStoreData } from '../common/types/store-data/feature-flag-store-data';
 import { FeatureFlagPayload } from './actions/feature-flag-actions';
@@ -23,35 +24,32 @@ export class FeatureFlagsController {
         return this.featureFlagStore.getState();
     }
 
-    public disableFeature(feature: string): void {
-        const payload: FeatureFlagPayload = {
-            feature: feature,
-            enabled: false,
-        };
-        const message: IMessage = {
-            type: Messages.FeatureFlags.SetFeatureFlag,
-            payload: payload,
-            tabId: null,
-        };
-        this.interpreter.interpret(message);
+    public disableFeature(feature: string): FeatureFlagStoreData {
+        return this.toggleFeatureFlag(feature, false);
     }
 
-    public enableFeature(feature: string): void {
+    public enableFeature(feature: string): FeatureFlagStoreData {
+        return this.toggleFeatureFlag(feature, true);
+    }
+
+    private toggleFeatureFlag(feature: string, enabled: boolean): FeatureFlagStoreData {
         const payload: FeatureFlagPayload = {
-            feature: feature,
-            enabled: true,
+            feature,
+            enabled,
         };
-        const message: IMessage = {
-            type: Messages.FeatureFlags.SetFeatureFlag,
+        const message: Message = {
+            messageType: Messages.FeatureFlags.SetFeatureFlag,
             payload: payload,
             tabId: null,
         };
         this.interpreter.interpret(message);
+
+        return this.listFeatureFlags();
     }
 
     public resetFeatureFlags(): void {
-        const message: IMessage = {
-            type: Messages.FeatureFlags.ResetFeatureFlag,
+        const message: Message = {
+            messageType: Messages.FeatureFlags.ResetFeatureFlag,
             tabId: null,
         };
         this.interpreter.interpret(message);

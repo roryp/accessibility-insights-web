@@ -1,8 +1,7 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
-import { autobind, css } from '@uifabric/utilities';
-import { ActionButton } from 'office-ui-fabric-react/lib/Button';
-import { Icon } from 'office-ui-fabric-react/lib/Icon';
+import { css } from '@uifabric/utilities';
+import { ActionButton } from 'office-ui-fabric-react';
 import * as React from 'react';
 
 export interface CollapsibleComponentProps {
@@ -16,7 +15,10 @@ interface CollapsibleComponentState {
     showContent: boolean;
 }
 
-export class CollapsibleComponent extends React.Component<CollapsibleComponentProps, CollapsibleComponentState> {
+export class CollapsibleComponent extends React.Component<
+    CollapsibleComponentProps,
+    CollapsibleComponentState
+> {
     private readonly iconNameDown = 'ChevronDown';
     private readonly iconNameUp = 'ChevronRight';
 
@@ -25,20 +27,23 @@ export class CollapsibleComponent extends React.Component<CollapsibleComponentPr
         this.state = { showContent: true };
     }
 
-    @autobind
-    private onClick(): void {
+    private onClick = (): void => {
         const newState = !this.state.showContent;
         this.setState({ showContent: newState });
-    }
+    };
 
     public render(): JSX.Element {
         const showContent = this.state.showContent;
         let iconName = this.iconNameUp;
-        let content = null;
+        let content: JSX.Element | null = null;
 
         if (showContent) {
             iconName = this.iconNameDown;
-            content = <div className={css(this.props.contentClassName, 'collapsible-content')}>{this.props.content}</div>;
+            content = (
+                <div className={css(this.props.contentClassName, 'collapsible-content')}>
+                    {this.props.content}
+                </div>
+            );
         }
 
         return (

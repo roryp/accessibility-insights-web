@@ -1,35 +1,30 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 import { forOwn } from 'lodash';
-
-import { createDefaultLogger } from '../../common/logging/default-logger';
+import { HTMLElementUtils } from '../../common/html-element-utils';
 import { Logger } from '../../common/logging/logger';
-import { IHtmlElementAxeResults } from '../scanner-utils';
-import { HTMLElementUtils } from './../../common/html-element-utils';
+import { DictionaryStringTo } from '../../types/common-types';
+import { HtmlElementAxeResults } from '../scanner-utils';
 
-// tslint:disable-next-line:interface-name
-export interface IFrameResult {
+export interface HTMLIFrameResult {
     frame: HTMLIFrameElement;
-    elementResults: IAssessmentVisualizationInstance[];
+    elementResults: AssessmentVisualizationInstance[];
 }
 
-export interface AxeResultsWithFrameLevel extends IHtmlElementAxeResults {
+export interface AxeResultsWithFrameLevel extends HtmlElementAxeResults {
     targetIndex?: number;
 }
 
-// tslint:disable-next-line:interface-name
-export interface IAssessmentVisualizationInstance extends AxeResultsWithFrameLevel {
+export interface AssessmentVisualizationInstance extends AxeResultsWithFrameLevel {
     isFailure: boolean;
     isVisualizationEnabled: boolean;
-    html: string;
     propertyBag?: any;
-    identifier: string;
 }
 
 export class HtmlElementAxeResultsHelper {
-    constructor(private htmlElementUtils: HTMLElementUtils, private logger: Logger = createDefaultLogger()) {}
+    constructor(private htmlElementUtils: HTMLElementUtils, private logger: Logger) {}
 
-    public splitResultsByFrame(elementResults: AxeResultsWithFrameLevel[]): IFrameResult[] {
+    public splitResultsByFrame(elementResults: AxeResultsWithFrameLevel[]): HTMLIFrameResult[] {
         const frameSelectorToResultsMap = this.getFrameSelectorToResultMap(elementResults);
         const results = this.getFrameResultsFromSelectorMap(frameSelectorToResultsMap);
         this.addMissingFrameResults(results);
@@ -37,8 +32,10 @@ export class HtmlElementAxeResultsHelper {
         return results;
     }
 
-    private getFrameResultsFromSelectorMap(selectorMap: DictionaryStringTo<AxeResultsWithFrameLevel[]>): IFrameResult[] {
-        const results: IFrameResult[] = [];
+    private getFrameResultsFromSelectorMap(
+        selectorMap: DictionaryStringTo<AxeResultsWithFrameLevel[]>,
+    ): HTMLIFrameResult[] {
+        const results: HTMLIFrameResult[] = [];
         forOwn(selectorMap, (frameResults, selectorKey) => {
             if (selectorKey) {
                 const iframe = this.htmlElementUtils.querySelector(selectorKey);
@@ -46,7 +43,7 @@ export class HtmlElementAxeResultsHelper {
                     results.push({
                         elementResults: frameResults,
                         frame: iframe,
-                    } as IFrameResult);
+                    } as HTMLIFrameResult);
                 } else {
                     this.logger.log('unable to find frame to highlight', selectorKey);
                 }
@@ -54,19 +51,21 @@ export class HtmlElementAxeResultsHelper {
                 results.push({
                     elementResults: frameResults,
                     frame: null,
-                } as IFrameResult);
+                } as HTMLIFrameResult);
             }
         });
 
         return results;
     }
 
-    private addMissingFrameResults(frameResults: IFrameResult[]): void {
+    private addMissingFrameResults(frameResults: HTMLIFrameResult[]): void {
         const missingFrames: HTMLIFrameElement[] = [];
 
-        const allFramesIncludingCurrentFrames = Array.prototype.slice.call(this.htmlElementUtils.getAllElementsByTagName(
-            'iframe',
-        ) as NodeListOf<HTMLIFrameElement>);
+        const allFramesIncludingCurrentFrames = Array.prototype.slice.call(
+            this.htmlElementUtils.getAllElementsByTagName('iframe') as HTMLCollectionOf<
+                HTMLIFrameElement
+            >,
+        );
         allFramesIncludingCurrentFrames.push(null); // current frame
 
         for (let framePos = 0; framePos < allFramesIncludingCurrentFrames.length; framePos++) {
@@ -91,7 +90,9 @@ export class HtmlElementAxeResultsHelper {
         });
     }
 
-    private getFrameSelectorToResultMap(elementResults: AxeResultsWithFrameLevel[]) {
+    private getFrameSelectorToResultMap(
+        elementResults: AxeResultsWithFrameLevel[],
+    ): DictionaryStringTo<AxeResultsWithFrameLevel[]> {
         const elementResultsByFrame: DictionaryStringTo<AxeResultsWithFrameLevel[]> = {};
 
         for (let i = 0; i < elementResults.length; i++) {

@@ -8,20 +8,22 @@ import {
     DefaultMessageInterface,
     IGetMessageGenerator,
     IMessageGenerator,
-} from '../../../../assessments/assessment-default-message-generator';
-import { AssessmentsProvider } from '../../../../assessments/assessments-provider';
-import { Assessment } from '../../../../assessments/types/iassessment';
-import { IAssessmentsProvider } from '../../../../assessments/types/iassessments-provider';
-import { IAssessmentStoreData } from '../../../../common/types/store-data/iassessment-result-data';
-import { ITabStoreData } from '../../../../common/types/store-data/itab-store-data';
-import { AssessmentReportModelBuilder } from '../../../../DetailsView/reports/assessment-report-model-builder';
+} from 'assessments/assessment-default-message-generator';
+import { AssessmentsProviderImpl } from 'assessments/assessments-provider';
+import { AssessmentsProvider } from 'assessments/types/assessments-provider';
+import { Assessment } from 'assessments/types/iassessment';
+import { TargetAppData } from 'common/types/store-data/unified-data-interface';
+import { AssessmentReportModelBuilder } from 'reports/assessment-report-model-builder';
+import { AssessmentStoreData } from '../../../../common/types/store-data/assessment-result-data';
 import { AssessmentReportBuilderTestHelper } from './assessment-report-builder-test-helper';
 
 describe('AssessmentReportModelBuilderTest', () => {
-    const assessmentsProviderMock = Mock.ofType<IAssessmentsProvider>(AssessmentsProvider);
+    const assessmentsProviderMock = Mock.ofType<AssessmentsProvider>(AssessmentsProviderImpl);
     const getDefaultMessageStub: IGetMessageGenerator = generator => (map, step) => null;
     const getDefaultMessageMock = Mock.ofInstance(getDefaultMessageStub);
-    const assessments = AssessmentReportBuilderTestHelper.getAssessmentProviderAll(getDefaultMessageMock.object);
+    const assessments = AssessmentReportBuilderTestHelper.getAssessmentProviderAll(
+        getDefaultMessageMock.object,
+    );
     const assessmentDefaultMessageGeneratorMock = Mock.ofType<AssessmentDefaultMessageGenerator>(
         AssessmentDefaultMessageGenerator,
         MockBehavior.Strict,
@@ -42,23 +44,19 @@ describe('AssessmentReportModelBuilderTest', () => {
 
     assessmentsProviderMock.setup(ap => ap.all()).returns(() => assessments);
 
-    const tabStoreData: ITabStoreData = {
+    const targetAppInfo: TargetAppData = {
         url: 'url',
-        title: 'title',
-        id: -1,
-        isClosed: false,
-        isChanged: false,
-        isPageHidden: false,
+        name: 'title',
     };
 
     AssessmentReportBuilderTestHelper.setMessageComponent(expectedMessage);
     const expectedResult = AssessmentReportBuilderTestHelper.getAssessmentReportModel();
 
-    function getBuilder() {
+    function getBuilder(): AssessmentReportModelBuilder {
         return new AssessmentReportModelBuilder(
             assessmentsProviderMock.object,
             assessmentStoreData,
-            tabStoreData,
+            targetAppInfo,
             AssessmentReportBuilderTestHelper.reportDate,
             assessmentDefaultMessageGeneratorMock.object,
         );
@@ -77,13 +75,16 @@ describe('AssessmentReportModelBuilderTest', () => {
 function setupGeneratorMockWithAssessmentData(
     messageGenerator: IMock<IMessageGenerator>,
     getDefaultMessageMock: IMock<IGetMessageGenerator>,
-    assessmentStoreData: IAssessmentStoreData,
+    assessmentStoreData: AssessmentStoreData,
     assessments: Assessment[],
     stubMessage: DefaultMessageInterface,
     assessmentDefaultMessageGeneratorMock: IMock<AssessmentDefaultMessageGenerator>,
 ): void {
     forOwn(assessmentStoreData.assessments, (assessmentData, assessmentKey) => {
-        AssessmentReportBuilderTestHelper.getStepKeysForAssessment(assessmentKey, assessments).forEach(stepKey => {
+        AssessmentReportBuilderTestHelper.getStepKeysForAssessment(
+            assessmentKey,
+            assessments,
+        ).forEach(stepKey => {
             getDefaultMessageMock
                 .setup(gdm => gdm(assessmentDefaultMessageGeneratorMock.object))
                 .returns(() => messageGenerator.object)

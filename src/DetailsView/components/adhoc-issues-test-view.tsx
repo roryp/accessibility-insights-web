@@ -1,71 +1,82 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
-import { ISelection } from 'office-ui-fabric-react/lib/DetailsList';
+import { FailedInstancesSectionProps } from 'common/components/cards/failed-instances-section';
+import { NeedsReviewInstancesSectionProps } from 'common/components/cards/needs-review-instances-section';
+import { VisualizationConfiguration } from 'common/configs/visualization-configuration';
+import { ScanIncompleteWarningId } from 'common/types/scan-incomplete-warnings';
+import { CardsViewModel } from 'common/types/store-data/card-view-model';
+import { FeatureFlagStoreData } from 'common/types/store-data/feature-flag-store-data';
+import { TabStoreData } from 'common/types/store-data/tab-store-data';
+import { ScanMetadata } from 'common/types/store-data/unified-data-interface';
+import { UserConfigurationStoreData } from 'common/types/store-data/user-configuration-store';
+import { VisualizationStoreData } from 'common/types/store-data/visualization-store-data';
+import { VisualizationType } from 'common/types/visualization-type';
+import { DetailsViewSwitcherNavConfiguration } from 'DetailsView/components/details-view-switcher-nav';
+import {
+    ScanIncompleteWarning,
+    ScanIncompleteWarningDeps,
+} from 'DetailsView/components/scan-incomplete-warning';
+import { DetailsViewToggleClickHandlerFactory } from 'DetailsView/handlers/details-view-toggle-click-handler-factory';
 import * as React from 'react';
-
-import { IVisualizationConfiguration, VisualizationConfigurationFactory } from '../../common/configs/visualization-configuration-factory';
-import { NamedSFC } from '../../common/react/named-sfc';
-import { FeatureFlagStoreData } from '../../common/types/store-data/feature-flag-store-data';
-import { ITabStoreData } from '../../common/types/store-data/itab-store-data';
-import { IVisualizationScanResultData } from '../../common/types/store-data/ivisualization-scan-result-data';
-import { IVisualizationStoreData } from '../../common/types/store-data/ivisualization-store-data';
-import { VisualizationType } from '../../common/types/visualization-type';
-import { DetailsViewToggleClickHandlerFactory } from '../handlers/details-view-toggle-click-handler-factory';
-import { ReportGenerator } from '../reports/report-generator';
-import { IssuesTable, IssuesTableDeps } from './issues-table';
-import { IssuesTableHandler } from './issues-table-handler';
+import { NamedFC, ReactFCWithDisplayName } from '../../common/react/named-fc';
+import { DetailsListIssuesView, DetailsListIssuesViewDeps } from './details-list-issues-view';
 import { TargetPageChangedView } from './target-page-changed-view';
 
-export type AdhocIssuesTestViewDeps = IssuesTableDeps;
+export type InstancesSectionProps = FailedInstancesSectionProps & NeedsReviewInstancesSectionProps;
 
-export interface AdhocIssuesTestViewProps {
+export type AdhocIssuesTestViewDeps = DetailsListIssuesViewDeps & ScanIncompleteWarningDeps;
+
+export type AdhocIssuesTestViewProps = {
     deps: AdhocIssuesTestViewDeps;
-    tabStoreData: ITabStoreData;
+    switcherNavConfiguration: DetailsViewSwitcherNavConfiguration;
+    scanIncompleteWarnings: ScanIncompleteWarningId[];
+    tabStoreData: TabStoreData;
     featureFlagStoreData: FeatureFlagStoreData;
-    issueTrackerPath: string;
     selectedTest: VisualizationType;
-    visualizationStoreData: IVisualizationStoreData;
-    visualizationScanResultData: IVisualizationScanResultData;
-    visualizationConfigurationFactory: VisualizationConfigurationFactory;
+    visualizationStoreData: VisualizationStoreData;
     clickHandlerFactory: DetailsViewToggleClickHandlerFactory;
-    issuesSelection: ISelection;
-    reportGenerator: ReportGenerator;
-    issuesTableHandler: IssuesTableHandler;
-    configuration: IVisualizationConfiguration;
-}
+    configuration: VisualizationConfiguration;
+    userConfigurationStoreData: UserConfigurationStoreData;
+    scanMetadata: ScanMetadata;
+    cardsViewData: CardsViewModel;
+    instancesSection: ReactFCWithDisplayName<InstancesSectionProps>;
+};
 
-export const AdhocIssuesTestView = NamedSFC<AdhocIssuesTestViewProps>('AdhocIssuesTestView', ({ children, ...props }) => {
-    const type = props.selectedTest;
+export const AdhocIssuesTestView = NamedFC<AdhocIssuesTestViewProps>(
+    'AdhocIssuesTestView',
+    props => {
+        if (props.tabStoreData.isChanged) {
+            return createTargetPageChangedView(props);
+        }
+
+        return (
+            <>
+                <ScanIncompleteWarning
+                    deps={props.deps}
+                    warnings={props.scanIncompleteWarnings}
+                    warningConfiguration={props.switcherNavConfiguration.warningConfiguration}
+                    test={props.selectedTest}
+                />
+                <DetailsListIssuesView {...props} />
+            </>
+        );
+    },
+);
+
+function createTargetPageChangedView(props: AdhocIssuesTestViewProps): JSX.Element {
+    const selectedTest = props.selectedTest;
     const scanData = props.configuration.getStoreData(props.visualizationStoreData.tests);
-    const clickHandler = props.clickHandlerFactory.createClickHandler(type, !scanData.enabled);
-    const isScanning: boolean = props.visualizationStoreData.scanning !== null;
-    const scanResult = props.visualizationScanResultData.issues.scanResult;
-    const displayableData = props.configuration.displayableData;
-    const selectedIdToRuleResultMap = props.visualizationScanResultData.issues.selectedIdToRuleResultMap;
-    const title = props.configuration.displayableData.title;
-
-    if (props.tabStoreData.isChanged) {
-        return <TargetPageChangedView displayableData={displayableData} type={type} toggleClickHandler={clickHandler} />;
-    }
+    const clickHandler = props.clickHandlerFactory.createClickHandler(
+        selectedTest,
+        !scanData.enabled,
+    );
 
     return (
-        <IssuesTable
-            deps={props.deps}
-            title={title}
-            issuesTableHandler={props.issuesTableHandler}
-            issuesEnabled={scanData.enabled}
-            issueTrackerPath={props.issueTrackerPath}
-            violations={scanResult != null ? scanResult.violations : null}
-            issuesSelection={props.issuesSelection}
-            selectedIdToRuleResultMap={selectedIdToRuleResultMap}
-            pageTitle={props.tabStoreData.title}
-            pageUrl={props.tabStoreData.url}
-            scanning={isScanning}
+        <TargetPageChangedView
+            displayableData={props.configuration.displayableData}
+            visualizationType={selectedTest}
             toggleClickHandler={clickHandler}
-            visualizationConfigurationFactory={props.visualizationConfigurationFactory}
-            featureFlags={props.featureFlagStoreData}
-            scanResult={scanResult}
-            reportGenerator={props.reportGenerator}
+            featureFlagStoreData={props.featureFlagStoreData}
         />
     );
-});
+}

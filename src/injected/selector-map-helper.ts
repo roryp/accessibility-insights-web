@@ -1,108 +1,130 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
-import * as _ from 'lodash/index';
+import { AssessmentsProvider } from 'assessments/types/assessments-provider';
+import { CardSelectionStoreData } from 'common/types/store-data/card-selection-store-data';
+import { UnifiedScanResultStoreData } from 'common/types/store-data/unified-data-interface';
+import { TargetPageStoreData } from 'injected/client-store-listener';
+import { GetElementBasedViewModelCallback } from 'injected/element-based-view-model-creator';
+import { includes } from 'lodash';
 
-import { IAssessmentsProvider } from '../assessments/types/iassessments-provider';
-import { IBaseStore } from '../common/istore';
 import { ManualTestStatus } from '../common/types/manual-test-status';
-import { IAssessmentStoreData, IGeneratedAssessmentInstance } from '../common/types/store-data/iassessment-result-data';
-import { IVisualizationScanResultData } from '../common/types/store-data/ivisualization-scan-result-data';
+import { GeneratedAssessmentInstance } from '../common/types/store-data/assessment-result-data';
+import { VisualizationScanResultData } from '../common/types/store-data/visualization-scan-result-data';
 import { VisualizationType } from '../common/types/visualization-type';
-import { IAssessmentVisualizationInstance } from './frameCommunicators/html-element-axe-results-helper';
+import { DictionaryStringTo } from '../types/common-types';
+import { AssessmentVisualizationInstance } from './frameCommunicators/html-element-axe-results-helper';
+
+export type VisualizationRelatedStoreData = Pick<
+    TargetPageStoreData,
+    | 'assessmentStoreData'
+    | 'unifiedScanResultStoreData'
+    | 'visualizationScanResultStoreData'
+    | 'cardSelectionStoreData'
+>;
 
 export class SelectorMapHelper {
-    private scanResultStore: IBaseStore<IVisualizationScanResultData>;
-    private assessmentStore: IBaseStore<IAssessmentStoreData>;
-    private assessmentsProvider: IAssessmentsProvider;
-
     constructor(
-        scanResultStore: IBaseStore<IVisualizationScanResultData>,
-        assessmentStore: IBaseStore<IAssessmentStoreData>,
-        assessmentsProvider: IAssessmentsProvider,
-    ) {
-        this.scanResultStore = scanResultStore;
-        this.assessmentStore = assessmentStore;
-        this.assessmentsProvider = assessmentsProvider;
-    }
+        private assessmentsProvider: AssessmentsProvider,
+        private getElementBasedViewModel: GetElementBasedViewModelCallback,
+    ) {}
 
-    public getSelectorMap(visualizationType: VisualizationType): DictionaryStringTo<IAssessmentVisualizationInstance> {
+    public getSelectorMap(
+        visualizationType: VisualizationType,
+        stepKey: string,
+        visualizationRelatedStoreData: VisualizationRelatedStoreData,
+    ): DictionaryStringTo<AssessmentVisualizationInstance> {
         let selectorMap = {};
+        const {
+            visualizationScanResultStoreData,
+            unifiedScanResultStoreData,
+            assessmentStoreData,
+            cardSelectionStoreData,
+        } = visualizationRelatedStoreData;
 
         if (this.isAdHocVisualization(visualizationType)) {
-            selectorMap = this.getAdHocVisualizationSelectorMap(visualizationType);
+            selectorMap = this.getAdHocVisualizationSelectorMap(
+                visualizationType,
+                visualizationScanResultStoreData,
+                unifiedScanResultStoreData,
+                cardSelectionStoreData,
+            );
         }
 
         if (this.assessmentsProvider.isValidType(visualizationType)) {
             const key = this.assessmentsProvider.forType(visualizationType).key;
-            const assessmentState = this.assessmentStore.getState();
             selectorMap = this.getFilteredSelectorMap(
-                assessmentState.assessments[key].generatedAssessmentInstancesMap,
-                assessmentState.assessmentNavState.selectedTestStep,
+                assessmentStoreData.assessments[key].generatedAssessmentInstancesMap,
+                stepKey,
             );
         }
 
         return selectorMap;
     }
 
-    private isAdHocVisualization(type: VisualizationType): boolean {
-        return _.includes(
+    private isAdHocVisualization(visualizationType: VisualizationType): boolean {
+        return includes(
             [
                 VisualizationType.Issues,
                 VisualizationType.Headings,
                 VisualizationType.Landmarks,
                 VisualizationType.TabStops,
                 VisualizationType.Color,
+                VisualizationType.NeedsReview,
             ],
-            type,
+            visualizationType,
         );
     }
 
-    private getAdHocVisualizationSelectorMap(type: VisualizationType): DictionaryStringTo<IAssessmentVisualizationInstance> {
+    private getAdHocVisualizationSelectorMap(
+        visualizationType: VisualizationType,
+        visualizationScanResultData: VisualizationScanResultData,
+        unifiedScanData: UnifiedScanResultStoreData,
+        cardSelectionStoreData: CardSelectionStoreData,
+    ): DictionaryStringTo<AssessmentVisualizationInstance> {
         let selectorMap = {};
-        const visulizaitonScanResultState = this.scanResultStore.getState();
-
-        switch (type) {
+        switch (visualizationType) {
+            case VisualizationType.NeedsReview:
             case VisualizationType.Issues:
-                selectorMap = visulizaitonScanResultState.issues.selectedAxeResultsMap;
+                selectorMap = this.getElementBasedViewModel(
+                    unifiedScanData,
+                    cardSelectionStoreData,
+                );
                 break;
             case VisualizationType.Headings:
-                selectorMap = visulizaitonScanResultState.headings.fullAxeResultsMap;
+                selectorMap = visualizationScanResultData.headings.fullAxeResultsMap;
                 break;
             case VisualizationType.Landmarks:
-                selectorMap = visulizaitonScanResultState.landmarks.fullAxeResultsMap;
+                selectorMap = visualizationScanResultData.landmarks.fullAxeResultsMap;
                 break;
             case VisualizationType.TabStops:
-                selectorMap = visulizaitonScanResultState.tabStops.tabbedElements;
+                selectorMap = visualizationScanResultData.tabStops.tabbedElements;
                 break;
             default:
-                selectorMap = visulizaitonScanResultState.color.fullAxeResultsMap;
+                selectorMap = visualizationScanResultData.color.fullAxeResultsMap;
                 break;
         }
 
         return selectorMap;
     }
 
-    private getFilteredSelectorMap<T, K>(
-        generatedAssessmentInstancesMap: DictionaryStringTo<IGeneratedAssessmentInstance<T, K>>,
+    private getFilteredSelectorMap(
+        generatedAssessmentInstancesMap: DictionaryStringTo<GeneratedAssessmentInstance>,
         testStep: string,
-    ): DictionaryStringTo<IAssessmentVisualizationInstance> {
+    ): DictionaryStringTo<AssessmentVisualizationInstance> {
         if (generatedAssessmentInstancesMap == null) {
             return null;
         }
 
-        const selectorMap: DictionaryStringTo<IAssessmentVisualizationInstance> = {};
+        const selectorMap: DictionaryStringTo<AssessmentVisualizationInstance> = {};
         Object.keys(generatedAssessmentInstancesMap).forEach(identifier => {
             const instance = generatedAssessmentInstancesMap[identifier];
-            const stepResult = instance.testStepResults[testStep as keyof K];
+            const stepResult = instance.testStepResults[testStep];
             if (stepResult != null) {
                 selectorMap[identifier] = {
                     target: instance.target,
                     isFailure: stepResult.status === ManualTestStatus.FAIL,
                     isVisualizationEnabled: stepResult.isVisualizationEnabled,
-                    isVisible: stepResult.isVisible,
-                    html: instance.html,
                     propertyBag: instance.propertyBag,
-                    identifier: identifier,
                     ruleResults: null,
                 };
             }

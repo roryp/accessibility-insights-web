@@ -1,21 +1,28 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
+import { ScanIncompleteWarningDetector } from 'injected/scan-incomplete-warning-detector';
+
+import { BaseStore } from '../../common/base-store';
 import { VisualizationConfigurationFactory } from '../../common/configs/visualization-configuration-factory';
-import { IBaseStore } from '../../common/istore';
 import { TelemetryDataFactory } from '../../common/telemetry-data-factory';
-import { IScopingStoreData } from '../../common/types/store-data/scoping-store-data';
+import { ScopingStoreData } from '../../common/types/store-data/scoping-store-data';
 import { WindowUtils } from '../../common/window-utils';
 import { ScannerUtils } from '../scanner-utils';
 import { TabStopsListener } from '../tab-stops-listener';
+import {
+    Analyzer,
+    AnalyzerConfiguration,
+    FocusAnalyzerConfiguration,
+    RuleAnalyzerConfiguration,
+} from './analyzer';
 import { BaseAnalyzer } from './base-analyzer';
 import { BatchedRuleAnalyzer, IResultRuleFilter } from './batched-rule-analyzer';
-import { IAnalyzer, IAnalyzerConfiguration, IFocusAnalyzerConfiguration, RuleAnalyzerConfiguration } from './ianalyzer';
-import { RuleAnalyzer } from './rule-analyzer';
+import { PostResolveCallback, RuleAnalyzer } from './rule-analyzer';
 import { TabStopsAnalyzer } from './tab-stops-analyzer';
 
 export class AnalyzerProvider {
     private tabStopsListener: TabStopsListener;
-    private scopingStore: IBaseStore<IScopingStoreData>;
+    private scopingStore: BaseStore<ScopingStoreData>;
     private sendMessageDelegate: (message) => void;
     private scanner: ScannerUtils;
     private telemetryDataFactory: TelemetryDataFactory;
@@ -23,13 +30,16 @@ export class AnalyzerProvider {
 
     constructor(
         tabStopsListener: TabStopsListener,
-        scopingStore: IBaseStore<IScopingStoreData>,
+        scopingStore: BaseStore<ScopingStoreData>,
         sendMessageDelegate: (message) => void,
         scanner: ScannerUtils,
         telemetryDataFactory: TelemetryDataFactory,
         dateGetter: () => Date,
         private readonly visualizationConfigFactory: VisualizationConfigurationFactory,
         private filterResultsByRules: IResultRuleFilter,
+        private sendConvertedResults: PostResolveCallback,
+        private sendNeedsReviewResults: PostResolveCallback,
+        private scanIncompleteWarningDetector: ScanIncompleteWarningDetector,
     ) {
         this.tabStopsListener = tabStopsListener;
         this.scopingStore = scopingStore;
@@ -39,7 +49,7 @@ export class AnalyzerProvider {
         this.dateGetter = dateGetter;
     }
 
-    public createRuleAnalyzer(config: RuleAnalyzerConfiguration): IAnalyzer<any> {
+    public createRuleAnalyzer(config: RuleAnalyzerConfiguration): Analyzer {
         return new RuleAnalyzer(
             config,
             this.scanner,
@@ -48,10 +58,44 @@ export class AnalyzerProvider {
             this.dateGetter,
             this.telemetryDataFactory,
             this.visualizationConfigFactory,
+            null,
+            this.scanIncompleteWarningDetector,
         );
     }
 
-    public createBatchedRuleAnalyzer(config: RuleAnalyzerConfiguration): IAnalyzer<any> {
+    // This analyzer is functionally identical to the rule-analyzer, but it
+    // sends an additional message to the unified-scan-results store
+    public createRuleAnalyzerUnifiedScan(config: RuleAnalyzerConfiguration): Analyzer {
+        return new RuleAnalyzer(
+            config,
+            this.scanner,
+            this.scopingStore,
+            this.sendMessageDelegate,
+            this.dateGetter,
+            this.telemetryDataFactory,
+            this.visualizationConfigFactory,
+            this.sendConvertedResults,
+            this.scanIncompleteWarningDetector,
+        );
+    }
+
+    public createRuleAnalyzerUnifiedScanForNeedsReview(
+        config: RuleAnalyzerConfiguration,
+    ): Analyzer {
+        return new RuleAnalyzer(
+            config,
+            this.scanner,
+            this.scopingStore,
+            this.sendMessageDelegate,
+            this.dateGetter,
+            this.telemetryDataFactory,
+            this.visualizationConfigFactory,
+            this.sendNeedsReviewResults,
+            this.scanIncompleteWarningDetector,
+        );
+    }
+
+    public createBatchedRuleAnalyzer(config: RuleAnalyzerConfiguration): Analyzer {
         return new BatchedRuleAnalyzer(
             config,
             this.scanner,
@@ -61,14 +105,25 @@ export class AnalyzerProvider {
             this.telemetryDataFactory,
             this.visualizationConfigFactory,
             this.filterResultsByRules,
+            this.scanIncompleteWarningDetector,
         );
     }
 
-    public createFocusTrackingAnalyzer(config: IFocusAnalyzerConfiguration): IAnalyzer<any> {
-        return new TabStopsAnalyzer(config, this.tabStopsListener, new WindowUtils(), this.sendMessageDelegate);
+    public createFocusTrackingAnalyzer(config: FocusAnalyzerConfiguration): Analyzer {
+        return new TabStopsAnalyzer(
+            config,
+            this.tabStopsListener,
+            new WindowUtils(),
+            this.sendMessageDelegate,
+            this.scanIncompleteWarningDetector,
+        );
     }
 
-    public createBaseAnalyzer(config: IAnalyzerConfiguration): IAnalyzer<any> {
-        return new BaseAnalyzer(config, this.sendMessageDelegate);
+    public createBaseAnalyzer(config: AnalyzerConfiguration): Analyzer {
+        return new BaseAnalyzer(
+            config,
+            this.sendMessageDelegate,
+            this.scanIncompleteWarningDetector,
+        );
     }
 }

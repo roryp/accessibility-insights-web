@@ -2,30 +2,25 @@
 // Licensed under the MIT License.
 import { create, React } from '../../common';
 
-export const infoAndExamples = create(({ Markup }) => (
+export const infoAndExamples = create(({ Markup, Link }) => (
     <>
-        <h1>Contrast</h1>
         <p>Text elements must have sufficient contrast.</p>
-
         <h2>Why it matters</h2>
         <p>
             Most people find it easier to read text when it has a sufficiently high contrast against its background. People with mild visual
             disabilities, low vision, or limited color perception are likely to find text unreadable when contrast is too low.
         </p>
         <p>
-            People with <Markup.HyperLink href="https://en.wikipedia.org/wiki/Presbyopia">presbyopia</Markup.HyperLink> also struggle to
-            read small or low-contrast text. A{' '}
+            People with <Link.Presbyopia /> also struggle to read small or low-contrast text. A{' '}
             <Markup.HyperLink href="https://www.sciencedirect.com/science/article/pii/S0161642017337971">2018 study</Markup.HyperLink> found
             that 1.8 billion people worldwide have presbyopia. (All people are affected by presbyopia to some degree as they age.)
         </p>
-
         <h2>How to fix</h2>
         <p>Make sure text elements have sufficient contrast:</p>
         <ul>
             <li>Regular text must have a contrast ratio ≥ 4.5.</li>
             <li>Large text (18pt or 14pt+bold) must have a contrast ratio ≥ 3.0.</li>
         </ul>
-
         <h2>Example</h2>
         <Markup.PassFail
             failText={<p>White text displayed over a background photo has insufficient contrast in some areas.</p>}
@@ -74,7 +69,6 @@ export const infoAndExamples = create(({ Markup }) => (
             <p>Grand Canyon National Park</p>
             </div>`}
         />
-
         <h2>More examples</h2>
         <h3>WCAG success criteria</h3>
         <Markup.Links>
@@ -82,7 +76,6 @@ export const infoAndExamples = create(({ Markup }) => (
                 Understanding Success Criterion 1.4.3: Contrast (Minimum)
             </Markup.HyperLink>
         </Markup.Links>
-
         <h3>Sufficient techniques</h3>
         <Markup.Links>
             <Markup.HyperLink href="https://www.w3.org/WAI/WCAG21/Techniques/general/G18">
@@ -92,7 +85,6 @@ export const infoAndExamples = create(({ Markup }) => (
                 Ensuring that a contrast ratio of at least 3:1 exists between text (and images of text) and background behind the text
             </Markup.HyperLink>
         </Markup.Links>
-
         <h3>Common failures</h3>
         <Markup.Links>
             <Markup.HyperLink href="https://www.w3.org/WAI/WCAG21/Techniques/failures/F24">

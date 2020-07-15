@@ -1,14 +1,14 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`GenericToggleTest verify if the classname passed from prop is added properly 1`] = `
+exports[`GenericToggleTest renders description content is JSX.Element 1`] = `
 <div
-  className="generic-toggle-component"
+  className="genericToggleComponent"
 >
   <div
-    className="toggle-container"
+    className="toggleContainer"
   >
     <div
-      className="toggle-name"
+      className="toggleName"
     >
       test name
     </div>
@@ -16,13 +16,106 @@ exports[`GenericToggleTest verify if the classname passed from prop is added pro
       ariaLabel="test name"
       checked={true}
       className="toggle"
+      id="test-id-1"
       offText="Off"
       onClick={[Function]}
       onText="On"
     />
   </div>
   <div
-    className="toggle-description"
+    className="toggleDescription"
+  >
+    <h1>
+      hello
+    </h1>
+  </div>
+</div>
+`;
+
+exports[`GenericToggleTest renders description content is string 1`] = `
+<div
+  className="genericToggleComponent"
+>
+  <div
+    className="toggleContainer"
+  >
+    <div
+      className="toggleName"
+    >
+      test name
+    </div>
+    <StyledToggleBase
+      ariaLabel="test name"
+      checked={true}
+      className="toggle"
+      id="test-id-1"
+      offText="Off"
+      onClick={[Function]}
+      onText="On"
+    />
+  </div>
+  <div
+    className="toggleDescription"
+  >
+    test string description
+  </div>
+</div>
+`;
+
+exports[`GenericToggleTest renders toggle enable = false 1`] = `
+<div
+  className="genericToggleComponent"
+>
+  <div
+    className="toggleContainer"
+  >
+    <div
+      className="toggleName"
+    >
+      test name
+    </div>
+    <StyledToggleBase
+      ariaLabel="test name"
+      checked={false}
+      className="toggle"
+      id="test-id-1"
+      offText="Off"
+      onClick={[Function]}
+      onText="On"
+    />
+  </div>
+  <div
+    className="toggleDescription"
+  >
+    test description
+  </div>
+</div>
+`;
+
+exports[`GenericToggleTest renders toggle enable = true 1`] = `
+<div
+  className="genericToggleComponent"
+>
+  <div
+    className="toggleContainer"
+  >
+    <div
+      className="toggleName"
+    >
+      test name
+    </div>
+    <StyledToggleBase
+      ariaLabel="test name"
+      checked={true}
+      className="toggle"
+      id="test-id-1"
+      offText="Off"
+      onClick={[Function]}
+      onText="On"
+    />
+  </div>
+  <div
+    className="toggleDescription"
   >
     test description
   </div>

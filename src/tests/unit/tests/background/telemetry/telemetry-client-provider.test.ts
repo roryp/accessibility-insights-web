@@ -1,50 +1,78 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
+import { InstallationData } from 'background/installation-data';
+import { ApplicationTelemetryDataFactory } from 'background/telemetry/application-telemetry-data-factory';
+import { MultiplexingTelemetryClient } from 'background/telemetry/multiplexing-telemetry-client';
+import { TelemetryClient } from 'background/telemetry/telemetry-client';
+import {
+    getApplicationTelemetryDataFactory,
+    getTelemetryClient,
+} from 'background/telemetry/telemetry-client-provider';
+import { AppDataAdapter } from 'common/browser-adapters/app-data-adapter';
+import { StorageAdapter } from 'common/browser-adapters/storage-adapter';
+import { configMutator } from 'common/configuration';
 import { Mock } from 'typemoq';
 
-import { BrowserAdapter } from '../../../../../background/browser-adapter';
-import { ILocalStorageData } from '../../../../../background/storage-data';
-import { AppInsightsTelemetryClient } from '../../../../../background/telemetry/app-insights-telemetry-client';
-import { NullTelemetryClient } from '../../../../../background/telemetry/null-telemetry-client';
-import { getTelemetryClient } from '../../../../../background/telemetry/telemetry-client-provider';
-import { TelemetryLogger } from '../../../../../background/telemetry/telemetry-logger';
-import { configMutator } from '../../../../../common/configuration';
-
 describe('TelemetryClientProvider', () => {
-    beforeEach(configMutator.reset);
-    afterAll(configMutator.reset);
+    describe('getTelemetryClient', () => {
+        const baseClients = [
+            Mock.ofType<TelemetryClient>().object,
+            Mock.ofType<TelemetryClient>().object,
+        ];
 
-    test('with instrumentation key', () => {
-        configMutator.setOption('appInsightsInstrumentationKey', 'test-key');
+        const baseClientsCount = baseClients.length;
 
-        const browserAdapterMock = Mock.ofType<BrowserAdapter>();
+        beforeEach(() => configMutator.reset());
 
-        const manifestStub = {
-            version: 'test',
-        } as chrome.runtime.Manifest;
+        afterAll(() => configMutator.reset());
 
-        browserAdapterMock.setup(adapter => adapter.getManifest()).returns(() => manifestStub);
+        it('builds a telemetry client using the instrumentation key', () => {
+            configMutator.setOption('appInsightsInstrumentationKey', 'test-key');
 
-        const result = getTelemetryClient(
-            {} as ILocalStorageData,
-            browserAdapterMock.object,
-            Mock.ofType<TelemetryLogger>().object,
-            Mock.ofType<Microsoft.ApplicationInsights.IAppInsights>().object,
-        );
+            const appAdapterMock = Mock.ofType<AppDataAdapter>();
 
-        expect(result).toBeInstanceOf(AppInsightsTelemetryClient);
+            appAdapterMock.setup(adapter => adapter.getVersion()).returns(() => 'test');
+
+            const result = getTelemetryClient(
+                Mock.ofType<ApplicationTelemetryDataFactory>().object,
+                Mock.ofType<Microsoft.ApplicationInsights.IAppInsights>().object,
+                baseClients,
+            );
+
+            expect(result).toBeInstanceOf(MultiplexingTelemetryClient);
+            expect(result).toHaveProperty('wrappedClients.length', baseClientsCount + 1);
+        });
+
+        it('builds a telemetry client when there is no instrumentation key', () => {
+            configMutator.setOption('appInsightsInstrumentationKey', null);
+
+            const result = getTelemetryClient(
+                Mock.ofType<ApplicationTelemetryDataFactory>().object,
+                Mock.ofType<Microsoft.ApplicationInsights.IAppInsights>().object,
+                baseClients,
+            );
+
+            expect(result).toBeInstanceOf(MultiplexingTelemetryClient);
+            expect(result).toHaveProperty('wrappedClients.length', baseClientsCount);
+        });
     });
 
-    test('without instrumentation key', () => {
-        configMutator.setOption('appInsightsInstrumentationKey', null);
+    it('build an application telemetry data factory', () => {
+        const installationData: InstallationData = {
+            id: 'test-id',
+            month: 9,
+            year: 2019,
+        };
 
-        const result = getTelemetryClient(
-            {} as ILocalStorageData,
-            Mock.ofType<BrowserAdapter>().object,
-            Mock.ofType<TelemetryLogger>().object,
-            Mock.ofType<Microsoft.ApplicationInsights.IAppInsights>().object,
+        const applicationName = 'test application name';
+
+        const result = getApplicationTelemetryDataFactory(
+            installationData,
+            Mock.ofType<StorageAdapter>().object,
+            Mock.ofType<AppDataAdapter>().object,
+            applicationName,
         );
 
-        expect(result).toBeInstanceOf(NullTelemetryClient);
+        expect(result).toBeInstanceOf(ApplicationTelemetryDataFactory);
     });
 });

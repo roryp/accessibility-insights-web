@@ -2,11 +2,12 @@
 // Licensed under the MIT License.
 import { IMock, It, Mock, Times } from 'typemoq';
 
-import { FeatureFlagPayload } from '../../../../background/actions/feature-flag-actions';
-import { FeatureFlagsController } from '../../../../background/feature-flags-controller';
-import { Interpreter } from '../../../../background/interpreter';
-import { FeatureFlagStore } from '../../../../background/stores/global/feature-flag-store';
+import { FeatureFlagPayload } from 'background/actions/feature-flag-actions';
+import { FeatureFlagsController } from 'background/feature-flags-controller';
+import { Interpreter } from 'background/interpreter';
+import { FeatureFlagStore } from 'background/stores/global/feature-flag-store';
 import { FeatureFlags } from '../../../../common/feature-flags';
+import { Message } from '../../../../common/message';
 import { Messages } from '../../../../common/messages';
 import { FeatureFlagStoreData } from '../../../../common/types/store-data/feature-flag-store-data';
 
@@ -20,11 +21,6 @@ describe('FeatureFlagsControllerTest', () => {
         interpreterMock = Mock.ofType(Interpreter);
     });
 
-    function testCleanup(): void {
-        featureFlagStoreMock.verifyAll();
-        interpreterMock.verifyAll();
-    }
-
     test('isEnabled', () => {
         const storeDataStub: FeatureFlagStoreData = {
             [FeatureFlags[FeatureFlags.logTelemetryToConsole]]: false,
@@ -36,7 +32,10 @@ describe('FeatureFlagsControllerTest', () => {
             .returns(() => storeDataStub)
             .verifiable(Times.exactly(3));
 
-        testObject = new FeatureFlagsController(featureFlagStoreMock.object, interpreterMock.object);
+        testObject = new FeatureFlagsController(
+            featureFlagStoreMock.object,
+            interpreterMock.object,
+        );
 
         expect(testObject.isEnabled(FeatureFlags.logTelemetryToConsole)).toBeFalsy();
         expect(testObject.isEnabled('testFeatureFlag')).toBeTruthy();
@@ -57,57 +56,57 @@ describe('FeatureFlagsControllerTest', () => {
             })
             .verifiable();
 
-        testObject = new FeatureFlagsController(featureFlagStoreMock.object, interpreterMock.object);
+        testObject = new FeatureFlagsController(
+            featureFlagStoreMock.object,
+            interpreterMock.object,
+        );
         expect(testObject.listFeatureFlags()).toEqual(storeDataStub);
         featureFlagStoreMock.verifyAll();
     });
 
-    test('disableFeature', () => {
+    test.each([true, false])('toggle feature flag to enabled: %s', (enabled: boolean) => {
         const feature = FeatureFlags.logTelemetryToConsole;
-        const payload: FeatureFlagPayload = {
-            feature: feature,
-            enabled: false,
+        const storeDataStub: FeatureFlagStoreData = {
+            [FeatureFlags[feature]]: enabled,
         };
-        const message: IMessage = {
-            type: Messages.FeatureFlags.SetFeatureFlag,
+        const payload: FeatureFlagPayload = {
+            feature,
+            enabled,
+        };
+        const message: Message = {
+            messageType: Messages.FeatureFlags.SetFeatureFlag,
             payload: payload,
             tabId: null,
         };
 
         interpreterMock.setup(i => i.interpret(It.isObjectWith(message))).verifiable();
-
-        testObject = new FeatureFlagsController(featureFlagStoreMock.object, interpreterMock.object);
-        testObject.disableFeature(feature);
+        featureFlagStoreMock
+            .setup(f => f.getState())
+            .returns(() => storeDataStub)
+            .verifiable();
+        testObject = new FeatureFlagsController(
+            featureFlagStoreMock.object,
+            interpreterMock.object,
+        );
+        const storeState = enabled
+            ? testObject.enableFeature(feature)
+            : testObject.disableFeature(feature);
+        expect(storeState).toEqual(storeDataStub);
         interpreterMock.verifyAll();
-    });
-
-    test('enableFeature', () => {
-        const feature = FeatureFlags.logTelemetryToConsole;
-        const payload: FeatureFlagPayload = {
-            feature: feature,
-            enabled: true,
-        };
-        const message: IMessage = {
-            type: Messages.FeatureFlags.SetFeatureFlag,
-            payload: payload,
-            tabId: null,
-        };
-
-        interpreterMock.setup(i => i.interpret(It.isObjectWith(message))).verifiable();
-
-        testObject = new FeatureFlagsController(featureFlagStoreMock.object, interpreterMock.object);
-        testObject.enableFeature(feature);
-        interpreterMock.verifyAll();
+        featureFlagStoreMock.verifyAll();
     });
 
     test('resetFeatureFlags', () => {
-        const message: IMessage = {
-            type: Messages.FeatureFlags.ResetFeatureFlag,
+        const message: Message = {
+            messageType: Messages.FeatureFlags.ResetFeatureFlag,
             tabId: null,
         };
         interpreterMock.setup(i => i.interpret(It.isObjectWith(message))).verifiable();
 
-        testObject = new FeatureFlagsController(featureFlagStoreMock.object, interpreterMock.object);
+        testObject = new FeatureFlagsController(
+            featureFlagStoreMock.object,
+            interpreterMock.object,
+        );
         testObject.resetFeatureFlags();
         interpreterMock.verifyAll();
     });

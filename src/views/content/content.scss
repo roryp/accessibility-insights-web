@@ -14,6 +14,13 @@
     }
 }
 
+.content-header {
+    @include text-style-title-l;
+
+    margin-left: 10px;
+    margin-right: 10px;
+}
+
 .content {
     flex-grow: 10;
     max-width: 1120px;
@@ -21,6 +28,7 @@
     font-family: $fontFamily;
     font-size: 14px;
     margin: 10px;
+    word-break: break-word;
 
     table {
         font-family: $fontFamily;
@@ -28,10 +36,7 @@
     }
 
     h1 {
-        font-size: 28px;
-        font-weight: 700;
-        letter-spacing: -0.04em;
-        line-height: 40px;
+        @include text-style-title-l;
     }
 
     h2 {
@@ -98,8 +103,10 @@
     }
 
     .columns {
-        display: flex;
         margin-top: 40px;
+        @media screen and (min-width: 800px) {
+            display: flex;
+        }
     }
 
     .column {
@@ -110,7 +117,9 @@
     }
 
     .column + .column {
-        margin-left: 80px;
+        @media screen and (min-width: 800px) {
+            margin-left: 80px;
+        }
     }
 
     $icon-size: 16px;
@@ -127,6 +136,7 @@
             'fail-section pass-section'
             'fail-example pass-example';
         border: 1px solid $neutral-60;
+        word-break: break-word;
     }
 
     .fail-section,
@@ -188,22 +198,6 @@
         }
     }
 
-    .do-header,
-    .pass-header {
-        .check-container {
-            border-color: $do-color;
-            background-color: $do-color;
-        }
-    }
-
-    .dont-header,
-    .fail-header {
-        .check-container {
-            border-color: $dont-color;
-            background-color: $dont-color;
-        }
-    }
-
     .do-section,
     .pass-section,
     .pass-example {
@@ -223,21 +217,21 @@
     }
 
     .do-header {
-        @include check-icon-styles($icon-size, 0px);
+        @include check-icon-styles($icon-size, 0px, $do-color);
         border-bottom: 2px solid $do-color;
     }
 
     .dont-header {
-        @include cross-icon-styles($icon-size, 0px);
+        @include cross-icon-styles($icon-size, 0px, $dont-color);
         border-bottom: 2px solid $dont-color;
     }
 
     .pass-header {
-        @include check-icon-styles(12px, 0px);
+        @include check-icon-styles(12px, 0px, $do-color);
     }
 
     .fail-header {
-        @include cross-icon-styles(12px, 0px);
+        @include cross-icon-styles(12px, 0px, $dont-color);
     }
 
     .table {
@@ -256,7 +250,14 @@
 
     .landmark-table {
         border-spacing: 5px;
-        padding-left: 32px;
+
+        @media screen and (min-width: 600px) {
+            padding-left: 32px;
+        }
+
+        .landmark-table-column {
+            width: 24%;
+        }
 
         .landmark-role {
             text-align: center;

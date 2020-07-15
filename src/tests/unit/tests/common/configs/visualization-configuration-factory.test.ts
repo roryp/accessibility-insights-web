@@ -1,11 +1,17 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
-import * as _ from 'lodash';
-
+import { each } from 'lodash';
 import { VisualizationConfigurationFactory } from '../../../../../common/configs/visualization-configuration-factory';
 import { EnumHelper } from '../../../../../common/enum-helper';
-import { IAssessmentData, IAssessmentStoreData, PersistedTabInfo } from '../../../../../common/types/store-data/iassessment-result-data';
-import { IScanData, IVisualizationStoreData } from '../../../../../common/types/store-data/ivisualization-store-data';
+import {
+    AssessmentData,
+    AssessmentStoreData,
+    PersistedTabInfo,
+} from '../../../../../common/types/store-data/assessment-result-data';
+import {
+    ScanData,
+    VisualizationStoreData,
+} from '../../../../../common/types/store-data/visualization-store-data';
 import { VisualizationType } from '../../../../../common/types/visualization-type';
 import { VisualizationStoreDataBuilder } from '../../../common/visualization-store-data-builder';
 
@@ -22,37 +28,41 @@ describe('VisualizationConfigurationFactoryTest', () => {
     });
 
     test('getStoreData for color', () => {
-        const type = VisualizationType.Color;
-        const getExpectedData: (data: IVisualizationStoreData) => IScanData = data => data.tests.adhoc.color;
+        const visualizationType = VisualizationType.Color;
+        const getExpectedData: (data: VisualizationStoreData) => ScanData = data =>
+            data.tests.adhoc.color;
 
-        testGetStoreData(type, getExpectedData);
+        testGetStoreData(visualizationType, getExpectedData);
     });
 
     test('getStoreData for headings', () => {
-        const type = VisualizationType.Headings;
-        const getExpectedData: (data: IVisualizationStoreData) => IScanData = data => data.tests.adhoc.headings;
+        const visualizationType = VisualizationType.Headings;
+        const getExpectedData: (data: VisualizationStoreData) => ScanData = data =>
+            data.tests.adhoc.headings;
 
-        testGetStoreData(type, getExpectedData);
+        testGetStoreData(visualizationType, getExpectedData);
     });
 
     test('getStoreData for headingsAssessment', () => {
-        const type = VisualizationType.HeadingsAssessment;
-        const getExpectedData: (data: IVisualizationStoreData) => IScanData = data => data.tests.assessments.headingsAssessment;
+        const visualizationType = VisualizationType.HeadingsAssessment;
+        const getExpectedData: (data: VisualizationStoreData) => ScanData = data =>
+            data.tests.assessments.headingsAssessment;
 
-        testGetStoreData(type, getExpectedData);
+        testGetStoreData(visualizationType, getExpectedData);
     });
 
     test('setAssessmentData for headingsAssessment', () => {
-        const type = VisualizationType.HeadingsAssessment;
-        const testData: IAssessmentStoreData = {
+        const visualizationType = VisualizationType.HeadingsAssessment;
+        const testData: AssessmentStoreData = {
             persistedTabInfo: {} as PersistedTabInfo,
             assessments: {
                 headings: {
                     fullAxeResultsMap: null,
                     generatedAssessmentInstancesMap: null,
-                } as IAssessmentData,
+                } as AssessmentData,
             },
             assessmentNavState: null,
+            resultDescription: '',
         };
         const selectorMap = {
             selector: {},
@@ -60,30 +70,33 @@ describe('VisualizationConfigurationFactoryTest', () => {
         const instanceMap = {
             selector: {},
         };
-        const configuration = testObject.getConfiguration(type);
+        const configuration = testObject.getConfiguration(visualizationType);
         configuration.setAssessmentData(testData, selectorMap, instanceMap);
         expect(testData.assessments.headings.fullAxeResultsMap).toEqual(selectorMap);
     });
 
     test('getStoreData for issues', () => {
-        const type = VisualizationType.Issues;
-        const getExpectedData: (data: IVisualizationStoreData) => IScanData = data => data.tests.adhoc.issues;
+        const visualizationType = VisualizationType.Issues;
+        const getExpectedData: (data: VisualizationStoreData) => ScanData = data =>
+            data.tests.adhoc.issues;
 
-        testGetStoreData(type, getExpectedData);
+        testGetStoreData(visualizationType, getExpectedData);
     });
 
     test('getStoreData for landmarks', () => {
-        const type = VisualizationType.Landmarks;
-        const getExpectedData: (data: IVisualizationStoreData) => IScanData = data => data.tests.adhoc.landmarks;
+        const visualizationType = VisualizationType.Landmarks;
+        const getExpectedData: (data: VisualizationStoreData) => ScanData = data =>
+            data.tests.adhoc.landmarks;
 
-        testGetStoreData(type, getExpectedData);
+        testGetStoreData(visualizationType, getExpectedData);
     });
 
     test('getStoreData for tabStops', () => {
-        const type = VisualizationType.TabStops;
-        const getExpectedData: (data: IVisualizationStoreData) => IScanData = data => data.tests.adhoc.tabStops;
+        const visualizationType = VisualizationType.TabStops;
+        const getExpectedData: (data: VisualizationStoreData) => ScanData = data =>
+            data.tests.adhoc.tabStops;
 
-        testGetStoreData(type, getExpectedData);
+        testGetStoreData(visualizationType, getExpectedData);
     });
 
     test('displayableData for color', () => {
@@ -115,13 +128,13 @@ describe('VisualizationConfigurationFactoryTest', () => {
 
         const types = EnumHelper.getNumericValues<VisualizationType>(VisualizationType);
 
-        _.each(types, type => {
-            const configuration = testObject.getConfiguration(type);
+        each(types, visualizationType => {
+            const configuration = testObject.getConfiguration(visualizationType);
 
             if (configuration.chromeCommand != null) {
-                expect(type).toBe(result[configuration.chromeCommand]);
+                expect(visualizationType).toBe(result[configuration.chromeCommand]);
             } else {
-                expect(result[type]).toBeUndefined();
+                expect(result[visualizationType]).toBeUndefined();
             }
         });
     });
@@ -129,8 +142,8 @@ describe('VisualizationConfigurationFactoryTest', () => {
     test('getConfiguration', () => {
         const types = EnumHelper.getNumericValues<VisualizationType>(VisualizationType);
 
-        types.forEach(type => {
-            const configuration = testObject.getConfiguration(type);
+        types.forEach(visualizationType => {
+            const configuration = testObject.getConfiguration(visualizationType);
 
             expect(configuration).toBeDefined();
         });
@@ -147,17 +160,20 @@ describe('VisualizationConfigurationFactoryTest', () => {
         });
     });
 
-    function testDisplayableData(type: VisualizationType): void {
-        const configuration = testObject.getConfiguration(type);
+    function testDisplayableData(visualizationType: VisualizationType): void {
+        const configuration = testObject.getConfiguration(visualizationType);
         const displayableData = configuration.displayableData;
 
         expect(displayableData).toBeDefined();
     }
 
-    function testGetStoreData(type: VisualizationType, getExpectedData: (data: IVisualizationStoreData) => IScanData): void {
-        const data = new VisualizationStoreDataBuilder().withEnable(type).build();
+    function testGetStoreData(
+        visualizationType: VisualizationType,
+        getExpectedData: (data: VisualizationStoreData) => ScanData,
+    ): void {
+        const data = new VisualizationStoreDataBuilder().withEnable(visualizationType).build();
 
-        const configuration = testObject.getConfiguration(type);
+        const configuration = testObject.getConfiguration(visualizationType);
 
         const scanData = configuration.getStoreData(data.tests);
 

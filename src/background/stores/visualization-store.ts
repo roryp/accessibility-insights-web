@@ -1,15 +1,20 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
-import { autobind } from '@uifabric/utilities';
+import { InjectionActions } from 'background/actions/injection-actions';
+import { TestMode } from 'common/configs/test-mode';
+import { VisualizationConfiguration } from 'common/configs/visualization-configuration';
+import { VisualizationConfigurationFactory } from 'common/configs/visualization-configuration-factory';
+import { EnumHelper } from 'common/enum-helper';
+import { Tab } from 'common/itab';
+import { StoreNames } from 'common/stores/store-names';
+import { DetailsViewPivotType } from 'common/types/details-view-pivot-type';
+import {
+    AssessmentScanData,
+    TestsEnabledState,
+    VisualizationStoreData,
+} from 'common/types/store-data/visualization-store-data';
+import { VisualizationType } from 'common/types/visualization-type';
 
-import { TestMode } from '../../common/configs/test-mode';
-import { IVisualizationConfiguration, VisualizationConfigurationFactory } from '../../common/configs/visualization-configuration-factory';
-import { EnumHelper } from '../../common/enum-helper';
-import { ITab } from '../../common/itab';
-import { StoreNames } from '../../common/stores/store-names';
-import { DetailsViewPivotType } from '../../common/types/details-view-pivot-type';
-import { IAssessmentScanData, IVisualizationStoreData, TestsEnabledState } from '../../common/types/store-data/ivisualization-store-data';
-import { VisualizationType } from '../../common/types/visualization-type';
 import {
     AssessmentToggleActionPayload,
     ToggleActionPayload,
@@ -18,46 +23,55 @@ import {
 } from '../actions/action-payloads';
 import { TabActions } from '../actions/tab-actions';
 import { VisualizationActions } from '../actions/visualization-actions';
-import { BaseStore } from './base-store';
+import { BaseStoreImpl } from './base-store-impl';
 
-export class VisualizationStore extends BaseStore<IVisualizationStoreData> {
+export class VisualizationStore extends BaseStoreImpl<VisualizationStoreData> {
     private visualizationActions: VisualizationActions;
     private tabActions: TabActions;
+    private injectionActions: InjectionActions;
     private visualizationConfigurationFactory: VisualizationConfigurationFactory;
 
     constructor(
         visualizationActions: VisualizationActions,
         tabActions: TabActions,
+        injectionActions: InjectionActions,
         visualizationConfigurationFactory: VisualizationConfigurationFactory,
     ) {
         super(StoreNames.VisualizationStore);
 
         this.visualizationActions = visualizationActions;
         this.tabActions = tabActions;
+        this.injectionActions = injectionActions;
         this.visualizationConfigurationFactory = visualizationConfigurationFactory;
     }
 
     protected addActionListeners(): void {
         this.visualizationActions.enableVisualization.addListener(this.onEnableVisualization);
-        this.visualizationActions.enableVisualizationWithoutScan.addListener(this.onEnableVisualizationWithoutScan);
+        this.visualizationActions.enableVisualizationWithoutScan.addListener(
+            this.onEnableVisualizationWithoutScan,
+        );
         this.visualizationActions.disableVisualization.addListener(this.onDisableVisualization);
-        this.visualizationActions.disableAssessmentVisualizations.addListener(this.onDisableAssessmentVisualizations);
+        this.visualizationActions.disableAssessmentVisualizations.addListener(
+            this.onDisableAssessmentVisualizations,
+        );
 
         this.visualizationActions.scanCompleted.addListener(this.onScanCompleted);
         this.visualizationActions.updateFocusedInstance.addListener(this.onUpdateFocusedInstance);
         this.visualizationActions.scrollRequested.addListener(this.onScrollRequested);
 
         this.visualizationActions.getCurrentState.addListener(this.onGetCurrentState);
-        this.tabActions.tabChange.addListener(this.onTabChange);
+        this.tabActions.existingTabUpdated.addListener(this.onExistingTabUpdated);
 
-        this.visualizationActions.updateSelectedPivotChild.addListener(this.onUpdateSelectedPivotChild);
+        this.visualizationActions.updateSelectedPivotChild.addListener(
+            this.onUpdateSelectedPivotChild,
+        );
         this.visualizationActions.updateSelectedPivot.addListener(this.onUpdateSelectedPivot);
 
-        this.visualizationActions.injectionCompleted.addListener(this.injectionCompleted);
-        this.visualizationActions.injectionStarted.addListener(this.injectionStarted);
+        this.injectionActions.injectionCompleted.addListener(this.onInjectionCompleted);
+        this.injectionActions.injectionStarted.addListener(this.onInjectionStarted);
     }
 
-    public getDefaultState(): IVisualizationStoreData {
+    public getDefaultState(): VisualizationStoreData {
         const tests: TestsEnabledState = {
             adhoc: {},
             assessments: {},
@@ -76,7 +90,7 @@ export class VisualizationStore extends BaseStore<IVisualizationStoreData> {
             });
         }
 
-        const defaultValues: IVisualizationStoreData = {
+        const defaultValues: VisualizationStoreData = {
             tests,
             scanning: null,
             selectedFastPassDetailsView: VisualizationType.Issues,
@@ -90,12 +104,11 @@ export class VisualizationStore extends BaseStore<IVisualizationStoreData> {
         return defaultValues;
     }
 
-    @autobind
-    private onDisableVisualization(test: VisualizationType): void {
+    private onDisableVisualization = (test: VisualizationType): void => {
         if (this.toggleTestOff(test)) {
             this.emitChanged();
         }
-    }
+    };
 
     private toggleTestOff(test: VisualizationType): boolean {
         let isStateChanged = false;
@@ -107,10 +120,12 @@ export class VisualizationStore extends BaseStore<IVisualizationStoreData> {
         const scanData = configuration.getStoreData(this.state.tests);
 
         if (this.isAssessment(configuration)) {
-            const scanData = configuration.getStoreData(this.state.tests) as IAssessmentScanData;
-            Object.keys(scanData.stepStatus).forEach(step => {
-                if (scanData.enabled) {
-                    configuration.disableTest(scanData, step);
+            const assessmentScanData = configuration.getStoreData(
+                this.state.tests,
+            ) as AssessmentScanData;
+            Object.keys(assessmentScanData.stepStatus).forEach(step => {
+                if (assessmentScanData.enabled) {
+                    configuration.disableTest(assessmentScanData, step);
                     isStateChanged = true;
                 }
             });
@@ -125,8 +140,7 @@ export class VisualizationStore extends BaseStore<IVisualizationStoreData> {
         return isStateChanged;
     }
 
-    @autobind
-    private onTabChange(payload: ITab) {
+    private onExistingTabUpdated = (payload: Tab): void => {
         this.state = {
             ...this.getDefaultState(),
             selectedFastPassDetailsView: this.state.selectedFastPassDetailsView,
@@ -134,7 +148,7 @@ export class VisualizationStore extends BaseStore<IVisualizationStoreData> {
             selectedDetailsViewPivot: this.state.selectedDetailsViewPivot,
         };
         this.emitChanged();
-    }
+    };
 
     private disableAssessmentVisualizationsWithoutEmitting(): void {
         EnumHelper.getNumericValues(VisualizationType).forEach((test: number) => {
@@ -146,24 +160,20 @@ export class VisualizationStore extends BaseStore<IVisualizationStoreData> {
         });
     }
 
-    @autobind
-    private onDisableAssessmentVisualizations(): void {
+    private onDisableAssessmentVisualizations = (): void => {
         this.disableAssessmentVisualizationsWithoutEmitting();
         this.emitChanged();
-    }
+    };
 
-    @autobind
-    private onEnableVisualization(payload: ToggleActionPayload): void {
+    private onEnableVisualization = (payload: ToggleActionPayload): void => {
         this.enableTest(payload, false);
-    }
+    };
 
-    @autobind
-    private onEnableVisualizationWithoutScan(payload: ToggleActionPayload): void {
+    private onEnableVisualizationWithoutScan = (payload: ToggleActionPayload): void => {
         this.enableTest(payload, true);
-    }
+    };
 
     private enableTest(payload: ToggleActionPayload, skipScanning: boolean): void {
-        const isStateChanged: boolean = false;
         if (this.state.scanning != null) {
             // do not change state if currently scanning, not even the toggle
             return;
@@ -173,7 +183,7 @@ export class VisualizationStore extends BaseStore<IVisualizationStoreData> {
         this.disableAssessmentVisualizationsWithoutEmitting();
         const scanData = configuration.getStoreData(this.state.tests);
 
-        const step = (payload as AssessmentToggleActionPayload).step;
+        const step = (payload as AssessmentToggleActionPayload).requirement;
         const alreadyEnabled = configuration.getTestStatus(scanData, step);
         if (!alreadyEnabled) {
             if (!skipScanning) {
@@ -186,12 +196,11 @@ export class VisualizationStore extends BaseStore<IVisualizationStoreData> {
         this.emitChanged();
     }
 
-    private isAssessment(config: IVisualizationConfiguration): boolean {
+    private isAssessment(config: VisualizationConfiguration): boolean {
         return config.testMode === TestMode.Assessments;
     }
 
-    @autobind
-    private onUpdateSelectedPivot(payload: UpdateSelectedPivot): void {
+    private onUpdateSelectedPivot = (payload: UpdateSelectedPivot): void => {
         const pivot = payload.pivotKey;
 
         if (this.state.selectedDetailsViewPivot !== pivot) {
@@ -199,7 +208,7 @@ export class VisualizationStore extends BaseStore<IVisualizationStoreData> {
             this.disableAllTests();
             this.emitChanged();
         }
-    }
+    };
 
     private disableAllTests(): void {
         EnumHelper.getNumericValues(VisualizationType).forEach((test: VisualizationType) => {
@@ -207,8 +216,7 @@ export class VisualizationStore extends BaseStore<IVisualizationStoreData> {
         });
     }
 
-    @autobind
-    private onUpdateSelectedPivotChild(payload: UpdateSelectedDetailsViewPayload): void {
+    private onUpdateSelectedPivotChild = (payload: UpdateSelectedDetailsViewPayload): void => {
         const pivot = payload.pivotType;
         const pivotChildUpdated = this.updateSelectedPivotChildUnderPivot(payload);
         const pivotUpdated = this.updateSelectedPivot(pivot);
@@ -216,35 +224,30 @@ export class VisualizationStore extends BaseStore<IVisualizationStoreData> {
             this.disableAllTests();
             this.emitChanged();
         }
-    }
+    };
 
-    @autobind
-    private onScanCompleted(): void {
+    private onScanCompleted = (): void => {
         this.state.scanning = null;
         this.emitChanged();
-    }
+    };
 
-    @autobind
-    private onScrollRequested(): void {
+    private onScrollRequested = (): void => {
         this.state.focusedTarget = null;
         this.emitChanged();
-    }
+    };
 
-    @autobind
-    private onUpdateFocusedInstance(focusedInstanceTarget: string[]): void {
+    private onUpdateFocusedInstance = (focusedInstanceTarget: string[]): void => {
         this.state.focusedTarget = focusedInstanceTarget;
         this.emitChanged();
-    }
+    };
 
-    @autobind
-    private injectionCompleted(): void {
+    private onInjectionCompleted = (): void => {
         this.state.injectingInProgress = false;
         this.state.injectingStarted = false;
         this.emitChanged();
-    }
+    };
 
-    @autobind
-    private injectionStarted(): void {
+    private onInjectionStarted = (): void => {
         if (this.state.injectingStarted) {
             return;
         }
@@ -252,18 +255,16 @@ export class VisualizationStore extends BaseStore<IVisualizationStoreData> {
         this.state.injectingInProgress = true;
         this.state.injectingStarted = true;
         this.emitChanged();
-    }
+    };
 
     private updateSelectedPivotChildUnderPivot(payload: UpdateSelectedDetailsViewPayload): boolean {
-        let updated = false;
         if (payload.detailsViewType == null) {
-            return updated;
+            return false;
         }
 
-        if (this.state.selectedAdhocDetailsView !== payload.detailsViewType && payload.pivotType === DetailsViewPivotType.allTest) {
-            this.state.selectedAdhocDetailsView = payload.detailsViewType;
-            updated = true;
-        } else if (
+        let updated = false;
+
+        if (
             this.state.selectedFastPassDetailsView !== payload.detailsViewType &&
             payload.pivotType === DetailsViewPivotType.fastPass
         ) {

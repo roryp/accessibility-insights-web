@@ -2,30 +2,43 @@
 // Licensed under the MIT License.
 import { isEmpty } from 'lodash';
 
-import { ManualTestStatus } from '../../common/types/manual-test-status';
-import { IGeneratedAssessmentInstance, ITestStepResult } from '../../common/types/store-data/iassessment-result-data';
-import { AssessmentVisualizationEnabledToggle } from '../../DetailsView/components/assessment-visualization-enabled-toggle';
+import { ManualTestStatus } from 'common/types/manual-test-status';
+import {
+    GeneratedAssessmentInstance,
+    TestStepResult,
+} from 'common/types/store-data/assessment-result-data';
+import { AssessmentVisualizationEnabledToggle } from 'DetailsView/components/assessment-visualization-enabled-toggle';
 
-function failingInstances(result: ITestStepResult) {
+function failingInstances(result: TestStepResult): boolean {
     return result.status === ManualTestStatus.FAIL;
 }
 
 export class AutomatedChecksVisualizationToggle extends AssessmentVisualizationEnabledToggle {
-    protected isDisabled(passingOrFailingInstances: IGeneratedAssessmentInstance<{}, {}>[]): boolean {
-        const selectedTestStep = this.props.assessmentNavState.selectedTestStep;
+    protected isDisabled(
+        passingOrFailingInstances: GeneratedAssessmentInstance<{}, {}>[],
+    ): boolean {
+        const selectedTestStep = this.props.assessmentNavState.selectedTestSubview;
         if (isEmpty(passingOrFailingInstances)) {
             return true;
         }
 
-        const relevantTestStepResults = this.getRelevantTestStepResults(passingOrFailingInstances, selectedTestStep);
+        const relevantTestStepResults = this.getRelevantTestStepResults(
+            passingOrFailingInstances,
+            selectedTestStep,
+        );
 
         const failingInstanceKeys = relevantTestStepResults.filter(failingInstances);
 
         return isEmpty(failingInstanceKeys);
     }
 
-    private getRelevantTestStepResults(instances: IGeneratedAssessmentInstance<{}, {}>[], selectedTestStep: string): ITestStepResult[] {
-        const getSelectedTestStepResult: (instance: string) => ITestStepResult = (instance: string) => {
+    private getRelevantTestStepResults(
+        instances: GeneratedAssessmentInstance<{}, {}>[],
+        selectedTestStep: string,
+    ): TestStepResult[] {
+        const getSelectedTestStepResult: (instance: string) => TestStepResult = (
+            instance: string,
+        ) => {
             return instances[instance].testStepResults[selectedTestStep];
         };
         return Object.keys(instances)

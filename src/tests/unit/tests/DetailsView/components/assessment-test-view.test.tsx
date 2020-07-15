@@ -1,12 +1,23 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
+import { DetailsViewSwitcherNavConfiguration } from 'DetailsView/components/details-view-switcher-nav';
+import { WarningConfiguration } from 'DetailsView/components/warning-configuration';
 import { shallow } from 'enzyme';
 import * as React from 'react';
 import { IMock, Mock, MockBehavior } from 'typemoq';
 
-import { IVisualizationConfiguration } from '../../../../../common/configs/visualization-configuration-factory';
-import { IAssessmentData, IAssessmentStoreData } from '../../../../../common/types/store-data/iassessment-result-data';
-import { IScanData, IVisualizationStoreData, TestsEnabledState } from '../../../../../common/types/store-data/ivisualization-store-data';
+import { VisualizationConfiguration } from '../../../../../common/configs/visualization-configuration';
+import {
+    AssessmentData,
+    AssessmentStoreData,
+} from '../../../../../common/types/store-data/assessment-result-data';
+import { FeatureFlagStoreData } from '../../../../../common/types/store-data/feature-flag-store-data';
+import { PathSnippetStoreData } from '../../../../../common/types/store-data/path-snippet-store-data';
+import {
+    ScanData,
+    TestsEnabledState,
+    VisualizationStoreData,
+} from '../../../../../common/types/store-data/visualization-store-data';
 import { DetailsViewActionMessageCreator } from '../../../../../DetailsView/actions/details-view-action-message-creator';
 import {
     AssessmentTestView,
@@ -17,16 +28,21 @@ import { AssessmentInstanceTableHandler } from '../../../../../DetailsView/handl
 
 describe('AssessmentTestView', () => {
     let props: AssessmentTestViewProps;
-    let getStoreDataMock: IMock<(data: TestsEnabledState) => IScanData>;
-    let getAssessmentDataMock: IMock<(data: IAssessmentStoreData) => IAssessmentData>;
-    let getTestStatusMock: IMock<(data: IScanData, step: string) => boolean>;
-    let scanDataStub: IScanData;
-    let visualizationStoreDataStub: IVisualizationStoreData;
-    let actionMessageCreatorStub: DetailsViewActionMessageCreator;
+    let getStoreDataMock: IMock<(data: TestsEnabledState) => ScanData>;
+    let getAssessmentDataMock: IMock<(data: AssessmentStoreData) => AssessmentData>;
+    let getTestStatusMock: IMock<(data: ScanData, step: string) => boolean>;
+    let scanDataStub: ScanData;
+    let visualizationStoreDataStub: VisualizationStoreData;
+    let detailsViewActionMessageCreator: DetailsViewActionMessageCreator;
     let assessmentInstanceHandlerStub: AssessmentInstanceTableHandler;
-    let configuration: IVisualizationConfiguration;
-    let assessmentStoreDataStub: IAssessmentStoreData;
-    let assessmentDataStub: IAssessmentData;
+    let configuration: VisualizationConfiguration;
+    let featureFlagStoreDataStub: FeatureFlagStoreData;
+    let assessmentStoreDataStub: AssessmentStoreData;
+    let assessmentDataStub: AssessmentData;
+    let pathSnippetStoreDataStub: PathSnippetStoreData;
+    let switcherNavConfigurationStub: DetailsViewSwitcherNavConfiguration;
+    let warningConfigurationStub: WarningConfiguration;
+
     const selectedTestStep = 'step';
     const selectedTest = -1;
     const testStatusStub = false;
@@ -41,25 +57,32 @@ describe('AssessmentTestView', () => {
         visualizationStoreDataStub = {
             tests: {},
             scanning: 'test-scanning',
-        } as IVisualizationStoreData;
+        } as VisualizationStoreData;
         configuration = {
             getStoreData: getStoreDataMock.object,
             getAssessmentData: getAssessmentDataMock.object,
             getTestStatus: getTestStatusMock.object,
-        } as IVisualizationConfiguration;
+        } as VisualizationConfiguration;
         assessmentStoreDataStub = {
             assessmentNavState: {
                 selectedTestType: selectedTest,
-                selectedTestStep: selectedTestStep,
+                selectedTestSubview: selectedTestStep,
             },
-        } as IAssessmentStoreData;
-        actionMessageCreatorStub = {} as DetailsViewActionMessageCreator;
+        } as AssessmentStoreData;
+
+        featureFlagStoreDataStub = {} as FeatureFlagStoreData;
+        detailsViewActionMessageCreator = {} as DetailsViewActionMessageCreator;
         assessmentInstanceHandlerStub = {} as AssessmentInstanceTableHandler;
-        assessmentDataStub = {} as IAssessmentData;
+        assessmentDataStub = {} as AssessmentData;
+        pathSnippetStoreDataStub = {} as PathSnippetStoreData;
+        warningConfigurationStub = {} as WarningConfiguration;
+        switcherNavConfigurationStub = {
+            warningConfiguration: warningConfigurationStub,
+        } as DetailsViewSwitcherNavConfiguration;
 
         props = {
             deps: {
-                detailsViewActionMessageCreator: actionMessageCreatorStub,
+                detailsViewActionMessageCreator,
             } as AssessmentTestViewDeps,
             configuration,
             visualizationStoreData: visualizationStoreDataStub,
@@ -70,6 +93,9 @@ describe('AssessmentTestView', () => {
             },
             assessmentStoreData: assessmentStoreDataStub,
             assessmentInstanceTableHandler: assessmentInstanceHandlerStub,
+            featureFlagStoreData: featureFlagStoreDataStub,
+            pathSnippetStoreData: pathSnippetStoreDataStub,
+            switcherNavConfiguration: switcherNavConfigurationStub,
         } as AssessmentTestViewProps;
 
         getStoreDataMock
@@ -89,7 +115,7 @@ describe('AssessmentTestView', () => {
     });
     test('assessment view, isScanning is true', () => {
         const actual = shallow(<AssessmentTestView {...props} />);
-        expect(actual.debug()).toMatchSnapshot();
+        expect(actual.getElement()).toMatchSnapshot();
         verifyAll();
     });
 
@@ -97,7 +123,7 @@ describe('AssessmentTestView', () => {
         props.visualizationStoreData.scanning = null;
 
         const actual = shallow(<AssessmentTestView {...props} />);
-        expect(actual.debug()).toMatchSnapshot();
+        expect(actual.getElement()).toMatchSnapshot();
         verifyAll();
     });
 

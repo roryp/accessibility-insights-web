@@ -2,11 +2,12 @@
 // Licensed under the MIT License.
 import { IMock, It, Mock, Times } from 'typemoq';
 
-import { ISingleElementSelector } from '../../../../common/types/store-data/scoping-store-data';
+import { SingleElementSelector } from '../../../../common/types/store-data/scoping-store-data';
 import { WindowUtils } from '../../../../common/window-utils';
 import { ElementFinderByPosition } from '../../../../injected/element-finder-by-position';
 import { ScopingListener } from '../../../../injected/scoping-listener';
 import { ShadowUtils } from '../../../../injected/shadow-utils';
+import { itIsFunction } from '../../common/it-is-function';
 
 class TestableScopingListener extends ScopingListener {
     public getOnClick(): (event: MouseEvent) => void {
@@ -23,24 +24,27 @@ describe('ScopingListenerTest', () => {
     let elementFinderMock: IMock<ElementFinderByPosition>;
     let shadowUtilsMock: IMock<ShadowUtils>;
     let shadowContainerMock: IMock<HTMLElement>;
-    let onInspectClickMock: IMock<(event: MouseEvent, selector: ISingleElementSelector) => void>;
-    let onInspectHoverMock: IMock<(selector: ISingleElementSelector) => void>;
+    let onInspectClickMock: IMock<(event: MouseEvent, selector: SingleElementSelector) => void>;
+    let onInspectHoverMock: IMock<(selector: SingleElementSelector) => void>;
     let promiseStub;
     let promiseHandlerMock: IMock<(callback: Function) => void>;
     let onClickCurrentTimeoutID: number;
     let onHoverCurrentTimeoutID: number;
     let onClickSetTimeoutHandler: Function;
-    let onClickProcessRequestPromiseCallback: (path: ISingleElementSelector) => void;
+    let onClickProcessRequestPromiseCallback: (path: SingleElementSelector) => void;
     let onClick: (event: MouseEvent) => void;
     let addEventListenerMock: IMock<(event: string, callback: (event: MouseEvent) => void) => void>;
-    let removeEventListenerMock: IMock<(event: string, callback: (event: MouseEvent) => void) => void>;
+    let removeEventListenerMock: IMock<(
+        event: string,
+        callback: (event: MouseEvent) => void,
+    ) => void>;
     let createElementMock: IMock<(tagName: string) => HTMLElement>;
     let dom: Document;
     let elementStub: HTMLElement;
     let mouseEventStub: MouseEvent;
     let testSubject: TestableScopingListener;
     let onHoverSetTimeoutHandler: Function;
-    let onHoverProcessRequestPromiseCallback: (path: ISingleElementSelector) => void;
+    let onHoverProcessRequestPromiseCallback: (path: SingleElementSelector) => void;
     let onHover: (event: MouseEvent) => void;
 
     beforeEach(() => {
@@ -98,7 +102,12 @@ describe('ScopingListenerTest', () => {
         onInspectClickMock = Mock.ofInstance((eventName, selector) => {});
         onInspectHoverMock = Mock.ofInstance(selector => {});
 
-        testSubject = new TestableScopingListener(elementFinderMock.object, windowUtilsMock.object, shadowUtilsMock.object, dom);
+        testSubject = new TestableScopingListener(
+            elementFinderMock.object,
+            windowUtilsMock.object,
+            shadowUtilsMock.object,
+            dom,
+        );
     });
 
     test("start scope layout container doesn't exist and timeout doesn't exist", () => {
@@ -150,7 +159,10 @@ describe('ScopingListenerTest', () => {
 
     test('stop, scoping container exists', () => {
         const shadowContainerElementStub = {} as HTMLElement;
-        setupShadowContainerMockQuerySelector(`#${ScopingListener.scopeLayoutContainerId}`, shadowContainerElementStub);
+        setupShadowContainerMockQuerySelector(
+            `#${ScopingListener.scopeLayoutContainerId}`,
+            shadowContainerElementStub,
+        );
         shadowContainerMock.setup(scm => scm.removeChild(shadowContainerElementStub)).verifiable();
 
         removeEventListenerMock.setup(re => re('click', testSubject.getOnClick())).verifiable();
@@ -219,9 +231,9 @@ describe('ScopingListenerTest', () => {
         shadowContainerMock.setup(sc => sc.appendChild(It.isValue(expectedElement))).verifiable();
     }
 
-    function setupOnClickSetTimeout(path: ISingleElementSelector, times: number = 1): void {
+    function setupOnClickSetTimeout(path: SingleElementSelector, times: number = 1): void {
         windowUtilsMock
-            .setup(wum => wum.setTimeout(It.isAny(), ScopingListener.onClickTimeout))
+            .setup(wum => wum.setTimeout(itIsFunction, ScopingListener.onClickTimeout))
             .callback(handler => {
                 onClickSetTimeoutHandler = handler;
             })
@@ -247,9 +259,9 @@ describe('ScopingListenerTest', () => {
         onInspectClickMock.setup(ssm => ssm(mouseEventStub, It.isValue(path))).verifiable();
     }
 
-    function setupOnHoverSetTimeout(path: ISingleElementSelector, times: number = 1): void {
+    function setupOnHoverSetTimeout(path: SingleElementSelector, times: number = 1): void {
         windowUtilsMock
-            .setup(wum => wum.setTimeout(It.isAny(), ScopingListener.onHoverTimeout))
+            .setup(wum => wum.setTimeout(itIsFunction, ScopingListener.onHoverTimeout))
             .callback(handler => {
                 onHoverSetTimeoutHandler = handler;
             })

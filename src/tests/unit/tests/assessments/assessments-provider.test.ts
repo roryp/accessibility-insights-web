@@ -1,10 +1,10 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
-import * as _ from 'lodash';
-
-import { AssessmentsProvider } from '../../../../assessments/assessments-provider';
-import { Assessment } from '../../../../assessments/types/iassessment';
-import { TestStep } from '../../../../assessments/types/test-step';
+import { AssessmentsProviderImpl } from 'assessments/assessments-provider';
+import { AssessmentsProvider } from 'assessments/types/assessments-provider';
+import { Assessment } from 'assessments/types/iassessment';
+import { Requirement } from 'assessments/types/requirement';
+import { includes, keys } from 'lodash';
 
 describe('AssessmentsProviderTest', () => {
     const firstType = 45;
@@ -29,10 +29,10 @@ describe('AssessmentsProviderTest', () => {
         const provider = getProvider();
 
         const firstAssessment = provider.forType(firstType);
-        expect(firstAssessment.type).toEqual(firstType);
+        expect(firstAssessment.visualizationType).toEqual(firstType);
 
         const secondAssessment = provider.forType(secondType);
-        expect(secondAssessment.type).toEqual(secondType);
+        expect(secondAssessment.visualizationType).toEqual(secondType);
     });
 
     test('forType does not exist', () => {
@@ -54,10 +54,10 @@ describe('AssessmentsProviderTest', () => {
         const provider = getProvider();
 
         const firstAssessment = provider.forKey(firstKey);
-        expect(firstAssessment.type).toEqual(firstType);
+        expect(firstAssessment.visualizationType).toEqual(firstType);
 
         const secondAssessment = provider.forKey(secondKey);
-        expect(secondAssessment.type).toEqual(secondType);
+        expect(secondAssessment.visualizationType).toEqual(secondType);
     });
 
     test('forKey does not exist', () => {
@@ -90,8 +90,8 @@ describe('AssessmentsProviderTest', () => {
 
         const all = provider.all();
         expect(all.length).toBe(2);
-        expect(all[0].type).toBe(firstType);
-        expect(all[1].type).toBe(secondType);
+        expect(all[0].visualizationType).toBe(firstType);
+        expect(all[1].visualizationType).toBe(secondType);
     });
 
     test('all returns a clone', () => {
@@ -109,25 +109,28 @@ describe('AssessmentsProviderTest', () => {
         const beta = 'BETA';
         const gamma = 'GAMMA';
         const delta = 'DELTA';
-        const assessments = [makeAssessment(firstType, [alpha, beta]), makeAssessment(secondType, [gamma, delta])];
-        const provider = AssessmentsProvider.Create(assessments);
+        const assessments = [
+            makeAssessment(firstType, [alpha, beta]),
+            makeAssessment(secondType, [gamma, delta]),
+        ];
+        const provider = AssessmentsProviderImpl.Create(assessments);
 
         const firstSteps = provider.getStepMap(firstType);
         const secondSteps = provider.getStepMap(secondType);
         const invalidSteps = provider.getStepMap(invalidType);
 
-        expect(_.keys(firstSteps).length).toBe(2);
-        expect(_.includes(_.keys(firstSteps), alpha)).toBeTruthy();
-        expect(_.includes(_.keys(firstSteps), beta)).toBeTruthy();
+        expect(keys(firstSteps).length).toBe(2);
+        expect(includes(keys(firstSteps), alpha)).toBeTruthy();
+        expect(includes(keys(firstSteps), beta)).toBeTruthy();
 
         expect(firstSteps[alpha].key).toBe(alpha);
         expect(firstSteps[alpha].order).toBe(1);
         expect(firstSteps[beta].key).toBe(beta);
         expect(firstSteps[beta].order).toBe(2);
 
-        expect(_.keys(secondSteps).length).toBe(2);
-        expect(_.includes(_.keys(secondSteps), gamma)).toBeTruthy();
-        expect(_.includes(_.keys(secondSteps), delta)).toBeTruthy();
+        expect(keys(secondSteps).length).toBe(2);
+        expect(includes(keys(secondSteps), gamma)).toBeTruthy();
+        expect(includes(keys(secondSteps), delta)).toBeTruthy();
 
         expect(secondSteps[gamma].key).toEqual(gamma);
         expect(secondSteps[gamma].order).toEqual(1);
@@ -137,20 +140,27 @@ describe('AssessmentsProviderTest', () => {
         expect(invalidSteps).toBeNull();
     });
 
-    function getProvider() {
+    function getProvider(): AssessmentsProvider {
         const assessments = [
-            { type: firstType, key: firstKey, steps: [{ key: stepOneKey }, { key: stepTwoKey }] } as Assessment,
-            { type: secondType, key: secondKey } as Assessment,
+            {
+                visualizationType: firstType,
+                key: firstKey,
+                requirements: [{ key: stepOneKey }, { key: stepTwoKey }],
+            } as Assessment,
+            { visualizationType: secondType, key: secondKey } as Assessment,
         ];
-        const provider = AssessmentsProvider.Create(assessments);
+        const provider = AssessmentsProviderImpl.Create(assessments);
         return provider;
     }
 
-    function makeAssessment(type: number, stepKeys: string[]): Assessment {
-        return { type, steps: stepKeys.map(makeStep) } as Assessment;
+    function makeAssessment(assessmentType: number, stepKeys: string[]): Assessment {
+        return {
+            visualizationType: assessmentType,
+            requirements: stepKeys.map(makeStep),
+        } as Assessment;
     }
 
-    function makeStep(key: string) {
-        return { key } as TestStep;
+    function makeStep(key: string): Requirement {
+        return { key } as Requirement;
     }
 });

@@ -2,51 +2,63 @@
 // Licensed under the MIT License.
 import * as React from 'react';
 
-import { AnalyzerConfigurationFactory } from '../../../assessments/common/analyzer-configuration-factory';
-import { NewTabLink } from '../../../common/components/new-tab-link';
-import { ICustomWidgetPropertyBag } from '../../../common/types/property-bag/icustom-widgets';
-import { VisualizationType } from '../../../common/types/visualization-type';
-import { link } from '../../../content/link';
-import { productName } from '../../../content/strings/application';
-import * as content from '../../../content/test/custom-widgets/role-state-property';
-import { AssessmentVisualizationEnabledToggle } from '../../../DetailsView/components/assessment-visualization-enabled-toggle';
-import { ScannerUtils } from '../../../injected/scanner-utils';
-import AssistedTestRecordYourResults from '../../common/assisted-test-record-your-results';
+import { NewTabLink } from 'common/components/new-tab-link';
+import { CustomWidgetPropertyBag } from 'common/types/property-bag/custom-widgets-property-bag';
+import { VisualizationType } from 'common/types/visualization-type';
+import { link } from 'content/link';
+import { productName } from 'content/strings/application';
+import { TestAutomaticallyPassedNotice } from 'content/test/common/test-automatically-passed-notice';
+import * as content from 'content/test/custom-widgets/role-state-property';
+import { AssessmentVisualizationEnabledToggle } from 'DetailsView/components/assessment-visualization-enabled-toggle';
+import { ScannerUtils } from 'injected/scanner-utils';
+import { AnalyzerConfigurationFactory } from '../../common/analyzer-configuration-factory';
+import { AssistedTestRecordYourResults } from '../../common/assisted-test-record-your-results';
+import { NoValue } from '../../common/property-bag-column-renderer';
 import * as Markup from '../../markup';
 import { ReportInstanceField } from '../../types/report-instance-field';
-import { TestStep } from '../../types/test-step';
+import { Requirement } from '../../types/requirement';
 import { getFlatDesignPatternStringFromRole } from '../custom-widgets-column-renderer';
 import { CustomWidgetsColumnRendererFactory } from '../custom-widgets-column-renderer-factory';
 import { CustomWidgetsTestStep } from './test-steps';
 
 const roleStatePropertyDescription: JSX.Element = (
-    <span>A custom widget must support the ARIA roles, states, and properties specified by its design pattern.</span>
+    <span>
+        A custom widget must support the ARIA roles, states, and properties specified by its design
+        pattern.
+    </span>
 );
 
 const roleStatePropertyHowToTest: JSX.Element = (
     <div>
-        For this requirement, {productName} highlights custom widgets.
+        <p>For this requirement, {productName} highlights custom widgets.</p>
+        <TestAutomaticallyPassedNotice />
         <ol>
             <li>
-                In the <Markup.Term>Instances</Markup.Term> list below, use the link for the design pattern that best describes the widget's
-                function.
+                In the <Markup.Term>Instances</Markup.Term> list below, use the link for the design
+                pattern that best describes the widget's function.
             </li>
-            <li>Familiarize yourself with the "WAI-ARIA Roles, States, and Properties" section of the design pattern spec.</li>
+            <li>
+                Familiarize yourself with the "WAI-ARIA Roles, States, and Properties" section of
+                the design pattern spec.
+            </li>
             <li>
                 Inspect the widget's HTML using the{' '}
                 <NewTabLink href="https://developers.google.com/web/updates/2018/01/devtools">
-                    Accessibility pane in the Chrome Developer Tools
+                    Accessibility pane in the browser Developer Tools
                 </NewTabLink>{' '}
-                to verify that it supports all of the roles, states, and properties specified by its design pattern:
+                to verify that it supports all of the roles, states, and properties specified by its
+                design pattern:
                 <ul>
                     <li>
-                        For a composite widget, use the Accessibility Tree to verify the role hierarchy. (For example, verify that
-                        a menuitem exists for each option in a menubar.)
+                        For a composite widget, use the Accessibility Tree to verify the role
+                        hierarchy. (For example, verify that a menuitem exists for each option in
+                        a menubar.)
                     </li>
                     <li>
-                        View the widget's ARIA Attributes while you interact with it to verify that required properties update according to
-                        spec. (For example, when a tree node in a tree view is expanded, aria-expanded is "true" and when it isn't expanded,
-                        it is "false".)
+                        View the widget's ARIA Attributes while you interact with it to verify that
+                        required properties update according to spec. (For example, when a tree node
+                        in a tree view is expanded, aria-expanded is "true" and when it isn't
+                        expanded, it is "false".)
                     </li>
                 </ul>
             </li>
@@ -55,7 +67,7 @@ const roleStatePropertyHowToTest: JSX.Element = (
     </div>
 );
 
-export const RoleStateProperty: TestStep = {
+export const RoleStateProperty: Requirement = {
     key: CustomWidgetsTestStep.roleStateProperty,
     name: 'Role, state, property',
     description: roleStatePropertyDescription,
@@ -67,25 +79,30 @@ export const RoleStateProperty: TestStep = {
         {
             key: 'role-state-property-info',
             name: 'Role, state, property',
-            onRender: CustomWidgetsColumnRendererFactory.getWithLink<ICustomWidgetPropertyBag>([
+            onRender: CustomWidgetsColumnRendererFactory.getWithLink<CustomWidgetPropertyBag>([
                 {
                     propertyName: 'designPattern',
                     displayName: 'Design pattern',
-                    defaultValue: '-',
+                    defaultValue: NoValue,
                 },
                 {
-                    propertyName: 'text',
-                    displayName: 'Accesssible name',
-                    defaultValue: '-',
+                    propertyName: 'accessibleName',
+                    displayName: 'Accessible name',
+                    defaultValue: NoValue,
                 },
             ]),
         },
     ],
     reportInstanceFields: [
-        ReportInstanceField.fromPropertyBagFunction<ICustomWidgetPropertyBag>('Design pattern', 'designPattern', pb =>
-            getFlatDesignPatternStringFromRole(pb.role),
+        ReportInstanceField.fromPropertyBagFunction<CustomWidgetPropertyBag>(
+            'Design pattern',
+            'designPattern',
+            pb => getFlatDesignPatternStringFromRole(pb.role),
         ),
-        ReportInstanceField.fromColumnValueBagField<ICustomWidgetPropertyBag>('Accessible name', 'text'),
+        ReportInstanceField.fromColumnValueBagField<CustomWidgetPropertyBag>(
+            'Accessible name',
+            'text',
+        ),
     ],
     getAnalyzer: provider =>
         provider.createRuleAnalyzer(
@@ -97,6 +114,5 @@ export const RoleStateProperty: TestStep = {
             }),
         ),
     getDrawer: provider => provider.createHighlightBoxDrawer(),
-    updateVisibility: false,
     getVisualHelperToggle: props => <AssessmentVisualizationEnabledToggle {...props} />,
 };

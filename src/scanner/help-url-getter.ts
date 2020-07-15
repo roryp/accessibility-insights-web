@@ -1,12 +1,11 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
-import { configuration } from './custom-rule-configurations';
 import { RuleConfiguration } from './iruleresults';
 
 export class HelpUrlGetter {
     constructor(private readonly ruleConfigs: RuleConfiguration[]) {}
 
-    public getlHelpUrl(ruleId: string, axeHelpUrl: string): string {
+    public getHelpUrl(ruleId: string, axeHelpUrl: string): string {
         const customHelpUrl = this.getCustomHelpUrl(ruleId);
         return customHelpUrl || axeHelpUrl;
     }

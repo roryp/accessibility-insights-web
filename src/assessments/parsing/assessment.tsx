@@ -2,8 +2,8 @@
 // Licensed under the MIT License.
 import * as React from 'react';
 
-import { VisualizationType } from '../../common/types/visualization-type';
-import { test as content } from '../../content/test';
+import { VisualizationType } from 'common/types/visualization-type';
+import { test as content } from 'content/test';
 import { AssessmentBuilder } from '../assessment-builder';
 import { Parsing } from './test-steps/parsing';
 
@@ -13,16 +13,19 @@ const { guidance } = content.parsing;
 
 const gettingStarted: JSX.Element = (
     <React.Fragment>
-        <p>The requirements in this test ensure that parsing errors don't disrupt assistive technology.</p>
+        <p>
+            The requirements in this test ensure that parsing errors don't disrupt assistive
+            technology.
+        </p>
     </React.Fragment>
 );
 
 export const ParsingAssessment = AssessmentBuilder.Manual({
-    type: VisualizationType.ParsingAssessment,
+    visualizationType: VisualizationType.ParsingAssessment,
     key,
     title,
     gettingStarted,
     guidance,
-    steps: [Parsing],
+    requirements: [Parsing],
     isEnabled: true,
 });

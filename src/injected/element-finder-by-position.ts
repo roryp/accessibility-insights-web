@@ -1,13 +1,11 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
-import { autobind } from '@uifabric/utilities';
 import * as Q from 'q';
 
-import { HTMLElementUtils } from '../common/html-element-utils';
-import { ClientUtils, IBoundRectAccessor } from './client-utils';
+import { BoundRectAccessor, ClientUtils } from './client-utils';
+import { ErrorMessageContent } from './frameCommunicators/error-message-content';
 import { FrameCommunicator } from './frameCommunicators/frame-communicator';
 import { FrameMessageResponseCallback } from './frameCommunicators/window-message-handler';
-import { IErrorMessageContent } from './frameCommunicators/window-message-marshaller';
 import { ScannerUtils } from './scanner-utils';
 
 export interface ElementFinderByPositionMessage {
@@ -23,7 +21,13 @@ export class ElementFinderByPosition {
     private q: typeof Q;
     private dom: Document;
 
-    constructor(frameCommunicator: FrameCommunicator, clientUtils: ClientUtils, scannerUtils: ScannerUtils, q: typeof Q, dom: Document) {
+    constructor(
+        frameCommunicator: FrameCommunicator,
+        clientUtils: ClientUtils,
+        scannerUtils: ScannerUtils,
+        q: typeof Q,
+        dom: Document,
+    ) {
         this.frameCommunicator = frameCommunicator;
         this.scannerUtils = scannerUtils;
         this.clientUtils = clientUtils;
@@ -32,16 +36,18 @@ export class ElementFinderByPosition {
     }
 
     public initialize(): void {
-        this.frameCommunicator.subscribe(ElementFinderByPosition.findElementByPositionCommand, this.onfindElementByPosition);
+        this.frameCommunicator.subscribe(
+            ElementFinderByPosition.findElementByPositionCommand,
+            this.onfindElementByPosition,
+        );
     }
 
-    @autobind
-    protected onfindElementByPosition(
+    protected onfindElementByPosition = (
         message: ElementFinderByPositionMessage,
-        error: IErrorMessageContent,
+        error: ErrorMessageContent,
         sourceWin: Window,
         responder?: FrameMessageResponseCallback,
-    ): void {
+    ): void => {
         this.processRequest(message).then(
             result => {
                 responder(result, null, sourceWin);
@@ -50,7 +56,7 @@ export class ElementFinderByPosition {
                 responder(null, err, sourceWin);
             },
         );
-    }
+    };
 
     public processRequest(message: ElementFinderByPositionMessage): Q.IPromise<string[]> {
         let path = [];
@@ -69,7 +75,7 @@ export class ElementFinderByPosition {
             return deferred.promise;
         }
 
-        const elementRect = this.clientUtils.getOffset(element as IBoundRectAccessor);
+        const elementRect = this.clientUtils.getOffset(element as BoundRectAccessor);
 
         this.frameCommunicator
             .sendMessage<ElementFinderByPositionMessage, string[]>({
@@ -94,7 +100,7 @@ export class ElementFinderByPosition {
         return deferred.promise;
     }
 
-    private getElementByPosition(message: ElementFinderByPositionMessage) {
+    private getElementByPosition(message: ElementFinderByPositionMessage): HTMLElement {
         const elements = this.dom.elementsFromPoint(message.x, message.y) as HTMLElement[];
 
         for (let pos = 0; pos < elements.length; pos++) {

@@ -2,32 +2,39 @@
 // Licensed under the MIT License.
 import * as React from 'react';
 
-import { AnalyzerConfigurationFactory } from '../../../assessments/common/analyzer-configuration-factory';
-import { ICustomWidgetPropertyBag } from '../../../common/types/property-bag/icustom-widgets';
-import { VisualizationType } from '../../../common/types/visualization-type';
-import { link } from '../../../content/link';
-import { productName } from '../../../content/strings/application';
-import * as content from '../../../content/test/custom-widgets/cues';
-import { AssessmentVisualizationEnabledToggle } from '../../../DetailsView/components/assessment-visualization-enabled-toggle';
-import { ScannerUtils } from '../../../injected/scanner-utils';
-import AssistedTestRecordYourResults from '../../common/assisted-test-record-your-results';
+import { CustomWidgetPropertyBag } from 'common/types/property-bag/custom-widgets-property-bag';
+import { VisualizationType } from 'common/types/visualization-type';
+import { link } from 'content/link';
+import { productName } from 'content/strings/application';
+import { TestAutomaticallyPassedNotice } from 'content/test/common/test-automatically-passed-notice';
+import * as content from 'content/test/custom-widgets/cues';
+import { AssessmentVisualizationEnabledToggle } from 'DetailsView/components/assessment-visualization-enabled-toggle';
+import { ScannerUtils } from 'injected/scanner-utils';
+import { AnalyzerConfigurationFactory } from '../../common/analyzer-configuration-factory';
+import { AssistedTestRecordYourResults } from '../../common/assisted-test-record-your-results';
+import { NoValue } from '../../common/property-bag-column-renderer';
 import * as Markup from '../../markup';
 import { ReportInstanceField } from '../../types/report-instance-field';
-import { TestStep } from '../../types/test-step';
+import { Requirement } from '../../types/requirement';
 import { getFlatDesignPatternStringFromRole } from '../custom-widgets-column-renderer';
 import { CustomWidgetsColumnRendererFactory } from '../custom-widgets-column-renderer-factory';
 import { CustomWidgetsTestStep } from './test-steps';
 
 const cuesDescription: JSX.Element = (
-    <span>If a custom widget adopts certain interactive states, it must communicate those states programmatically.</span>
+    <span>
+        If a custom widget adopts certain interactive states, it must communicate those states
+        programmatically.
+    </span>
 );
 
 const cuesHowToTest: JSX.Element = (
     <div>
         <p>For this requirement, {productName} highlights custom widgets.</p>
+        <TestAutomaticallyPassedNotice />
         <ol>
             <li>
-                In the target page, interact with each custom widget to determine whether it adopts any of these states:
+                In the target page, interact with each custom widget to determine whether it adopts
+                any of these states:
                 <ol>
                     <li>Disabled</li>
                     <li>Read-only</li>
@@ -35,15 +42,17 @@ const cuesHowToTest: JSX.Element = (
                 </ol>
             </li>
             <li>
-                If a widget <Markup.Emphasis>does</Markup.Emphasis> adopt any of these states, inspect its HTML using the Chrome Developer
-                Tools to verify that the states are appropriately coded.
+                If a widget <Markup.Emphasis>does</Markup.Emphasis> adopt any of these states,
+                inspect its HTML using the browser Developer Tools to verify that the states are
+                appropriately coded.
                 <ol>
                     <li>
-                        HTML properties (e.g., <Markup.CodeTerm>readonly</Markup.CodeTerm>) should be used on elements that support them.
+                        HTML properties (e.g., <Markup.CodeTerm>readonly</Markup.CodeTerm>) should
+                        be used on elements that support them.
                     </li>
                     <li>
-                        ARIA properties (e.g., <Markup.CodeTerm>aria-readonly</Markup.CodeTerm>) should be used on elements that don't
-                        support HTML properties.
+                        ARIA properties (e.g., <Markup.CodeTerm>aria-readonly</Markup.CodeTerm>)
+                        should be used on elements that don't support HTML properties.
                     </li>
                 </ol>
             </li>
@@ -51,7 +60,7 @@ const cuesHowToTest: JSX.Element = (
         </ol>
     </div>
 );
-export const Cues: TestStep = {
+export const Cues: Requirement = {
     key: CustomWidgetsTestStep.cues,
     name: 'Cues',
     description: cuesDescription,
@@ -63,39 +72,47 @@ export const Cues: TestStep = {
         {
             key: 'cues-info-custom-widgets',
             name: 'Cues',
-            onRender: CustomWidgetsColumnRendererFactory.getWithoutLink<ICustomWidgetPropertyBag>([
+            onRender: CustomWidgetsColumnRendererFactory.getWithoutLink<CustomWidgetPropertyBag>([
                 {
                     propertyName: 'role',
                     displayName: 'Widget role',
-                    defaultValue: '-',
+                    defaultValue: NoValue,
                 },
                 {
                     propertyName: 'designPattern',
                     displayName: 'Design pattern',
-                    defaultValue: '-',
+                    defaultValue: NoValue,
                 },
                 {
                     propertyName: 'htmlCues',
                     displayName: 'HTML cues',
-                    defaultValue: '-',
+                    defaultValue: NoValue,
                     expand: true,
                 },
                 {
                     propertyName: 'ariaCues',
                     displayName: 'ARIA cues',
-                    defaultValue: '-',
+                    defaultValue: NoValue,
                     expand: true,
                 },
             ]),
         },
     ],
     reportInstanceFields: [
-        ReportInstanceField.fromColumnValueBagField<ICustomWidgetPropertyBag>('Widget role', 'role'),
-        ReportInstanceField.fromPropertyBagFunction<ICustomWidgetPropertyBag>('Design pattern', 'designPattern', pb =>
-            getFlatDesignPatternStringFromRole(pb.role),
+        ReportInstanceField.fromColumnValueBagField<CustomWidgetPropertyBag>('Widget role', 'role'),
+        ReportInstanceField.fromPropertyBagFunction<CustomWidgetPropertyBag>(
+            'Design pattern',
+            'designPattern',
+            pb => getFlatDesignPatternStringFromRole(pb.role),
         ),
-        ReportInstanceField.fromColumnValueBagField<ICustomWidgetPropertyBag>('HTML cues', 'htmlCues'),
-        ReportInstanceField.fromColumnValueBagField<ICustomWidgetPropertyBag>('ARIA cues', 'ariaCues'),
+        ReportInstanceField.fromColumnValueBagField<CustomWidgetPropertyBag>(
+            'HTML cues',
+            'htmlCues',
+        ),
+        ReportInstanceField.fromColumnValueBagField<CustomWidgetPropertyBag>(
+            'ARIA cues',
+            'ariaCues',
+        ),
     ],
     getAnalyzer: provider =>
         provider.createRuleAnalyzer(
@@ -107,6 +124,5 @@ export const Cues: TestStep = {
             }),
         ),
     getDrawer: provider => provider.createHighlightBoxDrawer(),
-    updateVisibility: false,
     getVisualHelperToggle: props => <AssessmentVisualizationEnabledToggle {...props} />,
 };

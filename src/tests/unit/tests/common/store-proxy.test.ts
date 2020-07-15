@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 import { It, Mock } from 'typemoq';
 
-import { ClientChromeAdapter } from '../../../../common/client-browser-adapter';
+import { BrowserAdapter } from '../../../../common/browser-adapters/browser-adapter';
 import { GenericStoreMessageTypes } from '../../../../common/constants/generic-store-messages-types';
 import { StoreProxy } from '../../../../common/store-proxy';
 import { StoreType } from '../../../../common/types/store-type';
@@ -11,11 +11,7 @@ import { StoreUpdateMessage } from '../../../../common/types/store-update-messag
 class TestableStoreProxy<TState> extends StoreProxy<TState> {
     public emitChangedCallCount: number = 0;
 
-    constructor(storeId: string, chromeAdapter: ClientChromeAdapter) {
-        super(storeId, chromeAdapter);
-    }
-
-    public emitChanged() {
+    public emitChanged(): void {
         this.emitChangedCallCount++;
     }
 }
@@ -24,19 +20,18 @@ describe('StoreProxyTest', () => {
     test('onChange for this proxy', () => {
         const expectedData = 'test';
         let onChange: (message: StoreUpdateMessage<string>) => void;
-        const clientChromeAdapterMock = Mock.ofType(ClientChromeAdapter);
-        clientChromeAdapterMock
+        const browserAdapterMock = Mock.ofType<BrowserAdapter>();
+        browserAdapterMock
             .setup(it => it.addListenerOnMessage(It.isAny()))
             .callback(callback => {
                 onChange = callback;
             })
             .verifiable();
 
-        const storeProxy = new TestableStoreProxy('TestStore', clientChromeAdapterMock.object);
-        storeProxy.setTabId(1);
+        const storeProxy = new TestableStoreProxy('TestStore', browserAdapterMock.object, 1);
 
         onChange.call(storeProxy, {
-            type: GenericStoreMessageTypes.storeStateChanged,
+            messageType: GenericStoreMessageTypes.storeStateChanged,
             tabId: 1,
             storeId: 'TestStore',
             storeType: StoreType.TabContextStore,
@@ -46,26 +41,25 @@ describe('StoreProxyTest', () => {
 
         expect(storeProxy.getState()).toEqual(expectedData);
         expect(storeProxy.emitChangedCallCount).toBe(1);
-        clientChromeAdapterMock.verifyAll();
+        browserAdapterMock.verifyAll();
     });
 
     test('onChange for this proxy, when state is same', () => {
         const expectedData = 'test';
         let onChange: () => void;
-        const clientChromeAdapterMock = Mock.ofType(ClientChromeAdapter);
+        const browserAdapterMock = Mock.ofType<BrowserAdapter>();
 
-        clientChromeAdapterMock
+        browserAdapterMock
             .setup(it => it.addListenerOnMessage(It.isAny()))
             .callback(callback => {
                 onChange = callback;
             })
             .verifiable();
 
-        const storeProxy = new TestableStoreProxy('TestStore', clientChromeAdapterMock.object);
-        storeProxy.setTabId(1);
+        const storeProxy = new TestableStoreProxy('TestStore', browserAdapterMock.object, 1);
 
         const stateUpdateMessage: StoreUpdateMessage<string> = {
-            type: GenericStoreMessageTypes.storeStateChanged,
+            messageType: GenericStoreMessageTypes.storeStateChanged,
             tabId: 1,
             storeId: 'TestStore',
             isStoreUpdateMessage: true,
@@ -81,25 +75,24 @@ describe('StoreProxyTest', () => {
 
         expect(storeProxy.getState()).toEqual(expectedData);
         expect(storeProxy.emitChangedCallCount).toBe(0);
-        clientChromeAdapterMock.verifyAll();
+        browserAdapterMock.verifyAll();
     });
 
     test('onChange for this proxy when tab id is null in storeProxy', () => {
         const expectedData = 'test';
         let onChange: (message: StoreUpdateMessage<string>) => void;
-        const clientChromeAdapterMock = Mock.ofType(ClientChromeAdapter);
-        clientChromeAdapterMock
+        const browserAdapterMock = Mock.ofType<BrowserAdapter>();
+        browserAdapterMock
             .setup(it => it.addListenerOnMessage(It.isAny()))
             .callback(callback => {
                 onChange = callback;
             })
             .verifiable();
 
-        const storeProxy = new TestableStoreProxy('TestStore', clientChromeAdapterMock.object);
-        storeProxy.setTabId(null);
+        const storeProxy = new TestableStoreProxy('TestStore', browserAdapterMock.object);
 
         onChange.call(storeProxy, {
-            type: GenericStoreMessageTypes.storeStateChanged,
+            messageType: GenericStoreMessageTypes.storeStateChanged,
             tabId: 1,
             storeId: 'TestStore',
             storeType: StoreType.TabContextStore,
@@ -109,24 +102,23 @@ describe('StoreProxyTest', () => {
 
         expect(storeProxy.getState()).toEqual(expectedData);
         expect(storeProxy.emitChangedCallCount).toBe(1);
-        clientChromeAdapterMock.verifyAll();
+        browserAdapterMock.verifyAll();
     });
 
     test('onChange for another proxy', () => {
         let onChange: (message: StoreUpdateMessage<string>) => void;
-        const clientChromeAdapterMock = Mock.ofType(ClientChromeAdapter);
-        clientChromeAdapterMock
+        const browserAdapterMock = Mock.ofType<BrowserAdapter>();
+        browserAdapterMock
             .setup(it => it.addListenerOnMessage(It.isAny()))
             .callback(callback => {
                 onChange = callback;
             })
             .verifiable();
 
-        const storeProxy = new TestableStoreProxy('TestStore', clientChromeAdapterMock.object);
-        storeProxy.setTabId(1);
+        const storeProxy = new TestableStoreProxy('TestStore', browserAdapterMock.object, 1);
 
         onChange.call(storeProxy, {
-            type: GenericStoreMessageTypes.storeStateChanged,
+            messageType: GenericStoreMessageTypes.storeStateChanged,
             tabId: 1,
             storeId: 'AnotherProxy',
             storeType: StoreType.TabContextStore,
@@ -136,25 +128,24 @@ describe('StoreProxyTest', () => {
 
         expect(storeProxy.getState()).not.toBeDefined();
         expect(storeProxy.emitChangedCallCount).toBe(0);
-        clientChromeAdapterMock.verifyAll();
+        browserAdapterMock.verifyAll();
     });
 
     test('onChange message is for global store', () => {
         let onChange: (message: StoreUpdateMessage<string>) => void;
         const expectedData = 'test';
-        const clientChromeAdapterMock = Mock.ofType(ClientChromeAdapter);
-        clientChromeAdapterMock
+        const browserAdapterMock = Mock.ofType<BrowserAdapter>();
+        browserAdapterMock
             .setup(it => it.addListenerOnMessage(It.isAny()))
             .callback(callback => {
                 onChange = callback;
             })
             .verifiable();
 
-        const storeProxy = new TestableStoreProxy('GlobalStoreProxy', clientChromeAdapterMock.object);
-        storeProxy.setTabId(1);
+        const storeProxy = new TestableStoreProxy('GlobalStoreProxy', browserAdapterMock.object, 1);
 
         onChange.call(storeProxy, {
-            type: GenericStoreMessageTypes.storeStateChanged,
+            messageType: GenericStoreMessageTypes.storeStateChanged,
             storeType: StoreType.GlobalStore,
             storeId: 'GlobalStoreProxy',
             isStoreUpdateMessage: true,
@@ -163,24 +154,23 @@ describe('StoreProxyTest', () => {
 
         expect(storeProxy.getState()).toEqual(expectedData);
         expect(storeProxy.emitChangedCallCount).toBe(1);
-        clientChromeAdapterMock.verifyAll();
+        browserAdapterMock.verifyAll();
     });
 
     test('onChange for another tab', () => {
         let onChange: (message: StoreUpdateMessage<string>) => void;
-        const clientChromeAdapterMock = Mock.ofType(ClientChromeAdapter);
-        clientChromeAdapterMock
+        const browserAdapterMock = Mock.ofType<BrowserAdapter>();
+        browserAdapterMock
             .setup(it => it.addListenerOnMessage(It.isAny()))
             .callback(callback => {
                 onChange = callback;
             })
             .verifiable();
 
-        const storeProxy = new TestableStoreProxy('TestStore', clientChromeAdapterMock.object);
-        storeProxy.setTabId(1);
+        const storeProxy = new TestableStoreProxy('TestStore', browserAdapterMock.object, 1);
 
         onChange.call(storeProxy, {
-            type: GenericStoreMessageTypes.storeStateChanged,
+            messageType: GenericStoreMessageTypes.storeStateChanged,
             tabId: 2,
             storeType: StoreType.TabContextStore,
             storeId: 'TestStore',
@@ -190,24 +180,23 @@ describe('StoreProxyTest', () => {
 
         expect(storeProxy.getState()).not.toBeDefined();
         expect(storeProxy.emitChangedCallCount).toBe(0);
-        clientChromeAdapterMock.verifyAll();
+        browserAdapterMock.verifyAll();
     });
 
     test('onChange message type is not GenericStoreMessageTypes.storeChanged', () => {
         let onChange: (message: StoreUpdateMessage<string>) => void;
-        const clientChromeAdapterMock = Mock.ofType(ClientChromeAdapter);
-        clientChromeAdapterMock
+        const browserAdapterMock = Mock.ofType<BrowserAdapter>();
+        browserAdapterMock
             .setup(it => it.addListenerOnMessage(It.isAny()))
             .callback(callback => {
                 onChange = callback;
             })
             .verifiable();
 
-        const storeProxy = new TestableStoreProxy('TestStore', clientChromeAdapterMock.object);
-        storeProxy.setTabId(1);
+        const storeProxy = new TestableStoreProxy('TestStore', browserAdapterMock.object, 1);
 
         onChange.call(storeProxy, {
-            type: 'ANOTHER_KIND_OF_MESSAGE',
+            messageType: 'ANOTHER_KIND_OF_MESSAGE',
             tabId: 1,
             storeType: StoreType.TabContextStore,
             storeId: 'TestStore',
@@ -217,24 +206,23 @@ describe('StoreProxyTest', () => {
 
         expect(storeProxy.getState()).not.toBeDefined();
         expect(storeProxy.emitChangedCallCount).toBe(0);
-        clientChromeAdapterMock.verifyAll();
+        browserAdapterMock.verifyAll();
     });
 
     test('onChange message is store update message', () => {
         let onChange: (message: StoreUpdateMessage<string>) => void;
-        const clientChromeAdapterMock = Mock.ofType(ClientChromeAdapter);
-        clientChromeAdapterMock
+        const browserAdapterMock = Mock.ofType<BrowserAdapter>();
+        browserAdapterMock
             .setup(it => it.addListenerOnMessage(It.isAny()))
             .callback(callback => {
                 onChange = callback;
             })
             .verifiable();
 
-        const storeProxy = new TestableStoreProxy('TestStore', clientChromeAdapterMock.object);
-        storeProxy.setTabId(1);
+        const storeProxy = new TestableStoreProxy('TestStore', browserAdapterMock.object, 1);
 
         onChange.call(storeProxy, {
-            type: 'STORE_UPDATED',
+            messageType: 'STORE_UPDATED',
             tabId: 1,
             storeType: StoreType.TabContextStore,
             storeId: 'TestStore',
@@ -243,6 +231,6 @@ describe('StoreProxyTest', () => {
 
         expect(storeProxy.getState()).not.toBeDefined();
         expect(storeProxy.emitChangedCallCount).toBe(0);
-        clientChromeAdapterMock.verifyAll();
+        browserAdapterMock.verifyAll();
     });
 });

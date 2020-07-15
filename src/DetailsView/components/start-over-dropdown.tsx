@@ -1,11 +1,13 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
-import { autobind, IPoint } from '@uifabric/utilities';
-import { ActionButton } from 'office-ui-fabric-react/lib/Button';
-import { ContextualMenu } from 'office-ui-fabric-react/lib/ContextualMenu';
+import { IPoint } from '@uifabric/utilities';
+import { ContextualMenu, DirectionalHint, IContextualMenuItem } from 'office-ui-fabric-react';
 import * as React from 'react';
+
+import { InsightsCommandButton } from 'common/components/controls/insights-command-button';
 import { VisualizationType } from '../../common/types/visualization-type';
 import { DetailsViewActionMessageCreator } from '../actions/details-view-action-message-creator';
+import { DetailsRightPanelConfiguration } from './details-view-right-panel';
 import { GenericDialog } from './generic-dialog';
 
 type DialogState = 'none' | 'assessment' | 'test';
@@ -16,12 +18,31 @@ export interface StartOverState {
     dialogState: DialogState;
 }
 
+export type StartOverDeps = {
+    detailsViewActionMessageCreator: DetailsViewActionMessageCreator;
+};
+
 export interface StartOverProps {
+    deps: StartOverDeps;
     testName: string;
-    actionMessageCreator: DetailsViewActionMessageCreator;
     test: VisualizationType;
     requirementKey: string;
+    rightPanelConfiguration: DetailsRightPanelConfiguration;
+    dropdownDirection: DropdownDirection;
 }
+
+const dropdownDirections = {
+    down: {
+        directionalHint: DirectionalHint.bottomAutoEdge,
+        iconName: 'ChevronDown',
+    },
+    left: {
+        directionalHint: DirectionalHint.leftTopEdge,
+        iconName: 'ChevronRight',
+    },
+};
+
+export type DropdownDirection = keyof typeof dropdownDirections;
 
 export class StartOverDropdown extends React.Component<StartOverProps, StartOverState> {
     constructor(props: StartOverProps) {
@@ -34,14 +55,19 @@ export class StartOverDropdown extends React.Component<StartOverProps, StartOver
     }
 
     public render(): JSX.Element {
+        const direction = this.props.dropdownDirection;
         return (
             <div>
-                <ActionButton
+                <InsightsCommandButton
                     iconProps={{
                         iconName: 'Refresh',
                     }}
                     text="Start over"
+                    ariaLabel="start over menu"
                     onClick={this.openDropdown}
+                    menuIconProps={{
+                        iconName: dropdownDirections[direction].iconName,
+                    }}
                 />
                 {this.renderContextMenu()}
                 {this.renderStartOverDialog()}
@@ -49,44 +75,52 @@ export class StartOverDropdown extends React.Component<StartOverProps, StartOver
         );
     }
 
-    private renderContextMenu() {
+    private renderContextMenu(): JSX.Element {
         if (!this.state.isContextMenuVisible) {
             return null;
         }
 
-        const { testName } = this.props;
+        const direction = this.props.dropdownDirection;
 
         return (
             <ContextualMenu
                 onDismiss={() => this.dismissDropdown()}
                 target={this.state.target}
-                items={[
-                    {
-                        key: 'assessment',
-                        name: 'Start over Assessment',
-                        onClick: this.onStartOverAllTestsMenu,
-                    },
-                    {
-                        key: 'test',
-                        name: `Start over ${testName}`,
-                        onClick: this.onStartOverTestMenu,
-                    },
-                ]}
+                items={this.getMenuItems()}
+                directionalHint={dropdownDirections[direction].directionalHint}
             />
         );
     }
 
-    @autobind
-    private onStartOverTestMenu() {
+    private getMenuItems(): IContextualMenuItem[] {
+        const { testName, rightPanelConfiguration } = this.props;
+        const items: IContextualMenuItem[] = [
+            {
+                key: 'assessment',
+                name: 'Start over Assessment',
+                onClick: this.onStartOverAllTestsMenu,
+            },
+            {
+                key: 'test',
+                name: `Start over ${testName}`,
+                onClick: this.onStartOverTestMenu,
+            },
+        ];
+
+        return rightPanelConfiguration
+            .GetStartOverContextualMenuItemKeys()
+            .map(key => items.find(item => item.key === key));
+    }
+
+    private onStartOverTestMenu = (): void => {
         this.setState({ dialogState: 'test' });
-    }
+    };
 
-    @autobind
-    private onStartOverAllTestsMenu() {
+    private onStartOverAllTestsMenu = (): void => {
         this.setState({ dialogState: 'assessment' });
-    }
+    };
 
-    private renderStartOverDialog() {
+    private renderStartOverDialog(): JSX.Element {
         if (this.state.dialogState === 'none') {
             return null;
         }
@@ -103,9 +137,7 @@ export class StartOverDropdown extends React.Component<StartOverProps, StartOver
         }
 
         if (this.state.dialogState === 'test') {
-            messageText = `Starting over will clear all existing results from the ${
-                this.props.testName
-            } test. Are you sure you want to start over?`;
+            messageText = `Starting over will clear all existing results from the ${this.props.testName} test. Are you sure you want to start over?`;
             onPrimaryButtonClick = this.onStartTestOver;
         }
 
@@ -120,45 +152,43 @@ export class StartOverDropdown extends React.Component<StartOverProps, StartOver
         );
     }
 
-    @autobind
-    private onDismissStartOverDialog(event: React.MouseEvent<any>) {
-        const { actionMessageCreator, requirementKey, test } = this.props;
+    private onDismissStartOverDialog = (event: React.MouseEvent<any>): void => {
+        const detailsViewActionMessageCreator = this.props.deps.detailsViewActionMessageCreator;
+        const { requirementKey, test } = this.props;
 
         if (this.state.dialogState === 'assessment') {
-            actionMessageCreator.cancelStartOverAllAssessments(event);
+            detailsViewActionMessageCreator.cancelStartOverAllAssessments(event);
         }
 
         if (this.state.dialogState === 'test') {
-            actionMessageCreator.cancelStartOver(event, test, requirementKey);
+            detailsViewActionMessageCreator.cancelStartOver(event, test, requirementKey);
         }
 
         this.setState({ dialogState: 'none' });
-    }
+    };
 
-    @autobind
-    private onStartTestOver(event: React.MouseEvent<any>) {
-        const { actionMessageCreator, test, requirementKey } = this.props;
+    private onStartTestOver = (event: React.MouseEvent<any>): void => {
+        const detailsViewActionMessageCreator = this.props.deps.detailsViewActionMessageCreator;
+        const { test } = this.props;
 
-        actionMessageCreator.startOverAssessment(event, test, requirementKey);
-
-        this.setState({ dialogState: 'none' });
-    }
-
-    @autobind
-    private onStartOverAllTests(event: React.MouseEvent<any>) {
-        const { actionMessageCreator } = this.props;
-
-        actionMessageCreator.startOverAllAssessments(event);
+        detailsViewActionMessageCreator.startOverTest(event, test);
 
         this.setState({ dialogState: 'none' });
-    }
+    };
 
-    @autobind
-    private openDropdown(event): void {
+    private onStartOverAllTests = (event: React.MouseEvent<any>): void => {
+        const detailsViewActionMessageCreator = this.props.deps.detailsViewActionMessageCreator;
+
+        detailsViewActionMessageCreator.startOverAllAssessments(event);
+
+        this.setState({ dialogState: 'none' });
+    };
+
+    private openDropdown = (event): void => {
         this.setState({ target: event.currentTarget, isContextMenuVisible: true });
-    }
+    };
 
-    private dismissDropdown() {
+    private dismissDropdown(): void {
         this.setState({ target: null, isContextMenuVisible: false });
     }
 }

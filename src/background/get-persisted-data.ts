@@ -1,29 +1,37 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
+import { FeatureFlagStoreData } from 'common/types/store-data/feature-flag-store-data';
 import { IndexedDBAPI } from '../common/indexedDB/indexedDB';
-import { IAssessmentStoreData } from '../common/types/store-data/iassessment-result-data';
+import { AssessmentStoreData } from '../common/types/store-data/assessment-result-data';
 import { UserConfigurationStoreData } from '../common/types/store-data/user-configuration-store';
 import { IndexedDBDataKeys } from './IndexedDBDataKeys';
+import { InstallationData } from './installation-data';
 
 export interface PersistedData {
-    assessmentStoreData: IAssessmentStoreData;
+    assessmentStoreData: AssessmentStoreData;
     userConfigurationData: UserConfigurationStoreData;
+    installationData: InstallationData;
+    featureFlags: FeatureFlagStoreData;
 }
-export function getPersistedData(indexedDBInstance: IndexedDBAPI): Promise<PersistedData> {
+
+const keyToPersistedDataMapping = {
+    [IndexedDBDataKeys.assessmentStore]: 'assessmentStoreData',
+    [IndexedDBDataKeys.userConfiguration]: 'userConfigurationData',
+    [IndexedDBDataKeys.installation]: 'installationData',
+    [IndexedDBDataKeys.unifiedFeatureFlags]: 'featureFlags',
+};
+
+export function getPersistedData(
+    indexedDBInstance: IndexedDBAPI,
+    dataKeysToFetch: string[],
+): Promise<PersistedData> {
     const persistedData = {} as PersistedData;
 
-    const promises: Array<Promise<any>> = [];
-
-    promises.push(
-        indexedDBInstance.getItem(IndexedDBDataKeys.assessmentStore).then(assessmentData => {
-            persistedData.assessmentStoreData = assessmentData;
-        }),
-    );
-    promises.push(
-        indexedDBInstance.getItem(IndexedDBDataKeys.userConfiguration).then(userConfig => {
-            persistedData.userConfigurationData = userConfig;
-        }),
-    );
+    const promises: Array<Promise<any>> = dataKeysToFetch.map(key => {
+        return indexedDBInstance.getItem(key).then(data => {
+            persistedData[keyToPersistedDataMapping[key]] = data;
+        });
+    });
 
     return Promise.all(promises).then(() => persistedData);
 }

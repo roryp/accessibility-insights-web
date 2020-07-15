@@ -1,13 +1,17 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
-import { mount, shallow } from 'enzyme';
-import { ChoiceGroup, IChoiceGroup } from 'office-ui-fabric-react/lib/ChoiceGroup';
+import { shallow } from 'enzyme';
+import { ChoiceGroup, IChoiceGroup, IChoiceGroupOption } from 'office-ui-fabric-react';
 import * as React from 'react';
 import * as TestUtils from 'react-dom/test-utils';
 import { Mock, Times } from 'typemoq';
 
 import { ManualTestStatus } from '../../../../../common/types/manual-test-status';
-import { TestStatusChoiceGroup, TestStatusChoiceGroupProps } from '../../../../../DetailsView/components/test-status-choice-group';
+import {
+    TestStatusChoiceGroup,
+    TestStatusChoiceGroupProps,
+} from '../../../../../DetailsView/components/test-status-choice-group';
+import { undoButton } from '../../../../../DetailsView/components/test-status-choice-group.scss';
 
 describe('TestStatusChoiceGroup', () => {
     const options = [
@@ -39,7 +43,9 @@ describe('TestStatusChoiceGroup', () => {
             onGroupChoiceChange: null,
             onUndoClicked: null,
         };
-        const component = shallow(<TestStatusChoiceGroup {...props} />).instance() as TestStatusChoiceGroup;
+        const component = shallow(
+            <TestStatusChoiceGroup {...props} />,
+        ).instance() as TestStatusChoiceGroup;
         component.componentDidUpdate(props);
         expect(component.state).toMatchObject({ selectedKey: 'PASS' });
     });
@@ -54,9 +60,13 @@ describe('TestStatusChoiceGroup', () => {
             onGroupChoiceChange: null,
             onUndoClicked: null,
         };
-        const component = shallow(<TestStatusChoiceGroup {...props} />).instance() as TestStatusChoiceGroup;
+        const component = shallow(
+            <TestStatusChoiceGroup {...props} />,
+        ).instance() as TestStatusChoiceGroup;
         component.setState({ selectedKey: 'PASS' });
-        component.componentDidUpdate({ status: ManualTestStatus.PASS } as TestStatusChoiceGroupProps);
+        component.componentDidUpdate({
+            status: ManualTestStatus.PASS,
+        } as TestStatusChoiceGroupProps);
         expect(component.state).toMatchObject({ selectedKey: 'FAIL' });
     });
 
@@ -72,7 +82,9 @@ describe('TestStatusChoiceGroup', () => {
             onGroupChoiceChange: onGroupChoiceChangeMock.object,
             onUndoClicked: onUndoMock.object,
         };
-        onGroupChoiceChangeMock.setup(o => o(props.status, props.test, props.step, props.selector)).verifiable(Times.once());
+        onGroupChoiceChangeMock
+            .setup(o => o(props.status, props.test, props.step, props.selector))
+            .verifiable(Times.once());
 
         const wrapper = shallow(<TestStatusChoiceGroup {...props} />);
         expect(wrapper.getElement()).toMatchSnapshot();
@@ -110,7 +122,9 @@ describe('TestStatusChoiceGroup', () => {
             onGroupChoiceChange: onGroupChoiceChangeMock.object,
             onUndoClicked: onUndoMock.object,
         };
-        onGroupChoiceChangeMock.setup(o => o(ManualTestStatus.PASS, props.test, props.step, props.selector)).verifiable(Times.once());
+        onGroupChoiceChangeMock
+            .setup(o => o(ManualTestStatus.PASS, props.test, props.step, props.selector))
+            .verifiable(Times.once());
 
         const testObject = shallow(<TestableTestStatusChoiceGroup {...props} />);
         const choiceGroup = testObject.find(ChoiceGroup);
@@ -137,7 +151,7 @@ describe('TestStatusChoiceGroup', () => {
 
         const component = React.createElement(TestableTestStatusChoiceGroup, props);
         const testObject = TestUtils.renderIntoDocument(component);
-        const link = TestUtils.findRenderedDOMComponentWithClass(testObject, 'undo-button');
+        const link = TestUtils.findRenderedDOMComponentWithClass(testObject, undoButton);
 
         expect(link).toBeDefined();
 
@@ -153,19 +167,19 @@ describe('TestStatusChoiceGroup', () => {
 });
 
 class TestableTestStatusChoiceGroup extends TestStatusChoiceGroup {
-    public getOnChange() {
+    public getOnChange(): (ev: React.FocusEvent<HTMLElement>, option: IChoiceGroupOption) => void {
         return this.onChange;
     }
 
-    public getOnUndo() {
+    public getOnUndo(): () => void {
         return this.onUndoClicked;
     }
 
-    public getComponentRef() {
+    public getComponentRef(): (component: IChoiceGroup) => void {
         return this.compomentRef;
     }
 
     public getComponent(): IChoiceGroup {
-        return this._choiceGroup;
+        return this.choiceGroup;
     }
 }

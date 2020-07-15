@@ -1,26 +1,24 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
-import { INavLink } from 'office-ui-fabric-react/lib/Nav';
+import { css, INavLink } from 'office-ui-fabric-react';
 import * as React from 'react';
-import { NamedSFC } from '../../../common/react/named-sfc';
+import { NamedFC } from '../../../common/react/named-fc';
 import { StatusIcon } from '../status-icon';
 
 export type LeftNavIconProps = {
     item: INavLink;
+    className?: string;
 };
 
-export const LeftNavStatusIcon = NamedSFC<LeftNavIconProps>('LeftNavStatusIcon', props => {
+export const LeftNavStatusIcon = NamedFC<LeftNavIconProps>('LeftNavStatusIcon', props => {
     const { item } = props;
+    const classes = css('dark-gray', props.className);
 
-    return (
-        <div>
-            <StatusIcon status={item.status} className={'dark-gray'} level="test" />
-        </div>
-    );
+    return <StatusIcon status={item.status} className={classes} level="test" />;
 });
 
-export const LeftNavIndexIcon = NamedSFC<LeftNavIconProps>('LeftNavIndexIcon', props => {
+export const LeftNavIndexIcon = NamedFC<LeftNavIconProps>('LeftNavIndexIcon', props => {
     const { item } = props;
 
-    return <div className={'index-circle'}>{item.index}</div>;
+    return <span className={'index-circle'}>{item.index}</span>;
 });

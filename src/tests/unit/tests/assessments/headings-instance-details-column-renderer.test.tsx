@@ -2,10 +2,10 @@
 // Licensed under the MIT License.
 import * as React from 'react';
 
-import { headingsAssessmentInstanceDetailsColumnRenderer } from '../../../../assessments/headings/headings-instance-details-column-renderer';
-import { IHeadingsAssessmentProperties } from '../../../../common/types/store-data/iassessment-result-data';
+import { headingsAssessmentInstanceDetailsColumnRenderer } from 'assessments/headings/headings-instance-details-column-renderer';
+import { HeadingsAssessmentProperties } from '../../../../common/types/store-data/assessment-result-data';
 import { AssessmentInstanceDetailsColumn } from '../../../../DetailsView/components/assessment-instance-details-column';
-import { IAssessmentInstanceRowData } from '../../../../DetailsView/components/assessment-instance-table';
+import { AssessmentInstanceRowData } from '../../../../DetailsView/components/assessment-instance-table';
 import { HeadingFormatter } from '../../../../injected/visualization/heading-formatter';
 
 describe('HeadingsInstanceDetailsColumnRendererTest', () => {
@@ -14,7 +14,7 @@ describe('HeadingsInstanceDetailsColumnRendererTest', () => {
             instance: {
                 propertyBag: null,
             },
-        } as IAssessmentInstanceRowData<IHeadingsAssessmentProperties>;
+        } as AssessmentInstanceRowData<HeadingsAssessmentProperties>;
         const expected = (
             <AssessmentInstanceDetailsColumn
                 background={'#767676'}
@@ -24,7 +24,7 @@ describe('HeadingsInstanceDetailsColumnRendererTest', () => {
                 customClassName="not-applicable"
             />
         );
-        expect(expected).toEqual(headingsAssessmentInstanceDetailsColumnRenderer(item));
+        expect(headingsAssessmentInstanceDetailsColumnRenderer(item)).toEqual(expected);
     });
 
     test('render', () => {
@@ -35,7 +35,7 @@ describe('HeadingsInstanceDetailsColumnRendererTest', () => {
                     headingLevel: '3',
                 },
             },
-        } as IAssessmentInstanceRowData<IHeadingsAssessmentProperties>;
+        } as AssessmentInstanceRowData<HeadingsAssessmentProperties>;
         const expected = (
             <AssessmentInstanceDetailsColumn
                 background={HeadingFormatter.headingStyles['3'].borderColor}
@@ -45,6 +45,27 @@ describe('HeadingsInstanceDetailsColumnRendererTest', () => {
                 customClassName={null}
             />
         );
-        expect(expected).toEqual(headingsAssessmentInstanceDetailsColumnRenderer(item));
+        expect(headingsAssessmentInstanceDetailsColumnRenderer(item)).toEqual(expected);
+    });
+
+    test('render out of bounds level', () => {
+        const item = {
+            instance: {
+                propertyBag: {
+                    headingText: 'heading',
+                    headingLevel: '7',
+                },
+            },
+        } as AssessmentInstanceRowData<HeadingsAssessmentProperties>;
+        const expected = (
+            <AssessmentInstanceDetailsColumn
+                background={'#767676'}
+                labelText={'H7'}
+                textContent={'heading'}
+                tooltipId={null}
+                customClassName={null}
+            />
+        );
+        expect(headingsAssessmentInstanceDetailsColumnRenderer(item)).toEqual(expected);
     });
 });

@@ -1,112 +1,59 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
-import { ISelection } from 'office-ui-fabric-react/lib/DetailsList';
-
-import { IAssessmentsProvider } from '../../../../assessments/types/iassessments-provider';
-import { VisualizationConfigurationFactory } from '../../../../common/configs/visualization-configuration-factory';
-import { DropdownClickHandler } from '../../../../common/dropdown-click-handler';
-import { IBaseStore } from '../../../../common/istore';
-import { InspectActionMessageCreator } from '../../../../common/message-creators/inspect-action-message-creator';
-import { IStoreActionMessageCreator } from '../../../../common/message-creators/istore-action-message-creator';
-import { ScopingActionMessageCreator } from '../../../../common/message-creators/scoping-action-message-creator';
-import { BaseClientStoresHub } from '../../../../common/stores/base-client-stores-hub';
-import { IAssessmentStoreData } from '../../../../common/types/store-data/iassessment-result-data';
-import { IDetailsViewData } from '../../../../common/types/store-data/idetails-view-data';
-import { ITabStoreData } from '../../../../common/types/store-data/itab-store-data';
-import { IVisualizationScanResultData } from '../../../../common/types/store-data/ivisualization-scan-result-data';
-import { IVisualizationStoreData } from '../../../../common/types/store-data/ivisualization-store-data';
-import { IScopingStoreData } from '../../../../common/types/store-data/scoping-store-data';
-import { VisualizationType } from '../../../../common/types/visualization-type';
-import { IssuesTableHandler } from '../../../../DetailsView/components/issues-table-handler';
-import { DetailsViewContainerDeps, DetailsViewContainerProps } from '../../../../DetailsView/details-view-container';
-import { AssessmentInstanceTableHandler } from '../../../../DetailsView/handlers/assessment-instance-table-handler';
-import { DetailsViewToggleClickHandlerFactory } from '../../../../DetailsView/handlers/details-view-toggle-click-handler-factory';
-import { PreviewFeatureFlagsHandler } from '../../../../DetailsView/handlers/preview-feature-flags-handler';
+import { BaseStore } from 'common/base-store';
+import { DropdownClickHandler } from 'common/dropdown-click-handler';
+import { StoreActionMessageCreator } from 'common/message-creators/store-action-message-creator';
+import { BaseClientStoresHub } from 'common/stores/base-client-stores-hub';
+import { AssessmentStoreData } from 'common/types/store-data/assessment-result-data';
+import { DetailsViewStoreData } from 'common/types/store-data/details-view-store-data';
+import { ScopingStoreData } from 'common/types/store-data/scoping-store-data';
+import { TabStoreData } from 'common/types/store-data/tab-store-data';
+import { UnifiedScanResultStoreData } from 'common/types/store-data/unified-data-interface';
+import { VisualizationScanResultData } from 'common/types/store-data/visualization-scan-result-data';
+import { VisualizationStoreData } from 'common/types/store-data/visualization-store-data';
+import {
+    DetailsViewContainerDeps,
+    DetailsViewContainerProps,
+} from 'DetailsView/details-view-container';
+import { DictionaryStringTo } from 'types/common-types';
 import { StoreMocks } from './store-mocks';
 
 export class DetailsViewContainerPropsBuilder {
-    private visualizationStore: IBaseStore<IVisualizationStoreData>;
-    private assessmentStore: IBaseStore<IAssessmentStoreData>;
-    private visualizationScanResultStore: IBaseStore<IVisualizationScanResultData>;
-    private tabStore: IBaseStore<ITabStoreData>;
-    private featureFlagStore: IBaseStore<DictionaryStringTo<boolean>>;
-    private scopingStateStore: IBaseStore<IScopingStoreData>;
-    private detailsViewStore: IBaseStore<IDetailsViewData>;
-    private scopingActionMessageCreator: ScopingActionMessageCreator;
-    private inspectActionMessageCreator: InspectActionMessageCreator;
-    private storeActionCreator: IStoreActionMessageCreator;
-    private document: Document = document;
-    private issuesSelection: ISelection;
-    private clickHandlerFactory: DetailsViewToggleClickHandlerFactory;
-    private issuesTableHandler: IssuesTableHandler;
-    private previewFeatureFlagsHandler: PreviewFeatureFlagsHandler;
-    private scopingFlagsHandler: PreviewFeatureFlagsHandler;
-    private dropdownClickHandler: DropdownClickHandler;
-    private assessmentInstanceTableHandler: AssessmentInstanceTableHandler;
-    private assessmentProvider: IAssessmentsProvider;
-    private configFactory: VisualizationConfigurationFactory;
+    private visualizationStore: BaseStore<VisualizationStoreData>;
+    private assessmentStore: BaseStore<AssessmentStoreData>;
+    private visualizationScanResultStore: BaseStore<VisualizationScanResultData>;
+    private unifiedScanResultStore: BaseStore<UnifiedScanResultStoreData>;
+    private tabStore: BaseStore<TabStoreData>;
+    private featureFlagStore: BaseStore<DictionaryStringTo<boolean>>;
+    private scopingStateStore: BaseStore<ScopingStoreData>;
+    private detailsViewStore: BaseStore<DetailsViewStoreData>;
+    private storeActionCreator: StoreActionMessageCreator;
     private storesHub: BaseClientStoresHub<any>;
     constructor(private deps: DetailsViewContainerDeps) {}
 
-    public setDetailsViewStoreActionMessageCreator(creator: IStoreActionMessageCreator) {
-        this.storeActionCreator = creator;
-        return this;
-    }
-
-    public setAssessmentProvider(provider: IAssessmentsProvider) {
-        this.assessmentProvider = provider;
-        return this;
-    }
-
-    public setVisualizationConfigurationFactory(configFactory: VisualizationConfigurationFactory) {
-        this.configFactory = configFactory;
-        return this;
-    }
-
-    public setClickHandlerFactory(factory: DetailsViewToggleClickHandlerFactory): DetailsViewContainerPropsBuilder {
-        this.clickHandlerFactory = factory;
-        return this;
-    }
-
-    public setIssuesTableHandler(issuesTableHandler: IssuesTableHandler): DetailsViewContainerPropsBuilder {
-        this.issuesTableHandler = issuesTableHandler;
-        return this;
-    }
-
-    public setPreviewFeatureFlagsHandler(previewFeatureFlagsHandler: PreviewFeatureFlagsHandler): DetailsViewContainerPropsBuilder {
-        this.previewFeatureFlagsHandler = previewFeatureFlagsHandler;
-        return this;
-    }
-
-    public setIssuesSelection(selection: ISelection): DetailsViewContainerPropsBuilder {
-        this.issuesSelection = selection;
-        return this;
-    }
-
-    public setScopingActionMessageCreator(creator: ScopingActionMessageCreator): DetailsViewContainerPropsBuilder {
-        this.scopingActionMessageCreator = creator;
-        return this;
-    }
-
-    public setInspectActionMessageCreator(creator: InspectActionMessageCreator): DetailsViewContainerPropsBuilder {
-        this.inspectActionMessageCreator = creator;
-        return this;
-    }
-
-    public setStoreActionMessageCreator(creator: IStoreActionMessageCreator): DetailsViewContainerPropsBuilder {
-        this.storeActionCreator = creator;
-        return this;
-    }
-
-    public setDropdownClickHandler(creator: DropdownClickHandler): DetailsViewContainerPropsBuilder {
-        this.dropdownClickHandler = creator;
-        return this;
-    }
-
-    public setAssessmentInstanceTableHandler(
-        assessmentInstanceTableHandler: AssessmentInstanceTableHandler,
+    public setDetailsViewStoreActionMessageCreator(
+        creator: StoreActionMessageCreator,
     ): DetailsViewContainerPropsBuilder {
-        this.assessmentInstanceTableHandler = assessmentInstanceTableHandler;
+        this.storeActionCreator = creator;
+        return this;
+    }
+
+    public setStoreActionMessageCreator(
+        creator: StoreActionMessageCreator,
+    ): DetailsViewContainerPropsBuilder {
+        this.storeActionCreator = creator;
+        return this;
+    }
+
+    public setDropdownClickHandler(
+        creator: DropdownClickHandler,
+    ): DetailsViewContainerPropsBuilder {
+        if (this.deps == null) {
+            this.deps = {} as DetailsViewContainerDeps;
+        }
+
+        this.deps.dropdownClickHandler = creator;
+
         return this;
     }
 
@@ -117,6 +64,7 @@ export class DetailsViewContainerPropsBuilder {
 
     public setStoreMocks(storeMocks: StoreMocks): DetailsViewContainerPropsBuilder {
         this.visualizationScanResultStore = storeMocks.visualizationScanResultStoreMock.object;
+        this.unifiedScanResultStore = storeMocks.unifiedScanResultStoreMock.object;
         this.visualizationStore = storeMocks.visualizationStoreMock.object;
         this.tabStore = storeMocks.tabStoreMock.object;
         this.detailsViewStore = storeMocks.detailsViewStoreMock.object;
@@ -134,6 +82,7 @@ export class DetailsViewContainerPropsBuilder {
                 this.featureFlagStore,
                 this.tabStore,
                 this.visualizationScanResultStore,
+                this.unifiedScanResultStore,
                 this.visualizationStore,
                 this.assessmentStore,
                 this.scopingStateStore,
@@ -145,22 +94,11 @@ export class DetailsViewContainerPropsBuilder {
             this.deps.storeActionMessageCreator = this.storeActionCreator;
         }
 
-        return {
+        const props: DetailsViewContainerProps = {
             deps: this.deps,
-            document: this.document,
-            issuesSelection: this.issuesSelection,
-            clickHandlerFactory: this.clickHandlerFactory,
-            visualizationConfigurationFactory: this.configFactory,
-            issuesTableHandler: this.issuesTableHandler,
-            reportGenerator: null,
-            previewFeatureFlagsHandler: this.previewFeatureFlagsHandler,
-            scopingFlagsHandler: this.scopingFlagsHandler,
-            dropdownClickHandler: this.dropdownClickHandler,
-            assessmentInstanceTableHandler: this.assessmentInstanceTableHandler,
-            scopingActionMessageCreator: this.scopingActionMessageCreator,
-            inspectActionMessageCreator: this.inspectActionMessageCreator,
-            assessmentsProvider: this.assessmentProvider,
             storeState: storeState,
         };
+
+        return props;
     }
 }

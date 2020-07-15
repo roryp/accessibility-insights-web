@@ -1,10 +1,13 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
-import { isEmpty } from 'lodash/index';
+import { isEmpty } from 'lodash';
 import * as React from 'react';
 
-import { ColumnValue, ColumnValueBag } from '../../common/types/property-bag/column-value-bag';
-import { IAssessmentInstanceRowData } from '../../DetailsView/components/assessment-instance-table';
+import { ColumnValue, ColumnValueBag } from 'common/types/property-bag/column-value-bag';
+import { AssessmentInstanceRowData } from 'DetailsView/components/assessment-instance-table';
+import { DictionaryStringTo } from 'types/common-types';
+
+export const NoValue = '(no value)';
 
 export interface PropertyBagColumnRendererConfig<TPropertyBag extends ColumnValueBag> {
     propertyName: keyof TPropertyBag & string;
@@ -14,7 +17,7 @@ export interface PropertyBagColumnRendererConfig<TPropertyBag extends ColumnValu
 }
 
 export function propertyBagColumnRenderer<TPropertyBag extends ColumnValueBag>(
-    item: IAssessmentInstanceRowData<TPropertyBag>,
+    item: AssessmentInstanceRowData<TPropertyBag>,
     configs: PropertyBagColumnRendererConfig<TPropertyBag>[],
 ): JSX.Element {
     const mapper = (config: PropertyBagColumnRendererConfig<TPropertyBag>, index: number) => {
@@ -26,7 +29,11 @@ export function propertyBagColumnRenderer<TPropertyBag extends ColumnValueBag>(
         return render(config, value, index);
     };
 
-    const render = (config: PropertyBagColumnRendererConfig<TPropertyBag>, value: any, index: number) => {
+    const render = (
+        config: PropertyBagColumnRendererConfig<TPropertyBag>,
+        value: any,
+        index: number,
+    ) => {
         return (
             <div key={`property-${index}`} className="property-bag-div">
                 <span className="display-name">{`${config.displayName}: `}</span>
@@ -43,7 +50,10 @@ export function propertyBagColumnRenderer<TPropertyBag extends ColumnValueBag>(
         return <React.Fragment>{value || config.defaultValue}</React.Fragment>;
     };
 
-    const renderProperties = (config: PropertyBagColumnRendererConfig<TPropertyBag>, propertyMap: DictionaryStringTo<string>) => {
+    const renderProperties = (
+        config: PropertyBagColumnRendererConfig<TPropertyBag>,
+        propertyMap: DictionaryStringTo<string>,
+    ) => {
         if (isEmpty(propertyMap)) {
             return <React.Fragment>{config.defaultValue}</React.Fragment>;
         }

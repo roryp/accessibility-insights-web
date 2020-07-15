@@ -2,23 +2,19 @@
 // Licensed under the MIT License.
 import { create, React } from '../../common';
 
-export const infoAndExamples = create(({ Markup }) => (
+export const infoAndExamples = create(({ Markup, Link }) => (
     <>
-        <h1>Resize text</h1>
         <p>Users must be able to resize text, without using assistive technology, up to 200% with no loss of content or functionality.</p>
-
         <h2>Why it matters</h2>
         <p>
             Most people find it easier to read text when it is sufficiently large. People with mild visual disabilities, low vision, or
             limited color perception are likely to find text unreadable when text is too small.
         </p>
         <p>
-            People with <Markup.HyperLink href="https://en.wikipedia.org/wiki/Presbyopia">presbyopia</Markup.HyperLink> also struggle to
-            read small or low-contrast text. A{' '}
+            People with <Link.Presbyopia /> also struggle to read small or low-contrast text. A{' '}
             <Markup.HyperLink href="https://www.sciencedirect.com/science/article/pii/S0161642017337971">2018 study</Markup.HyperLink> found
             that 1.8 billion people worldwide have presbyopia. (All people are affected by presbyopia to some degree as they age.)
         </p>
-
         <h3>From a user's perspective</h3>
         <p>
             <Markup.Emphasis>
@@ -26,7 +22,6 @@ export const infoAndExamples = create(({ Markup }) => (
                 text size by 200% without breaking the layout and functionality of the content or interface."
             </Markup.Emphasis>
         </p>
-
         <h2>How to fix</h2>
         <ol>
             <li>Make sure the text is scalable, and </li>
@@ -39,7 +34,6 @@ export const infoAndExamples = create(({ Markup }) => (
                 </ul>
             </li>
         </ol>
-
         <h2>Example</h2>
         <Markup.PassFail
             failText={
@@ -77,7 +71,6 @@ export const infoAndExamples = create(({ Markup }) => (
             </body>
             </html>`}
         />
-
         <h2>More examples</h2>
         <h3>WCAG success criteria</h3>
         <Markup.Links>
@@ -85,7 +78,6 @@ export const infoAndExamples = create(({ Markup }) => (
                 Understanding Success Criterion 1.4.4: Resize text
             </Markup.HyperLink>
         </Markup.Links>
-
         <h3>Sufficient techniques</h3>
         <Markup.Links>
             <Markup.HyperLink href="https://www.w3.org/WAI/WCAG21/Techniques/css/C28">
@@ -103,7 +95,6 @@ export const infoAndExamples = create(({ Markup }) => (
                 width
             </Markup.HyperLink>
         </Markup.Links>
-
         <h3>Common failures</h3>
         <Markup.Links>
             <Markup.HyperLink href="https://www.w3.org/WAI/WCAG21/Techniques/failures/F69">
@@ -118,7 +109,6 @@ export const infoAndExamples = create(({ Markup }) => (
                 Failure of Success Criterion 1.4.4 due to text sized in viewport units
             </Markup.HyperLink>
         </Markup.Links>
-
         <h3>Additional guidance</h3>
         <Markup.Links>
             <Markup.HyperLink href="https://www.w3.org/WAI/WCAG21/Techniques/css/C17">

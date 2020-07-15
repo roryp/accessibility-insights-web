@@ -2,8 +2,8 @@
 // Licensed under the MIT License.
 import * as React from 'react';
 
-import { VisualizationType } from '../../common/types/visualization-type';
-import { test as content } from '../../content/test';
+import { VisualizationType } from 'common/types/visualization-type';
+import { test as content } from 'content/test';
 import { AssessmentBuilder } from '../assessment-builder';
 import { Assessment } from '../types/iassessment';
 import { Captchas } from './test-steps/captchas';
@@ -17,18 +17,18 @@ const { guidance } = content.images;
 
 const gettingStarted: JSX.Element = (
     <React.Fragment>
-        Screen reader software cannot interpret images. The software will, however, read text that has been associated with images. The
-        interpretation (meaning) of an image must be conveyed textually in the HTML (via the alt attribute associated with each img
-        element).
+        Screen reader software cannot interpret images. The software will, however, read text that
+        has been associated with images. The interpretation (meaning) of an image must be conveyed
+        textually in the HTML (via the alt attribute associated with each img element).
     </React.Fragment>
 );
 
 export const ImagesAssessment: Assessment = AssessmentBuilder.Assisted({
     key,
-    type: VisualizationType.ImagesAssessment,
+    visualizationType: VisualizationType.ImagesAssessment,
     title,
     gettingStarted,
     guidance,
-    steps: [ImageFunction, TextAlternative, ImagesOfText, Captchas],
+    requirements: [ImageFunction, TextAlternative, ImagesOfText, Captchas],
     storeDataKey: 'imageAssessment',
 });

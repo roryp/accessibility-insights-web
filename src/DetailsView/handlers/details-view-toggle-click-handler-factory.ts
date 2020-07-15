@@ -2,27 +2,37 @@
 // Licensed under the MIT License.
 import * as React from 'react';
 
+import { TelemetryEventSource } from '../../common/extension-telemetry-events';
 import { VisualizationActionMessageCreator } from '../../common/message-creators/visualization-action-message-creator';
 import { TelemetryDataFactory } from '../../common/telemetry-data-factory';
-import { TelemetryEventSource } from '../../common/telemetry-events';
 import { VisualizationType } from '../../common/types/visualization-type';
 
 export class DetailsViewToggleClickHandlerFactory {
     private actionCreator: VisualizationActionMessageCreator;
     private telemetryFactory: TelemetryDataFactory;
 
-    constructor(actionCreator: VisualizationActionMessageCreator, telemetryFactory: TelemetryDataFactory) {
+    constructor(
+        actionCreator: VisualizationActionMessageCreator,
+        telemetryFactory: TelemetryDataFactory,
+    ) {
         this.actionCreator = actionCreator;
         this.telemetryFactory = telemetryFactory;
     }
 
-    public createClickHandler(type: VisualizationType, newValue: boolean): (event) => void {
-        return this.toggleVisualization.bind(this, type, newValue);
+    public createClickHandler(
+        visualizationType: VisualizationType,
+        newValue: boolean,
+    ): (event) => void {
+        return this.toggleVisualization.bind(this, visualizationType, newValue);
     }
 
-    private toggleVisualization(type: VisualizationType, newValue: boolean, event: React.MouseEvent<HTMLElement>): void {
+    private toggleVisualization(
+        visualizationType: VisualizationType,
+        newValue: boolean,
+        event: React.MouseEvent<HTMLElement>,
+    ): void {
         const source = TelemetryEventSource.DetailsView;
         const telementryInfo = this.telemetryFactory.forToggle(event, newValue, source);
-        this.actionCreator.setVisualizationState(type, newValue, telementryInfo);
+        this.actionCreator.setVisualizationState(visualizationType, newValue, telementryInfo);
     }
 }

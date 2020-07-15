@@ -1,8 +1,7 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
-import * as _ from 'lodash';
+import { difference, each, forOwn, isEmpty, keys, map, size } from 'lodash';
 import { Mock } from 'typemoq';
-
 import { DrawerUtils } from '../../../../../injected/visualization/drawer-utils';
 import {
     FeCompositeParams,
@@ -21,7 +20,9 @@ describe('SVGSolidShadowFilterFactoryTest', () => {
         const filterIdPrefix = 'test-class';
 
         const drawerUtilsMock = Mock.ofType(DrawerUtils);
-        drawerUtilsMock.setup(du => du.getDocumentElement()).returns(() => htmlElement.ownerDocument);
+        drawerUtilsMock
+            .setup(du => du.getDocumentElement())
+            .returns(() => htmlElement.ownerDocument);
 
         const testObject = new SVGSolidShadowFilterFactory(drawerUtilsMock.object, filterIdPrefix);
 
@@ -51,7 +52,7 @@ describe('SVGSolidShadowFilterFactoryTest', () => {
             { dx: 0, dy: -1, result: 'shadow_4', index: 4 },
         ];
 
-        _.each(offsetProps, props => {
+        each(offsetProps, props => {
             const offsetElement = filter.childNodes[props.index] as Element;
 
             new FeElementAsserter<FeOffsetParams>()
@@ -62,19 +63,19 @@ describe('SVGSolidShadowFilterFactoryTest', () => {
                 .assertElement(offsetElement, `feOffset: ${props.index} =>`);
         });
 
-        feElementIndex += _.size(offsetProps);
+        feElementIndex += size(offsetProps);
 
         const shadowMerge = filter.childNodes[feElementIndex++] as Element;
 
         new FeElementAsserter<FeMergeParams>()
             .setupExpectedParam('result', 'shadow')
-            .setupExpectedChildrenCount(_.size(offsetProps) + 1)
+            .setupExpectedChildrenCount(size(offsetProps) + 1)
             .assertElement(shadowMerge, 'merge (shadow)');
 
-        const shadowMergeNodeIns = _.map(offsetProps, 'result');
+        const shadowMergeNodeIns = map(offsetProps, 'result');
         shadowMergeNodeIns.push('expand');
 
-        _.each(shadowMergeNodeIns, (value, index) => {
+        each(shadowMergeNodeIns, (value, index) => {
             const mergeNode = shadowMerge.childNodes[index] as Element;
 
             new FeElementAsserter<FeMergeNodeParams>()
@@ -84,7 +85,9 @@ describe('SVGSolidShadowFilterFactoryTest', () => {
 
         const flood = filter.childNodes[feElementIndex++] as Element;
 
-        new FeElementAsserter<FeFloodParams>().setupExpectedParam('flood-color', 'white').assertElement(flood, 'flood');
+        new FeElementAsserter<FeFloodParams>()
+            .setupExpectedParam('flood-color', 'white')
+            .assertElement(flood, 'flood');
 
         const composite = filter.childNodes[feElementIndex++] as Element;
 
@@ -96,11 +99,13 @@ describe('SVGSolidShadowFilterFactoryTest', () => {
 
         const finalMerge = filter.childNodes[feElementIndex++] as Element;
 
-        new FeElementAsserter<FeMergeParams>().setupExpectedChildrenCount(2).assertElement(finalMerge, 'merge (final)');
+        new FeElementAsserter<FeMergeParams>()
+            .setupExpectedChildrenCount(2)
+            .assertElement(finalMerge, 'merge (final)');
 
         const finalMergeNodeIns = ['shadow', 'SourceGraphic'];
 
-        _.each(finalMergeNodeIns, (value, index) => {
+        each(finalMergeNodeIns, (value, index) => {
             const mergeNode = finalMerge.childNodes[index] as Element;
 
             new FeElementAsserter<FeMergeNodeParams>()
@@ -134,11 +139,19 @@ class FeElementAsserter<TParams> {
     public assertElement(actualElement: Element, messageSuffix?: string): void {
         this.assertElementIsNotNullOrUndefined(actualElement, messageSuffix);
 
-        const actualElementAttributeNames = _.map(actualElement.attributes, 'name');
-        const expectedAttributeNames = _.keys(this.expectedParams);
+        const actualElementAttributeNames = map(actualElement.attributes, 'name');
+        const expectedAttributeNames = keys(this.expectedParams);
 
-        this.assertThereAreNoUnexpectedAttributes(actualElementAttributeNames, expectedAttributeNames, messageSuffix);
-        this.assertThereAreNotMissingAttributes(actualElementAttributeNames, expectedAttributeNames, messageSuffix);
+        this.assertThereAreNoUnexpectedAttributes(
+            actualElementAttributeNames,
+            expectedAttributeNames,
+            messageSuffix,
+        );
+        this.assertThereAreNotMissingAttributes(
+            actualElementAttributeNames,
+            expectedAttributeNames,
+            messageSuffix,
+        );
 
         this.assertAttributeValuesAreAsExpected(actualElement, messageSuffix);
 
@@ -146,12 +159,16 @@ class FeElementAsserter<TParams> {
     }
 
     private assertChildrenCountIsAsExpected(actualElement: Element, messageSuffix: string): void {
-        const expectedChildrenCount = this.expectedChildrenCount != null ? this.expectedChildrenCount : 0;
+        const expectedChildrenCount =
+            this.expectedChildrenCount != null ? this.expectedChildrenCount : 0;
         expect(actualElement.childElementCount).toEqual(expectedChildrenCount);
     }
 
-    private assertAttributeValuesAreAsExpected(actualElement: Element, messageSuffix: string): void {
-        _.forOwn(this.expectedParams, (value, name) => {
+    private assertAttributeValuesAreAsExpected(
+        actualElement: Element,
+        messageSuffix: string,
+    ): void {
+        forOwn(this.expectedParams, (value, name) => {
             const actualValue = actualElement.getAttributeNS(null, name);
             expect(actualValue).toEqual(value.toString());
         });
@@ -162,11 +179,17 @@ class FeElementAsserter<TParams> {
         expectedAttributeNames: string[],
         messageSuffix: string,
     ): void {
-        const actualButNotExpected = _.difference(actualElementAttributeNames, expectedAttributeNames);
+        const actualButNotExpected = difference(
+            actualElementAttributeNames,
+            expectedAttributeNames,
+        );
 
-        if (!_.isEmpty(actualButNotExpected)) {
+        if (!isEmpty(actualButNotExpected)) {
             const extraAttributes = actualButNotExpected.join(', ');
-            const message = this.prependIfNotNull(messageSuffix, `found the following unexpected attributes: <${extraAttributes}>`);
+            const message = this.prependIfNotNull(
+                messageSuffix,
+                `found the following unexpected attributes: <${extraAttributes}>`,
+            );
             expect(message).toBeFalsy();
         }
     }
@@ -176,11 +199,16 @@ class FeElementAsserter<TParams> {
         expectedAttributeNames: string[],
         messageSuffix: string,
     ): void {
-        const expectedButNotPresent = _.difference(expectedAttributeNames, actualElementAttributeNames);
+        const expectedButNotPresent = difference(
+            expectedAttributeNames,
+            actualElementAttributeNames,
+        );
 
-        if (!_.isEmpty(expectedButNotPresent)) {
+        if (!isEmpty(expectedButNotPresent)) {
             const missingAttributes = expectedButNotPresent.join(', ');
-            expect(`the following expected attributes are missing: <${missingAttributes}>`).toBeFalsy();
+            expect(
+                `the following expected attributes are missing: <${missingAttributes}>`,
+            ).toBeFalsy();
         }
     }
 

@@ -1,8 +1,6 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
-const path = require('path');
-
-module.exports = function(grunt) {
+module.exports = function (grunt) {
     const webStoreAccount = {
         client_id: grunt.option('webstore-client-id'),
         client_secret: grunt.option('webstore-client-secret'),
@@ -12,6 +10,7 @@ module.exports = function(grunt) {
 
     const options = {
         appInsightsInstrumentationKey: grunt.option('app-insights-instrumentation-key'),
+        electronUpdateURL: grunt.option('electron-update-url'),
         extensionVersion: grunt.option('extension-version'),
         webstoreAppId: grunt.option('webstore-app-id'),
     };
@@ -26,10 +25,12 @@ module.exports = function(grunt) {
     grunt.initConfig({
         compress: {
             extension: {
-                cwd: 'extension',
+                cwd: 'product',
                 src: '**/*',
                 expand: true,
-                options: { archive: 'extension.zip' },
+                options: {
+                    archive: 'extension.zip',
+                },
             },
         },
         webstore_upload: {
@@ -37,7 +38,29 @@ module.exports = function(grunt) {
                 default: webStoreAccount,
             },
             extensions: {
-                open: { appID: options.webstoreAppId, zip: 'extension.zip' },
+                open: {
+                    appID: options.webstoreAppId,
+                    zip: 'extension.zip',
+                },
+            },
+            onError: e => {
+                if (
+                    e.errors.itemError &&
+                    e.errors.itemError[0] &&
+                    e.errors.itemError[0].error_code === 'ITEM_NOT_UPDATABLE'
+                ) {
+                    grunt.log.write(
+                        'Cannot publish due to extension not being updatable. This is likely due to a previous deployment that is pending review. As such, marking this as partially successful.',
+                    );
+                    grunt.log.write('##vso[task.complete result=SucceededWithIssues;]DONE');
+                } else {
+                    grunt.fail.fatal(e.errorMsg);
+                }
+            },
+            onExtensionPublished: info => {
+                if (!info.success) {
+                    grunt.fail.fatal(JSON.stringify(info));
+                }
             },
         },
     });
@@ -45,34 +68,40 @@ module.exports = function(grunt) {
     grunt.loadNpmTasks('grunt-contrib-compress');
     grunt.loadNpmTasks('grunt-webstore-upload');
 
-    const versionFromDate = () => {
+    const versionFromDate = () => makeVersionFromDateString('.');
+
+    const makeVersionFromDateString = lastSeperator => {
         const now = new Date();
-        return `${now.getUTCFullYear()}.${now.getUTCMonth() + 1}.${now.getUTCDate()}.${now.getUTCHours() * 100 + now.getUTCMinutes()}`;
+        return `${now.getUTCFullYear()}.${
+            now.getUTCMonth() + 1
+        }.${now.getUTCDate()}${lastSeperator}${now.getUTCHours() * 100 + now.getUTCMinutes()}`;
     };
 
-    grunt.registerTask('update-config', function() {
-        const configJSONPath = 'extension/insights.config.json';
+    grunt.registerTask('update-config', function () {
+        const configJSONPath = 'product/insights.config.json';
         const config = grunt.file.readJSON(configJSONPath);
 
         config.options.appInsightsInstrumentationKey = options.appInsightsInstrumentationKey;
 
-        const configJSPath = 'extension/insights.config.js';
+        const configJSPath = 'product/insights.config.js';
         const configJSON = JSON.stringify(config, undefined, 4);
         grunt.file.write(configJSONPath, configJSON);
 
-        const copyrightHeader = '// Copyright (c) Microsoft Corporation. All rights reserved.\n// Licensed under the MIT License.\n';
+        const copyrightHeader =
+            '// Copyright (c) Microsoft Corporation. All rights reserved.\n// Licensed under the MIT License.\n';
         const configJS = `${copyrightHeader}window.insights = ${configJSON}`;
         grunt.file.write(configJSPath, configJS);
     });
 
-    grunt.registerTask('update-manifest', function() {
-        const manifestPath = 'extension/manifest.json';
+    grunt.registerTask('update-manifest', function () {
+        const manifestPath = 'product/manifest.json';
         const manifest = grunt.file.readJSON(manifestPath);
         let version = options.extensionVersion;
         if (version == 'auto') {
             version = versionFromDate();
         }
         manifest.version = version;
+        grunt.log.writeln(`publishing ai-web version ${version}`);
         grunt.file.write(manifestPath, JSON.stringify(manifest, undefined, 4));
     });
     grunt.registerTask('zip', ['update-config', 'update-manifest', 'compress:extension']);

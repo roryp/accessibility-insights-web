@@ -1,31 +1,42 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
-import { IMock, It, Mock, Times } from 'typemoq';
-
-import { FeatureFlagActions, FeatureFlagPayload } from '../../../../../../background/actions/feature-flag-actions';
-import { ChromeAdapter } from '../../../../../../background/browser-adapter';
-import { LocalStorageDataKeys } from '../../../../../../background/local-storage-data-keys';
-import { ILocalStorageData } from '../../../../../../background/storage-data';
-import { FeatureFlagStore } from '../../../../../../background/stores/global/feature-flag-store';
-import { getDefaultFeatureFlagValues } from '../../../../../../common/feature-flags';
-import { StoreNames } from '../../../../../../common/stores/store-names';
-import { FeatureFlagStoreData } from '../../../../../../common/types/store-data/feature-flag-store-data';
+import { FeatureFlagActions, FeatureFlagPayload } from 'background/actions/feature-flag-actions';
+import { LocalStorageDataKeys } from 'background/local-storage-data-keys';
+import { LocalStorageData } from 'background/storage-data';
+import { FeatureFlagStore } from 'background/stores/global/feature-flag-store';
+import { StorageAdapter } from 'common/browser-adapters/storage-adapter';
+import { FeatureFlagDefaultsHelper } from 'common/feature-flag-defaults-helper';
+import { StoreNames } from 'common/stores/store-names';
+import { FeatureFlagStoreData } from 'common/types/store-data/feature-flag-store-data';
+import { IMock, It, Mock } from 'typemoq';
+import { DictionaryStringTo } from 'types/common-types';
 import { createStoreWithNullParams, StoreTester } from '../../../../common/store-tester';
 
 describe('FeatureFlagStoreTest', () => {
-    let browserAdapterMock: IMock<ChromeAdapter>;
+    let storageAdapterMock: IMock<StorageAdapter>;
     let fakeFeatureFlagDefaultValue: FeatureFlagStoreData;
     let fakeFeatureFlagTestValue: FeatureFlagStoreData;
-    const fakeFeature = 'fakeFeature';
+    const testFeature = 'fakeFeature';
+    let getForceDefaultFeatures: string[];
+    let featureFlagDefaultsHelperMock: IMock<FeatureFlagDefaultsHelper>;
 
-    beforeAll(() => {
-        fakeFeatureFlagDefaultValue = getDefaultFeatureFlagValues();
-        fakeFeatureFlagDefaultValue[fakeFeature] = true;
+    beforeEach(() => {
+        getForceDefaultFeatures = ['defaultFeature'];
 
-        fakeFeatureFlagTestValue = getDefaultFeatureFlagValues();
-        fakeFeatureFlagTestValue[fakeFeature] = false;
+        fakeFeatureFlagDefaultValue = createFakeDefaultFeatureFlagValues();
 
-        browserAdapterMock = Mock.ofType(ChromeAdapter);
+        fakeFeatureFlagTestValue = createFakeDefaultFeatureFlagValues();
+        fakeFeatureFlagTestValue[testFeature] = false;
+
+        storageAdapterMock = Mock.ofType<StorageAdapter>();
+
+        featureFlagDefaultsHelperMock = Mock.ofType<FeatureFlagDefaultsHelper>();
+        featureFlagDefaultsHelperMock
+            .setup(f => f.getDefaultFeatureFlagValues())
+            .returns(() => createFakeDefaultFeatureFlagValues());
+        featureFlagDefaultsHelperMock
+            .setup(f => f.getForceDefaultFlags())
+            .returns(() => getForceDefaultFeatures);
     });
 
     test('constructor, no side effects', () => {
@@ -39,26 +50,27 @@ describe('FeatureFlagStoreTest', () => {
     });
 
     test('initialize, no user data', () => {
-        const expectedState = getDefaultFeatureFlagValues();
-        const testObject = new FeatureFlagStore(new FeatureFlagActions(), null, null);
+        const expectedState = createFakeDefaultFeatureFlagValues();
+        const testObject = createDefaultTestObject(null);
+
         testObject.initialize();
         expect(testObject.getState()).toEqual(expectedState);
     });
 
     test('initialize, no feature flags on user data', () => {
-        const expectedState = getDefaultFeatureFlagValues();
-        const testObject = new FeatureFlagStore(new FeatureFlagActions(), null, {});
+        const expectedState = createFakeDefaultFeatureFlagValues();
+        const testObject = createDefaultTestObject({});
+
         testObject.initialize();
         expect(testObject.getState()).toEqual(expectedState);
     });
 
     test('constructor custom state', () => {
         const testState: FeatureFlagStoreData = fakeFeatureFlagTestValue;
-        const userDataStub: ILocalStorageData = {
+        const userDataStub: LocalStorageData = {
             featureFlags: testState,
         };
-        const testObject = new FeatureFlagStore(new FeatureFlagActions(), browserAdapterMock.object, userDataStub);
-        testObject.getDefaultState = () => fakeFeatureFlagDefaultValue;
+        const testObject = createDefaultTestObject(userDataStub);
 
         testObject.initialize();
         expect(testObject.getState()).toEqual(testState);
@@ -67,32 +79,34 @@ describe('FeatureFlagStoreTest', () => {
     test('constructor: initialize with force default states', () => {
         const testState: FeatureFlagStoreData = fakeFeatureFlagTestValue;
         const expectedState: FeatureFlagStoreData = fakeFeatureFlagDefaultValue;
-        const userDataStub: ILocalStorageData = {
+        const userDataStub: LocalStorageData = {
             featureFlags: testState,
         };
-        const testObject = new FeatureFlagStore(new FeatureFlagActions(), browserAdapterMock.object, userDataStub);
-        testObject.getDefaultState = () => fakeFeatureFlagDefaultValue;
-        testObject.getForceDefaultFlags = () => [fakeFeature];
+        getForceDefaultFeatures = [testFeature];
+        const testObject = createDefaultTestObject(userDataStub);
 
         testObject.initialize();
         expect(testObject.getState()).toEqual(expectedState);
     });
 
     test('on getCurrentState', () => {
-        const initialState = getDefaultFeatureFlagValues();
-        const finalState = getDefaultFeatureFlagValues();
+        const initialState = createFakeDefaultFeatureFlagValues();
+        const finalState = createFakeDefaultFeatureFlagValues();
 
-        createStoreTesterForFeatureFlagActions('getCurrentState').testListenerToBeCalledOnce(initialState, finalState);
+        createStoreTesterForFeatureFlagActions('getCurrentState').testListenerToBeCalledOnce(
+            initialState,
+            finalState,
+        );
     });
 
     test('on setFeatureFlag', () => {
-        const initialState = getDefaultFeatureFlagValues();
-        const userDataStub: ILocalStorageData = {
-            featureFlags: getDefaultFeatureFlagValues(),
+        const initialState = createFakeDefaultFeatureFlagValues();
+        const userDataStub: LocalStorageData = {
+            featureFlags: createFakeDefaultFeatureFlagValues(),
         };
 
         const featureFlagName = 'feature-flag-name';
-        const finalState = getDefaultFeatureFlagValues();
+        const finalState = createFakeDefaultFeatureFlagValues();
         finalState[featureFlagName] = true;
 
         const payload: FeatureFlagPayload = {
@@ -100,32 +114,57 @@ describe('FeatureFlagStoreTest', () => {
             enabled: true,
         };
 
-        browserAdapterMock
-            .setup(ba => ba.setUserData(It.isValue({ [LocalStorageDataKeys.featureFlags]: finalState })))
-            .verifiable(Times.once());
+        storageAdapterMock
+            .setup(ba =>
+                ba.setUserData(It.isValue({ [LocalStorageDataKeys.featureFlags]: finalState })),
+            )
+            .returns(() => Promise.resolve());
 
         createStoreTesterForFeatureFlagActions('setFeatureFlag', userDataStub)
             .withActionParam(payload)
             .testListenerToBeCalledOnce(initialState, finalState);
-
-        browserAdapterMock.verifyAll();
     });
 
     test('onResetFeatureFlags', () => {
-        const initialState = getDefaultFeatureFlagValues();
+        const initialState = createFakeDefaultFeatureFlagValues();
         const featureFlagName = 'feature-flag-name';
         initialState[featureFlagName] = true;
 
-        const finalState = getDefaultFeatureFlagValues();
+        const finalState = createFakeDefaultFeatureFlagValues();
 
-        createStoreTesterForFeatureFlagActions('resetFeatureFlags').testListenerToBeCalledOnce(initialState, finalState);
+        createStoreTesterForFeatureFlagActions('resetFeatureFlags').testListenerToBeCalledOnce(
+            initialState,
+            finalState,
+        );
     });
+
+    function createDefaultTestObject(userDataStub: LocalStorageData): FeatureFlagStore {
+        return new FeatureFlagStore(
+            new FeatureFlagActions(),
+            storageAdapterMock.object,
+            userDataStub,
+            featureFlagDefaultsHelperMock.object,
+        );
+    }
 
     function createStoreTesterForFeatureFlagActions(
         actionName: keyof FeatureFlagActions,
-        userData: ILocalStorageData = null,
+        userData: LocalStorageData = null,
     ): StoreTester<DictionaryStringTo<boolean>, FeatureFlagActions> {
-        const factory = (actions: FeatureFlagActions) => new FeatureFlagStore(actions, browserAdapterMock.object, userData);
+        const factory = (actions: FeatureFlagActions) =>
+            new FeatureFlagStore(
+                actions,
+                storageAdapterMock.object,
+                userData,
+                featureFlagDefaultsHelperMock.object,
+            );
         return new StoreTester(FeatureFlagActions, actionName, factory);
+    }
+
+    function createFakeDefaultFeatureFlagValues(): FeatureFlagStoreData {
+        return {
+            defaultFeature: true,
+            fakeFeature: true,
+        };
     }
 });

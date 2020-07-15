@@ -1,6 +1,5 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
-import { TelemetryDataFactory } from '../../../../common/telemetry-data-factory';
 import {
     AssessmentTelemetryData,
     BaseTelemetryData,
@@ -9,19 +8,23 @@ import {
     DetailsViewPivotSelectedTelemetryData,
     ExportResultsTelemetryData,
     FeatureFlagToggleTelemetryData,
+    FileIssueClickTelemetryData,
     InspectTelemetryData,
+    RequirementActionTelemetryData,
+    RequirementSelectTelemetryData,
     RuleAnalyzerScanTelemetryData,
+    SelectGettingStartedTelemetryData,
+    SetAllUrlsPermissionTelemetryData,
     SettingsOpenSourceItem,
     SettingsOpenTelemetryData,
     TelemetryEventSource,
-    TestStepActionTelemetryData,
-    TestStepSelectTelemetryData,
     ToggleTelemetryData,
     TriggeredByNotApplicable,
-} from '../../../../common/telemetry-events';
+} from '../../../../common/extension-telemetry-events';
+import { TelemetryDataFactory } from '../../../../common/telemetry-data-factory';
 import { DetailsViewPivotType } from '../../../../common/types/details-view-pivot-type';
 import { VisualizationType } from '../../../../common/types/visualization-type';
-import { AxeAnalyzerResult } from '../../../../injected/analyzers/ianalyzer';
+import { AxeAnalyzerResult } from '../../../../injected/analyzers/analyzer';
 import { EventStubFactory } from './../../common/event-stub-factory';
 
 describe('TelemetryDataFactoryTest', () => {
@@ -35,14 +38,14 @@ describe('TelemetryDataFactoryTest', () => {
         const event = mouseClickEvent;
 
         const source = TelemetryEventSource.AdHocTools;
-        const type = 'inputType';
+        const inputType = 'inputType';
 
-        const result = testObject.forAddSelector(event, type, source);
+        const result = testObject.forAddSelector(event, inputType, source);
 
         const expected = {
             triggeredBy: 'mouseclick',
             source: source,
-            inputType: type,
+            inputType: inputType,
         };
 
         expect(result).toEqual(expected);
@@ -52,14 +55,14 @@ describe('TelemetryDataFactoryTest', () => {
         const event = mouseClickEvent;
 
         const source = TelemetryEventSource.AdHocTools;
-        const type = 'inputType';
+        const inputType = 'inputType';
 
-        const result = testObject.forDeleteSelector(event, type, source);
+        const result = testObject.forDeleteSelector(event, inputType, source);
 
         const expected = {
             triggeredBy: 'mouseclick',
             source: source,
-            inputType: type,
+            inputType: inputType,
         };
 
         expect(result).toEqual(expected);
@@ -97,13 +100,13 @@ describe('TelemetryDataFactoryTest', () => {
 
     test('forSelectDetailsView by keypress', () => {
         const event = keypressEvent;
-        const type = VisualizationType.Color;
+        const visualizationType = VisualizationType.Color;
         const source = TelemetryEventSource.DetailsView;
 
-        const result = testObject.forSelectDetailsView(event, type);
+        const result = testObject.forSelectDetailsView(event, visualizationType);
 
         const expected: DetailsViewOpenTelemetryData = {
-            detailsView: VisualizationType[type],
+            selectedTest: VisualizationType[visualizationType],
             triggeredBy: 'keypress',
             source,
         };
@@ -113,13 +116,13 @@ describe('TelemetryDataFactoryTest', () => {
 
     test('forSelectDetailsView by mouseclick', () => {
         const event = mouseClickEvent;
-        const type = VisualizationType.Color;
+        const visualizationType = VisualizationType.Color;
         const source = TelemetryEventSource.DetailsView;
 
-        const result = testObject.forSelectDetailsView(event, type);
+        const result = testObject.forSelectDetailsView(event, visualizationType);
 
         const expected: DetailsViewOpenTelemetryData = {
-            detailsView: VisualizationType[type],
+            selectedTest: VisualizationType[visualizationType],
             triggeredBy: 'mouseclick',
             source,
         };
@@ -155,13 +158,13 @@ describe('TelemetryDataFactoryTest', () => {
     });
 
     test('forOpenDetailsView by keypress', () => {
-        const type = VisualizationType.Headings;
+        const visualizationType = VisualizationType.Headings;
         const event = keypressEvent;
 
-        const result = testObject.forOpenDetailsView(event, type, testSource);
+        const result = testObject.forOpenDetailsView(event, visualizationType, testSource);
 
         const expected: DetailsViewOpenTelemetryData = {
-            detailsView: VisualizationType[type],
+            selectedTest: VisualizationType[visualizationType],
             triggeredBy: 'keypress',
             source: testSource,
         };
@@ -170,13 +173,13 @@ describe('TelemetryDataFactoryTest', () => {
     });
 
     test('forOpenDetailsView by mouseclick', () => {
-        const type = VisualizationType.Headings;
+        const visualizationType = VisualizationType.Headings;
         const event = mouseClickEvent;
 
-        const result = testObject.forOpenDetailsView(event, type, testSource);
+        const result = testObject.forOpenDetailsView(event, visualizationType, testSource);
 
         const expected: DetailsViewOpenTelemetryData = {
-            detailsView: VisualizationType[type],
+            selectedTest: VisualizationType[visualizationType],
             triggeredBy: 'mouseclick',
             source: testSource,
         };
@@ -299,30 +302,55 @@ describe('TelemetryDataFactoryTest', () => {
         expect(actual).toEqual(expected);
     });
 
-    test('forSelectTestStep', () => {
+    test('forSelectRequirement', () => {
         const event = mouseClickEvent;
-        const expected: TestStepSelectTelemetryData = {
+        const expected: RequirementSelectTelemetryData = {
             triggeredBy: 'mouseclick',
             source: TelemetryEventSource.DetailsView,
             selectedTest: VisualizationType[VisualizationType.Headings],
-            selectedStep: 'step',
+            selectedRequirement: 'requirement',
         };
 
-        const actual: TestStepSelectTelemetryData = testObject.forSelectTestStep(event, VisualizationType.Headings, 'step');
+        const actual: RequirementSelectTelemetryData = testObject.forSelectRequirement(
+            event,
+            VisualizationType.Headings,
+            'requirement',
+        );
+
+        expect(actual).toEqual(expected);
+    });
+
+    test('forSelectGettingStarted', () => {
+        const event = mouseClickEvent;
+        const visualizationType = VisualizationType.Headings;
+        const expected: SelectGettingStartedTelemetryData = {
+            triggeredBy: 'mouseclick',
+            source: TelemetryEventSource.DetailsView,
+            selectedTest: VisualizationType[visualizationType],
+        };
+
+        const actual: SelectGettingStartedTelemetryData = testObject.forSelectGettingStarted(
+            event,
+            visualizationType,
+        );
 
         expect(actual).toEqual(expected);
     });
 
     test('forSelectDetailsView without event', () => {
         const event = null;
-        const expected: TestStepSelectTelemetryData = {
+        const expected: RequirementSelectTelemetryData = {
             triggeredBy: TriggeredByNotApplicable,
             source: TelemetryEventSource.DetailsView,
             selectedTest: VisualizationType[VisualizationType.Headings],
-            selectedStep: 'step',
+            selectedRequirement: 'requirement',
         };
 
-        const actual: TestStepSelectTelemetryData = testObject.forSelectTestStep(event, VisualizationType.Headings, 'step');
+        const actual: RequirementSelectTelemetryData = testObject.forSelectRequirement(
+            event,
+            VisualizationType.Headings,
+            'requirement',
+        );
 
         expect(actual).toEqual(expected);
     });
@@ -334,7 +362,9 @@ describe('TelemetryDataFactoryTest', () => {
             selectedTest: VisualizationType[VisualizationType.Headings],
         };
 
-        const actual: AssessmentTelemetryData = testObject.forAssessmentActionFromDetailsViewNoTriggeredBy(VisualizationType.Headings);
+        const actual: AssessmentTelemetryData = testObject.forAssessmentActionFromDetailsViewNoTriggeredBy(
+            VisualizationType.Headings,
+        );
 
         expect(actual).toEqual(expected);
     });
@@ -347,36 +377,41 @@ describe('TelemetryDataFactoryTest', () => {
             selectedTest: VisualizationType[VisualizationType.Headings],
         };
 
-        const actual: AssessmentTelemetryData = testObject.forAssessmentActionFromDetailsView(VisualizationType.Headings, event);
+        const actual: AssessmentTelemetryData = testObject.forAssessmentActionFromDetailsView(
+            VisualizationType.Headings,
+            event,
+        );
 
         expect(actual).toEqual(expected);
     });
 
     test('forAddRemoveFailureInstanceFromDetailsView', () => {
-        const event = mouseClickEvent;
-        const expected: TestStepActionTelemetryData = {
+        const expected: RequirementActionTelemetryData = {
             triggeredBy: TriggeredByNotApplicable,
             source: TelemetryEventSource.DetailsView,
-            selectedStep: 'step',
+            selectedRequirement: 'requirement',
             selectedTest: VisualizationType[-1],
         };
 
-        const actual: TestStepActionTelemetryData = testObject.forTestStepFromDetailsView(-1, 'step');
+        const actual: RequirementActionTelemetryData = testObject.forRequirementFromDetailsView(
+            -1,
+            'requirement',
+        );
 
         expect(actual).toEqual(expected);
     });
 
     test('fromCancelStartOver', () => {
         const test = VisualizationType.ColorSensoryAssessment;
-        const step = 'step';
+        const requirement = 'requirement';
         const expected = {
-            selectedStep: step,
+            selectedRequirement: requirement,
             selectedTest: VisualizationType[test],
             source: TelemetryEventSource.DetailsView,
             triggeredBy: 'mouseclick',
         };
 
-        const actual = testObject.forCancelStartOver(mouseClickEvent, test, step);
+        const actual = testObject.forCancelStartOver(mouseClickEvent, test, requirement);
 
         expect(actual).toEqual(expected);
     });
@@ -402,7 +437,12 @@ describe('TelemetryDataFactoryTest', () => {
             featureFlagId: 'id',
         };
 
-        const actual: FeatureFlagToggleTelemetryData = testObject.forFeatureFlagToggle(event, true, TelemetryEventSource.DetailsView, 'id');
+        const actual: FeatureFlagToggleTelemetryData = testObject.forFeatureFlagToggle(
+            event,
+            true,
+            TelemetryEventSource.DetailsView,
+            'id',
+        );
 
         expect(actual).toEqual(expected);
     });
@@ -416,7 +456,13 @@ describe('TelemetryDataFactoryTest', () => {
         } as AxeAnalyzerResult;
         const elapsedTime = 50;
         const elementsScanned = 2;
-        const actual = testObject.forAssessmentRequirementScan(analyzerResultStub, elapsedTime, elementsScanned, testName, requirementName);
+        const actual = testObject.forAssessmentRequirementScan(
+            analyzerResultStub,
+            elapsedTime,
+            elementsScanned,
+            testName,
+            requirementName,
+        );
         const expected: RuleAnalyzerScanTelemetryData = {
             scanDuration: elapsedTime,
             NumberOfElementsScanned: elementsScanned,
@@ -437,7 +483,12 @@ describe('TelemetryDataFactoryTest', () => {
         } as AxeAnalyzerResult;
         const elapsedTime = 50;
         const elementsScanned = 2;
-        const actual = testObject.forTestScan(analyzerResultStub, elapsedTime, elementsScanned, testName);
+        const actual = testObject.forTestScan(
+            analyzerResultStub,
+            elapsedTime,
+            elementsScanned,
+            testName,
+        );
         const expected: RuleAnalyzerScanTelemetryData = {
             scanDuration: elapsedTime,
             NumberOfElementsScanned: elementsScanned,
@@ -475,9 +526,66 @@ describe('TelemetryDataFactoryTest', () => {
         } as AxeAnalyzerResult;
         const elapsedTime = 50;
         const elementsScanned = 2;
-        const actual = testObject.forIssuesAnalyzerScan(analyzerResultStub, elapsedTime, elementsScanned, testName);
+        const actual = testObject.forIssuesAnalyzerScan(
+            analyzerResultStub,
+            elapsedTime,
+            elementsScanned,
+            testName,
+        );
         const passedRuleResultsStub = {
             test: 2,
+        };
+
+        expect(actual.scanDuration).toBe(elapsedTime);
+        expect(actual.NumberOfElementsScanned).toBe(elementsScanned);
+        expect(actual.include).toBe(analyzerResultStub.include);
+        expect(actual.exclude).toBe(analyzerResultStub.exclude);
+        expect(JSON.parse(actual.passedRuleResults)).toEqual(passedRuleResultsStub);
+    });
+
+    test('forNeedsReviewAnalyzerScan', () => {
+        const testName = 'test';
+        const analyzerResultStub = {
+            include: [],
+            exclude: [],
+            originalResult: {
+                passes: [
+                    {
+                        id: 'test',
+                        nodes: [{}, {}],
+                    },
+                ],
+                violations: [
+                    {
+                        id: 'test',
+                        nodes: [{}],
+                    },
+                    {
+                        id: 'test-2',
+                        nodes: [{}],
+                    },
+                ],
+                incomplete: [
+                    {
+                        id: 'test',
+                        nodes: [{}],
+                    },
+                ],
+            },
+        } as AxeAnalyzerResult;
+        const elapsedTime = 50;
+        const elementsScanned = 2;
+        const actual = testObject.forNeedsReviewAnalyzerScan(
+            analyzerResultStub,
+            elapsedTime,
+            elementsScanned,
+            testName,
+        );
+        const passedRuleResultsStub = {
+            test: 2,
+        };
+        const incompleteRuleResultsStub = {
+            test: 1,
         };
         const failedRuleResultsStub = {
             test: 1,
@@ -489,6 +597,8 @@ describe('TelemetryDataFactoryTest', () => {
         expect(actual.include).toBe(analyzerResultStub.include);
         expect(actual.exclude).toBe(analyzerResultStub.exclude);
         expect(JSON.parse(actual.passedRuleResults)).toEqual(passedRuleResultsStub);
+        expect(JSON.parse(actual.incompleteRuleResults)).toEqual(incompleteRuleResultsStub);
+        expect(JSON.parse(actual.failedRuleResults)).toEqual(failedRuleResultsStub);
     });
 
     test('forExportedHtml by keypress', () => {
@@ -496,7 +606,12 @@ describe('TelemetryDataFactoryTest', () => {
         const event = keypressEvent;
         const exportResultsType = 'Assessment';
 
-        const result = testObject.forExportedHtml(exportResultsType, exportedHtml, event, testSource);
+        const result = testObject.forExportedHtml(
+            exportResultsType,
+            exportedHtml,
+            event,
+            testSource,
+        );
 
         const expected: ExportResultsTelemetryData = {
             exportResultsType: exportResultsType,
@@ -513,7 +628,12 @@ describe('TelemetryDataFactoryTest', () => {
         const event = mouseClickEvent;
         const exportResultsType = 'AutomatedChecks';
 
-        const result = testObject.forExportedHtml(exportResultsType, exportedHtml, event, testSource);
+        const result = testObject.forExportedHtml(
+            exportResultsType,
+            exportedHtml,
+            event,
+            testSource,
+        );
 
         const expected: ExportResultsTelemetryData = {
             exportResultsType: exportResultsType,
@@ -521,6 +641,49 @@ describe('TelemetryDataFactoryTest', () => {
             triggeredBy: 'mouseclick',
             source: testSource,
         };
+
+        expect(result).toEqual(expected);
+    });
+
+    test('forFileIssueClick', () => {
+        const service = 'test-service';
+
+        const result = testObject.forFileIssueClick(mouseClickEvent, testSource, service);
+
+        const expected: FileIssueClickTelemetryData = {
+            service,
+            source: testSource,
+            triggeredBy: 'mouseclick',
+        };
+
+        expect(result).toEqual(expected);
+    });
+
+    test('forSetAllUrlPermissionState', () => {
+        const permissionState = true;
+
+        const result = testObject.forSetAllUrlPermissionState(
+            mouseClickEvent,
+            testSource,
+            permissionState,
+        );
+
+        const expected: SetAllUrlsPermissionTelemetryData = {
+            permissionState,
+            source: testSource,
+            triggeredBy: 'mouseclick',
+        };
+
+        expect(result).toEqual(expected);
+    });
+
+    test('forLeftNavPanelExpanded', () => {
+        const expected: BaseTelemetryData = {
+            source: TelemetryEventSource.DetailsView,
+            triggeredBy: 'mouseclick',
+        };
+
+        const result = testObject.forLeftNavPanelExpanded(mouseClickEvent);
 
         expect(result).toEqual(expected);
     });

@@ -2,10 +2,10 @@
 // Licensed under the MIT License.
 import { IMock, It, Mock, MockBehavior } from 'typemoq';
 
-import { BaseStore } from '../../../../../background/stores/base-store';
-import { UserConfigurationStore } from '../../../../../background/stores/global/user-configuration-store';
-import { TelemetryEventHandler } from '../../../../../background/telemetry/telemetry-event-handler';
-import { TelemetryStateListener } from '../../../../../background/telemetry/telemetry-state-listener';
+import { BaseStoreImpl } from 'background/stores/base-store-impl';
+import { UserConfigurationStore } from 'background/stores/global/user-configuration-store';
+import { TelemetryEventHandler } from 'background/telemetry/telemetry-event-handler';
+import { TelemetryStateListener } from 'background/telemetry/telemetry-state-listener';
 import { UserConfigurationStoreData } from '../../../../../common/types/store-data/user-configuration-store';
 
 type TestCase = {
@@ -28,7 +28,10 @@ describe('TelemetryStateListenerTest', () => {
 
         userConfigStoreMock.setup(f => f.getState()).returns(() => userConfigState);
 
-        testSubject = new TelemetryStateListener(userConfigStoreMock.object, telemetryEventHandlerStrictMock.object);
+        testSubject = new TelemetryStateListener(
+            userConfigStoreMock.object,
+            telemetryEventHandlerStrictMock.object,
+        );
     });
 
     it('do nothing if not initialized', () => {
@@ -64,7 +67,7 @@ describe('TelemetryStateListenerTest', () => {
             },
         ];
 
-        test.each(disableCases)('disable telemetry: %o', (testCase: TestCase) => {
+        test.each(disableCases)('disable telemetry: %p', (testCase: TestCase) => {
             userConfigState = testCase.userConfigState;
 
             setupDisableTelemetry();
@@ -86,7 +89,7 @@ describe('TelemetryStateListenerTest', () => {
         });
     });
 
-    function setupChangeListener(store: IMock<BaseStore<any>>): void {
+    function setupChangeListener(store: IMock<BaseStoreImpl<any>>): void {
         store
             .setup(f => f.addChangedListener(It.isAny()))
             .callback(cb => {
@@ -98,7 +101,7 @@ describe('TelemetryStateListenerTest', () => {
         telemetryEventHandlerStrictMock.setup(t => t.enableTelemetry()).verifiable();
     }
 
-    function setupDisableTelemetry() {
+    function setupDisableTelemetry(): void {
         telemetryEventHandlerStrictMock.setup(t => t.disableTelemetry()).verifiable();
     }
 });

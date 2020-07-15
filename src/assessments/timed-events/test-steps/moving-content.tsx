@@ -1,16 +1,16 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
+import { link } from 'content/link';
+import * as content from 'content/test/timed-events/moving-content';
 import * as React from 'react';
-
-import { link } from '../../../content/link';
-import * as content from '../../../content/test/timed-events/moving-content';
-import ManualTestRecordYourResults from '../../common/manual-test-record-your-results';
-import { TestStep } from '../../types/test-step';
+import { ManualTestRecordYourResults } from '../../common/manual-test-record-your-results';
+import { Requirement } from '../../types/requirement';
 import { TimedEventsTestStep } from './test-steps';
 
 const description: JSX.Element = (
     <span>
-        If content moves, blinks, or scrolls automatically for more than five seconds, users must be able to pause, stop, or hide it.
+        If content moves, blinks, or scrolls automatically for more than five seconds, users must be
+        able to pause, stop, or hide it.
     </span>
 );
 
@@ -33,7 +33,7 @@ const howToTest: JSX.Element = (
     </div>
 );
 
-export const MovingContent: TestStep = {
+export const MovingContent: Requirement = {
     key: TimedEventsTestStep.movingContent,
     name: 'Moving content',
     description,

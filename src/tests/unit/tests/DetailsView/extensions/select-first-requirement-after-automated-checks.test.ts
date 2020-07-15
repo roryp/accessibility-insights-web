@@ -7,38 +7,45 @@ import { selectFirstRequirementAfterAutomatedChecks } from '../../../../../Detai
 describe('selectFirstRequirementAfterAutomatedChecks', () => {
     const first = 'first';
     const second = 'second';
-    const type = -2112;
+    const assessmentType = -2112;
 
-    const getRequirementResults = () => [{ definition: { key: first } }, { definition: { key: second } }];
+    const getRequirementResults = () => [
+        { definition: { key: first } },
+        { definition: { key: second } },
+    ];
 
-    const actionMessageCreator = {
-        selectTestStep: jest.fn(),
+    const detailsViewActionMessageCreator = {
+        selectRequirement: jest.fn(),
     };
 
     const scanningProps = ({
         deps: {
-            detailsViewActionMessageCreator: actionMessageCreator as Partial<DetailsViewActionMessageCreator>,
+            detailsViewActionMessageCreator: detailsViewActionMessageCreator as Partial<
+                DetailsViewActionMessageCreator
+            >,
         },
         assessmentTestResult: {
             getOutcomeStats: () => ({ pass: 0, incomplete: 1, fail: 0 }),
             getRequirementResults,
-            type,
+            visualizationType: assessmentType,
         },
     } as Partial<AssessmentViewProps>) as AssessmentViewProps;
 
     const notScanningProps = ({
         deps: {
-            detailsViewActionMessageCreator: actionMessageCreator as Partial<DetailsViewActionMessageCreator>,
+            detailsViewActionMessageCreator: detailsViewActionMessageCreator as Partial<
+                DetailsViewActionMessageCreator
+            >,
         },
         assessmentTestResult: {
             getOutcomeStats: () => ({ pass: 1, incomplete: 0, fail: 0 }),
             getRequirementResults,
-            type,
+            visualizationType: assessmentType,
         },
     } as Partial<AssessmentViewProps>) as AssessmentViewProps;
 
     beforeEach(() => {
-        actionMessageCreator.selectTestStep.mockClear();
+        detailsViewActionMessageCreator.selectRequirement.mockClear();
     });
 
     const testObject = selectFirstRequirementAfterAutomatedChecks.component.onAssessmentViewUpdate;
@@ -46,24 +53,28 @@ describe('selectFirstRequirementAfterAutomatedChecks', () => {
     it('selects the first test step when transitioning from scanning to not scanning', () => {
         testObject(scanningProps, notScanningProps);
 
-        expect(actionMessageCreator.selectTestStep).toBeCalledWith(null, first, type);
+        expect(detailsViewActionMessageCreator.selectRequirement).toBeCalledWith(
+            null,
+            first,
+            assessmentType,
+        );
     });
 
     it('does not select the first test step when remaining scanning', () => {
         testObject(scanningProps, scanningProps);
 
-        expect(actionMessageCreator.selectTestStep).not.toBeCalled();
+        expect(detailsViewActionMessageCreator.selectRequirement).not.toBeCalled();
     });
 
     it('does not select the first test step when remaining not scanning', () => {
         testObject(notScanningProps, notScanningProps);
 
-        expect(actionMessageCreator.selectTestStep).not.toBeCalled();
+        expect(detailsViewActionMessageCreator.selectRequirement).not.toBeCalled();
     });
 
     it('selects the first test step when transitioning from not scanning to scanning', () => {
         testObject(notScanningProps, scanningProps);
 
-        expect(actionMessageCreator.selectTestStep).not.toBeCalled();
+        expect(detailsViewActionMessageCreator.selectRequirement).not.toBeCalled();
     });
 });

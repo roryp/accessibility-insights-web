@@ -1,102 +1,97 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
-import { autobind } from '@uifabric/utilities';
-
-import { OnDetailsViewPivotSelected, SelectTestStepPayload } from '../../background/actions/action-payloads';
+import {
+    AddFailureInstancePayload,
+    AddResultDescriptionPayload,
+    AssessmentActionInstancePayload,
+    AssessmentToggleActionPayload,
+    BaseActionPayload,
+    ChangeInstanceSelectionPayload,
+    ChangeInstanceStatusPayload,
+    ChangeRequirementStatusPayload,
+    EditFailureInstancePayload,
+    ExpandTestNavPayload,
+    OnDetailsViewOpenPayload,
+    OnDetailsViewPivotSelected,
+    RemoveFailureInstancePayload,
+    SelectGettingStartedPayload,
+    SelectTestSubviewPayload,
+    SetAllUrlsPermissionStatePayload,
+    SwitchToTargetTabPayload,
+    ToggleActionPayload,
+} from 'background/actions/action-payloads';
+import { FeatureFlagPayload } from 'background/actions/feature-flag-actions';
+import { SupportedMouseEvent } from 'common/telemetry-data-factory';
+import * as React from 'react';
+import * as TelemetryEvents from '../../common/extension-telemetry-events';
+import { ReportExportFormat } from '../../common/extension-telemetry-events';
+import { Message } from '../../common/message';
 import { DevToolActionMessageCreator } from '../../common/message-creators/dev-tool-action-message-creator';
 import { Messages } from '../../common/messages';
 import { DetailsViewPivotType } from '../../common/types/details-view-pivot-type';
 import { ManualTestStatus } from '../../common/types/manual-test-status';
+import { VisualizationType } from '../../common/types/visualization-type';
+import { FailureInstanceData } from '../components/failure-instance-panel-control';
 import { DetailsViewRightContentPanelType } from '../components/left-nav/details-view-right-content-panel-type';
-import {
-    AddFailureInstancePayload,
-    AssessmentActionInstancePayload,
-    AssessmentToggleActionPayload,
-    BaseActionPayload,
-    ChangeAssessmentStepStatusPayload,
-    ChangeInstanceSelectionPayload,
-    ChangeInstanceStatusPayload,
-    EditFailureInstancePayload,
-    OnDetailsViewOpenPayload,
-    RemoveFailureInstancePayload,
-    SwitchToTargetTabPayload,
-    ToggleActionPayload,
-} from './../../background/actions/action-payloads';
-import { FeatureFlagPayload } from './../../background/actions/feature-flag-actions';
-import { TelemetryDataFactory } from './../../common/telemetry-data-factory';
-import * as TelemetryEvents from './../../common/telemetry-events';
-import { ExportResultType } from './../../common/telemetry-events';
-import { VisualizationType } from './../../common/types/visualization-type';
-import { WindowUtils } from './../../common/window-utils';
 
 const messages = Messages.Visualizations;
 
 export class DetailsViewActionMessageCreator extends DevToolActionMessageCreator {
-    private windowUtils: WindowUtils;
-
-    constructor(postMessage: (message: IMessage) => void, tabId: number, telemetryFactory: TelemetryDataFactory, windowUtils: WindowUtils) {
-        super(postMessage, tabId, telemetryFactory);
-        this.windowUtils = windowUtils;
-    }
     public updateIssuesSelectedTargets(selectedTargets: string[]): void {
         const payload: string[] = selectedTargets;
-        const message: IMessage = {
-            type: messages.Issues.UpdateSelectedTargets,
-            tabId: this._tabId,
+        const message: Message = {
+            messageType: messages.Issues.UpdateSelectedTargets,
             payload,
         };
 
-        this.dispatchMessage(message);
+        this.dispatcher.dispatchMessage(message);
     }
 
-    @autobind
-    public closePreviewFeaturesPanel(): void {
-        const type = Messages.PreviewFeatures.ClosePanel;
+    public closePreviewFeaturesPanel = (): void => {
+        const messageType = Messages.PreviewFeatures.ClosePanel;
         const telemetry = this.telemetryFactory.fromDetailsViewNoTriggeredBy();
         const payload: BaseActionPayload = {
             telemetry,
         };
 
-        this.dispatchMessage({
-            type: type,
-            tabId: this._tabId,
+        this.dispatcher.dispatchMessage({
+            messageType: messageType,
             payload,
         });
-    }
+    };
 
-    @autobind
-    public closeScopingPanel(): void {
-        const type = Messages.Scoping.ClosePanel;
+    public closeScopingPanel = (): void => {
+        const messageType = Messages.Scoping.ClosePanel;
         const telemetry = this.telemetryFactory.fromDetailsViewNoTriggeredBy();
         const payload: BaseActionPayload = {
             telemetry,
         };
 
-        this.dispatchMessage({
-            type: type,
-            tabId: this._tabId,
+        this.dispatcher.dispatchMessage({
+            messageType: messageType,
             payload,
         });
-    }
+    };
 
-    @autobind
-    public closeSettingsPanel(): void {
-        const type = Messages.SettingsPanel.ClosePanel;
+    public closeSettingsPanel = (): void => {
+        const messageType = Messages.SettingsPanel.ClosePanel;
         const telemetry = this.telemetryFactory.fromDetailsViewNoTriggeredBy();
         const payload: BaseActionPayload = {
             telemetry,
         };
 
-        this.dispatchMessage({
-            type: type,
-            tabId: this._tabId,
+        this.dispatcher.dispatchMessage({
+            messageType: messageType,
             payload,
         });
-    }
+    };
 
-    @autobind
-    public setFeatureFlag(featureFlagId: string, enabled: boolean, event: React.MouseEvent<HTMLElement>): void {
-        const type = Messages.FeatureFlags.SetFeatureFlag;
+    public setFeatureFlag = (
+        featureFlagId: string,
+        enabled: boolean,
+        event: React.MouseEvent<HTMLElement>,
+    ): void => {
+        const messageType = Messages.FeatureFlags.SetFeatureFlag;
         const telemetry = this.telemetryFactory.forFeatureFlagToggle(
             event,
             enabled,
@@ -109,66 +104,112 @@ export class DetailsViewActionMessageCreator extends DevToolActionMessageCreator
             telemetry: telemetry,
         };
 
-        this.dispatchMessage({
-            type: type,
-            tabId: this._tabId,
+        this.dispatcher.dispatchMessage({
+            messageType: messageType,
             payload: payload,
         });
-    }
+    };
 
-    public exportResultsClicked(exportResultsType: ExportResultType, exportedHtml: string, event: React.MouseEvent<HTMLElement>): void {
+    public exportResultsClicked(
+        reportExportFormat: ReportExportFormat,
+        exportedHtml: string,
+        event: React.MouseEvent<HTMLElement>,
+    ): void {
         const telemetryData = this.telemetryFactory.forExportedHtml(
-            exportResultsType,
+            reportExportFormat,
             exportedHtml,
             event,
             TelemetryEvents.TelemetryEventSource.DetailsView,
         );
 
-        this.sendTelemetry(TelemetryEvents.EXPORT_RESULTS, telemetryData);
+        this.dispatcher.sendTelemetry(TelemetryEvents.EXPORT_RESULTS, telemetryData);
     }
 
-    @autobind
-    public copyIssueDetailsClicked(event: React.MouseEvent<any>): void {
-        const telemetryData = this.telemetryFactory.withTriggeredByAndSource(event, TelemetryEvents.TelemetryEventSource.DetailsView);
-        this.sendTelemetry(TelemetryEvents.COPY_ISSUE_DETAILS, telemetryData);
-    }
+    public copyIssueDetailsClicked = (event: React.MouseEvent<any>): void => {
+        const telemetryData = this.telemetryFactory.withTriggeredByAndSource(
+            event,
+            TelemetryEvents.TelemetryEventSource.DetailsView,
+        );
+        this.dispatcher.sendTelemetry(TelemetryEvents.COPY_ISSUE_DETAILS, telemetryData);
+    };
 
     public updateFocusedInstanceTarget(instanceTarget: string[]): void {
         const payload: string[] = instanceTarget;
-        const message: IMessage = {
-            type: messages.Issues.UpdateFocusedInstance,
-            tabId: this._tabId,
+        const message: Message = {
+            messageType: messages.Issues.UpdateFocusedInstance,
             payload,
         };
 
-        this.dispatchMessage(message);
+        this.dispatcher.dispatchMessage(message);
     }
 
-    public selectDetailsView(event: React.MouseEvent<HTMLElement>, type: VisualizationType, pivot: DetailsViewPivotType): void {
+    public selectDetailsView(
+        event: React.MouseEvent<HTMLElement>,
+        visualizationType: VisualizationType,
+        pivot: DetailsViewPivotType,
+    ): void {
         const payload: OnDetailsViewOpenPayload = {
-            telemetry: this.telemetryFactory.forSelectDetailsView(event, type),
-            detailsViewType: type,
+            telemetry: this.telemetryFactory.forSelectDetailsView(event, visualizationType),
+            detailsViewType: visualizationType,
             pivotType: pivot,
         };
 
-        this.dispatchMessage({
-            type: messages.DetailsView.Select,
-            tabId: this._tabId,
+        this.dispatcher.dispatchMessage({
+            messageType: messages.DetailsView.Select,
             payload,
         });
     }
 
-    public selectTestStep(event: React.MouseEvent<HTMLElement>, selectedStep: string, type: VisualizationType): void {
-        const payload: SelectTestStepPayload = {
-            telemetry: this.telemetryFactory.forSelectTestStep(event, type, selectedStep),
-            selectedStep: selectedStep,
-            selectedTest: type,
+    public selectRequirement(
+        event: React.MouseEvent<HTMLElement>,
+        selectedRequirement: string,
+        visualizationType: VisualizationType,
+    ): void {
+        const payload: SelectTestSubviewPayload = {
+            telemetry: this.telemetryFactory.forSelectRequirement(
+                event,
+                visualizationType,
+                selectedRequirement,
+            ),
+            selectedTestSubview: selectedRequirement,
+            selectedTest: visualizationType,
         };
 
-        this.dispatchMessage({
-            type: Messages.Assessment.SelectTestStep,
-            tabId: this._tabId,
+        this.dispatcher.dispatchMessage({
+            messageType: Messages.Assessment.SelectTestRequirement,
             payload: payload,
+        });
+    }
+
+    public selectGettingStarted(
+        event: React.MouseEvent<HTMLElement>,
+        visualizationType: VisualizationType,
+    ): void {
+        const payload: SelectGettingStartedPayload = {
+            telemetry: this.telemetryFactory.forSelectGettingStarted(event, visualizationType),
+            selectedTest: visualizationType,
+        };
+
+        this.dispatcher.dispatchMessage({
+            messageType: Messages.Assessment.SelectGettingStarted,
+            payload: payload,
+        });
+    }
+
+    public expandTestNav(visualizationType: VisualizationType): void {
+        const payload: ExpandTestNavPayload = {
+            selectedTest: visualizationType,
+        };
+
+        this.dispatcher.dispatchMessage({
+            messageType: Messages.Assessment.ExpandTestNav,
+            payload: payload,
+        });
+    }
+
+    public collapseTestNav(): void {
+        this.dispatcher.dispatchMessage({
+            messageType: Messages.Assessment.CollapseTestNav,
         });
     }
 
@@ -180,52 +221,56 @@ export class DetailsViewActionMessageCreator extends DevToolActionMessageCreator
             pivotKey: DetailsViewPivotType[pivotKey],
         };
 
-        this.dispatchMessage({
-            type: Messages.Visualizations.DetailsView.PivotSelect,
-            tabId: this._tabId,
+        this.dispatcher.dispatchMessage({
+            messageType: Messages.Visualizations.DetailsView.PivotSelect,
             payload: payload,
         });
     }
 
-    @autobind
-    public switchToTargetTab(event: React.MouseEvent<HTMLElement>): void {
+    public switchToTargetTab = (event: React.MouseEvent<HTMLElement>): void => {
         const telemetry = this.telemetryFactory.fromDetailsView(event);
         const payload: SwitchToTargetTabPayload = {
             telemetry,
         };
-        this.dispatchMessage({
-            type: Messages.Tab.Switch,
-            tabId: this._tabId,
+
+        this.dispatcher.dispatchMessage({
+            messageType: Messages.Tab.Switch,
             payload,
         });
-    }
+    };
 
-    public startOverAssessment(event: React.MouseEvent<any>, test: VisualizationType, step: string): void {
+    public startOverTest(event: SupportedMouseEvent, test: VisualizationType): void {
         const telemetry = this.telemetryFactory.forAssessmentActionFromDetailsView(test, event);
         const payload: ToggleActionPayload = {
             test,
-            step,
             telemetry,
         };
 
-        this.dispatchMessage({
-            type: Messages.Assessment.StartOver,
-            tabId: this._tabId,
+        this.dispatcher.dispatchMessage({
+            messageType: Messages.Assessment.StartOverTest,
             payload,
         });
     }
 
-    public enableVisualHelper(test: VisualizationType, step: string, shouldScan = true, sendTelemetry = true): void {
-        const telemetry = sendTelemetry ? this.telemetryFactory.forAssessmentActionFromDetailsViewNoTriggeredBy(test) : null;
+    public enableVisualHelper(
+        test: VisualizationType,
+        requirement: string,
+        shouldScan = true,
+        sendTelemetry = true,
+    ): void {
+        const telemetry = sendTelemetry
+            ? this.telemetryFactory.forAssessmentActionFromDetailsViewNoTriggeredBy(test)
+            : null;
         const payload: AssessmentToggleActionPayload = {
             test,
-            step,
+            requirement,
             telemetry,
         };
 
-        this.dispatchMessage({
-            type: shouldScan ? Messages.Assessment.EnableVisualHelper : Messages.Assessment.EnableVisualHelperWithoutScan,
-            tabId: this._tabId,
+        this.dispatcher.dispatchMessage({
+            messageType: shouldScan
+                ? Messages.Assessment.EnableVisualHelper
+                : Messages.Assessment.EnableVisualHelperWithoutScan,
             payload,
         });
     }
@@ -235,266 +280,354 @@ export class DetailsViewActionMessageCreator extends DevToolActionMessageCreator
             test,
         };
 
-        this.dispatchMessage({
-            type: Messages.Assessment.DisableVisualHelperForTest,
-            tabId: this._tabId,
+        this.dispatcher.dispatchMessage({
+            messageType: Messages.Assessment.DisableVisualHelperForTest,
             payload,
         });
     }
 
-    public disableVisualHelper(test: VisualizationType, step: string): void {
-        const telemetry = this.telemetryFactory.forTestStepFromDetailsView(test, step);
+    public disableVisualHelper(test: VisualizationType, requirement: string): void {
+        const telemetry = this.telemetryFactory.forRequirementFromDetailsView(test, requirement);
         const payload: ToggleActionPayload = {
             test,
             telemetry,
         };
 
-        this.dispatchMessage({
-            type: Messages.Assessment.DisableVisualHelper,
-            tabId: this._tabId,
+        this.dispatcher.dispatchMessage({
+            messageType: Messages.Assessment.DisableVisualHelper,
             payload,
         });
     }
 
-    @autobind
-    public changeManualTestStatus(status: ManualTestStatus, test: VisualizationType, step: string, selector: string): void {
-        const telemetry = this.telemetryFactory.forTestStepFromDetailsView(test, step);
+    public changeManualTestStatus = (
+        status: ManualTestStatus,
+        test: VisualizationType,
+        requirement: string,
+        selector: string,
+    ): void => {
+        const telemetry = this.telemetryFactory.forRequirementFromDetailsView(test, requirement);
         const payload: ChangeInstanceStatusPayload = {
             test,
-            step,
+            requirement,
             status,
             selector,
             telemetry,
         };
 
-        this.dispatchMessage({
-            type: Messages.Assessment.ChangeStatus,
-            tabId: this._tabId,
+        this.dispatcher.dispatchMessage({
+            messageType: Messages.Assessment.ChangeStatus,
             payload,
         });
-    }
+    };
 
-    @autobind
-    public changeManualTestStepStatus(status: ManualTestStatus, test: VisualizationType, step: string): void {
-        const telemetry = this.telemetryFactory.forTestStepFromDetailsView(test, step);
-        const payload: ChangeAssessmentStepStatusPayload = {
+    public changeManualRequirementStatus = (
+        status: ManualTestStatus,
+        test: VisualizationType,
+        requirement: string,
+    ): void => {
+        const telemetry = this.telemetryFactory.forRequirementFromDetailsView(test, requirement);
+        const payload: ChangeRequirementStatusPayload = {
             test,
-            step,
+            requirement,
             status,
             telemetry,
         };
 
-        this.dispatchMessage({
-            type: Messages.Assessment.ChangeStepStatus,
-            tabId: this._tabId,
+        this.dispatcher.dispatchMessage({
+            messageType: Messages.Assessment.ChangeRequirementStatus,
             payload,
         });
-    }
+    };
 
-    @autobind
-    public undoManualTestStatusChange(test: VisualizationType, step: string, selector: string): void {
-        const telemetry = this.telemetryFactory.forTestStepFromDetailsView(test, step);
+    public undoManualTestStatusChange = (
+        test: VisualizationType,
+        requirement: string,
+        selector: string,
+    ): void => {
+        const telemetry = this.telemetryFactory.forRequirementFromDetailsView(test, requirement);
         const payload: AssessmentActionInstancePayload = {
             test,
-            step,
+            requirement,
             selector,
             telemetry,
         };
 
-        this.dispatchMessage({
-            type: Messages.Assessment.Undo,
-            tabId: this._tabId,
+        this.dispatcher.dispatchMessage({
+            messageType: Messages.Assessment.Undo,
             payload,
         });
-    }
+    };
 
-    @autobind
-    public undoManualTestStepStatusChange(test: VisualizationType, step: string): void {
+    public undoManualRequirementStatusChange = (
+        test: VisualizationType,
+        requirement: string,
+    ): void => {
         const telemetry = this.telemetryFactory.fromDetailsViewNoTriggeredBy();
-        const payload: ChangeAssessmentStepStatusPayload = {
+        const payload: ChangeRequirementStatusPayload = {
             test: test,
-            step: step,
+            requirement: requirement,
             telemetry: telemetry,
         };
 
-        this.dispatchMessage({
-            type: Messages.Assessment.UndoChangeStepStatus,
-            tabId: this._tabId,
+        this.dispatcher.dispatchMessage({
+            messageType: Messages.Assessment.UndoChangeRequirementStatus,
             payload,
         });
-    }
+    };
 
-    @autobind
-    public changeAssessmentVisualizationState(
+    public changeAssessmentVisualizationState = (
         isVisualizationEnabled: boolean,
         test: VisualizationType,
-        step: string,
+        requirement: string,
         selector: string,
-    ): void {
+    ): void => {
         const telemetry = this.telemetryFactory.fromDetailsViewNoTriggeredBy();
         const payload: ChangeInstanceSelectionPayload = {
             test,
-            step,
+            requirement,
             isVisualizationEnabled,
             selector,
             telemetry,
         };
 
-        this.dispatchMessage({
-            type: Messages.Assessment.ChangeVisualizationState,
-            tabId: this._tabId,
+        this.dispatcher.dispatchMessage({
+            messageType: Messages.Assessment.ChangeVisualizationState,
+            payload,
+        });
+    };
+
+    public addResultDescription(description: string): void {
+        const payload: AddResultDescriptionPayload = {
+            description,
+        };
+
+        this.dispatcher.dispatchMessage({
+            messageType: Messages.Assessment.AddResultDescription,
             payload,
         });
     }
 
-    public addFailureInstance(description: string, test: VisualizationType, step: string): void {
-        const telemetry = this.telemetryFactory.forTestStepFromDetailsView(test, step);
+    public addPathForValidation = (path: string) => {
+        const payload = path;
+
+        this.dispatcher.dispatchMessage({
+            messageType: Messages.PathSnippet.AddPathForValidation,
+            payload,
+        });
+    };
+
+    public clearPathSnippetData = () => {
+        this.dispatcher.dispatchMessage({
+            messageType: Messages.PathSnippet.ClearPathSnippetData,
+        });
+    };
+
+    public addFailureInstance(
+        instanceData: FailureInstanceData,
+        test: VisualizationType,
+        requirement: string,
+    ): void {
+        const telemetry = this.telemetryFactory.forRequirementFromDetailsView(test, requirement);
         const payload: AddFailureInstancePayload = {
             test,
-            step,
-            description,
+            requirement,
+            instanceData,
             telemetry,
         };
 
-        this.dispatchMessage({
-            type: Messages.Assessment.AddFailureInstance,
-            tabId: this._tabId,
+        this.dispatcher.dispatchMessage({
+            messageType: Messages.Assessment.AddFailureInstance,
             payload,
         });
     }
 
-    @autobind
-    public removeFailureInstance(test: VisualizationType, step: string, id: string): void {
-        const telemetry = this.telemetryFactory.forTestStepFromDetailsView(test, step);
+    public removeFailureInstance = (
+        test: VisualizationType,
+        requirement: string,
+        id: string,
+    ): void => {
+        const telemetry = this.telemetryFactory.forRequirementFromDetailsView(test, requirement);
         const payload: RemoveFailureInstancePayload = {
             test,
-            step,
+            requirement,
             id,
             telemetry,
         };
 
-        this.dispatchMessage({
-            type: Messages.Assessment.RemoveFailureInstance,
-            tabId: this._tabId,
+        this.dispatcher.dispatchMessage({
+            messageType: Messages.Assessment.RemoveFailureInstance,
             payload,
         });
-    }
+    };
 
     public detailsViewOpened(selectedPivot: DetailsViewPivotType): void {
         const telemetryData = this.telemetryFactory.forDetailsViewOpened(selectedPivot);
-        this.sendTelemetry(TelemetryEvents.DETAILS_VIEW_OPEN, telemetryData);
+        this.dispatcher.sendTelemetry(TelemetryEvents.DETAILS_VIEW_OPEN, telemetryData);
     }
 
-    @autobind
-    public editFailureInstance(description: string, test: VisualizationType, step: string, id: string): void {
+    public editFailureInstance = (
+        instanceData: FailureInstanceData,
+        test: VisualizationType,
+        requirement: string,
+        id: string,
+    ): void => {
         const telemetry = this.telemetryFactory.fromDetailsViewNoTriggeredBy();
         const payload: EditFailureInstancePayload = {
             test,
-            step,
+            requirement,
             id,
-            description,
+            instanceData,
             telemetry,
         };
 
-        this.dispatchMessage({
-            type: Messages.Assessment.EditFailureInstance,
-            tabId: this._tabId,
+        this.dispatcher.dispatchMessage({
+            messageType: Messages.Assessment.EditFailureInstance,
             payload,
         });
-    }
+    };
 
-    public passUnmarkedInstances(test: VisualizationType, step: string): void {
+    public passUnmarkedInstances(test: VisualizationType, requirement: string): void {
         const telemetry = this.telemetryFactory.fromDetailsViewNoTriggeredBy();
         const payload: ToggleActionPayload = {
             test,
-            step,
+            requirement,
             telemetry,
         };
 
-        this.dispatchMessage({
-            type: Messages.Assessment.PassUnmarkedInstances,
-            tabId: this._tabId,
+        this.dispatcher.dispatchMessage({
+            messageType: Messages.Assessment.PassUnmarkedInstances,
             payload,
         });
     }
 
-    public changeAssessmentVisualizationStateForAll(isVisualizationEnabled: boolean, test: VisualizationType, step: string): void {
+    public changeAssessmentVisualizationStateForAll(
+        isVisualizationEnabled: boolean,
+        test: VisualizationType,
+        requirement: string,
+    ): void {
         const telemetry = this.telemetryFactory.fromDetailsViewNoTriggeredBy();
         const payload: ChangeInstanceSelectionPayload = {
             test: test,
-            step: step,
+            requirement: requirement,
             isVisualizationEnabled: isVisualizationEnabled,
             selector: null,
             telemetry: telemetry,
         };
 
-        this.dispatchMessage({
-            type: Messages.Assessment.ChangeVisualizationStateForAll,
-            tabId: this._tabId,
+        this.dispatcher.dispatchMessage({
+            messageType: Messages.Assessment.ChangeVisualizationStateForAll,
             payload,
         });
     }
 
-    @autobind
-    public continuePreviousAssessment(event: React.MouseEvent<any>): void {
+    public continuePreviousAssessment = (event: React.MouseEvent<any>): void => {
         const telemetry = this.telemetryFactory.fromDetailsView(event);
         const payload: BaseActionPayload = {
             telemetry: telemetry,
         };
-        this.dispatchMessage({
-            type: Messages.Assessment.ContinuePreviousAssessment,
-            tabId: this._tabId,
+        this.dispatcher.dispatchMessage({
+            messageType: Messages.Assessment.ContinuePreviousAssessment,
             payload,
         });
-    }
+    };
 
-    @autobind
-    public startOverAllAssessments(event: React.MouseEvent<any>): void {
+    public startOverAllAssessments = (event: React.MouseEvent<any>): void => {
         const telemetry = this.telemetryFactory.fromDetailsView(event);
-        const payload: BaseActionPayload = {
+        const setDetailsViewRightContentPanelPayload: DetailsViewRightContentPanelType = 'Overview';
+        const startOverAllAssessmentsActionPayload: BaseActionPayload = {
             telemetry: telemetry,
         };
-        this.dispatchMessage({
-            type: Messages.Assessment.StartOverAllAssessments,
-            tabId: this._tabId,
-            payload,
-        });
-    }
 
-    @autobind
-    public cancelStartOver(event: React.MouseEvent<any>, test: VisualizationType, requirement: string): void {
+        this.dispatcher.dispatchMessage({
+            messageType: Messages.Visualizations.DetailsView.SetDetailsViewRightContentPanel,
+            payload: setDetailsViewRightContentPanelPayload,
+        });
+        this.dispatcher.dispatchMessage({
+            messageType: Messages.Assessment.StartOverAllAssessments,
+            payload: startOverAllAssessmentsActionPayload,
+        });
+    };
+
+    public cancelStartOver = (
+        event: React.MouseEvent<any>,
+        test: VisualizationType,
+        requirement: string,
+    ): void => {
         const telemetry = this.telemetryFactory.forCancelStartOver(event, test, requirement);
         const payload: BaseActionPayload = {
             telemetry: telemetry,
         };
-        this.dispatchMessage({
-            type: Messages.Assessment.CancelStartOver,
-            tabId: this._tabId,
+
+        this.dispatcher.dispatchMessage({
+            messageType: Messages.Assessment.CancelStartOver,
             payload,
         });
-    }
+    };
 
-    @autobind
-    public cancelStartOverAllAssessments(event: React.MouseEvent<any>): void {
+    public cancelStartOverAllAssessments = (event: React.MouseEvent<any>): void => {
         const telemetry = this.telemetryFactory.fromDetailsView(event);
         const payload: BaseActionPayload = {
             telemetry: telemetry,
         };
-        this.dispatchMessage({
-            type: Messages.Assessment.CancelStartOverAllAssessments,
-            tabId: this._tabId,
+
+        this.dispatcher.dispatchMessage({
+            messageType: Messages.Assessment.CancelStartOverAllAssessments,
             payload,
         });
-    }
+    };
 
     public changeRightContentPanel(viewType: DetailsViewRightContentPanelType): void {
         const payload: DetailsViewRightContentPanelType = viewType;
         const message = {
-            tabId: this._tabId,
-            type: Messages.Visualizations.DetailsView.SetDetailsViewRightContentPanel,
+            messageType: Messages.Visualizations.DetailsView.SetDetailsViewRightContentPanel,
             payload: payload,
         };
 
-        this.dispatchMessage(message);
+        this.dispatcher.dispatchMessage(message);
     }
+
+    public rescanVisualization = (test: VisualizationType, event: SupportedMouseEvent) => {
+        const payload: ToggleActionPayload = {
+            test: test,
+            telemetry: this.telemetryFactory.withTriggeredByAndSource(
+                event,
+                TelemetryEvents.TelemetryEventSource.DetailsView,
+            ),
+        };
+
+        const message: Message = {
+            messageType: Messages.Visualizations.Common.RescanVisualization,
+            payload,
+        };
+
+        this.dispatcher.dispatchMessage(message);
+    };
+
+    public setAllUrlsPermissionState = (
+        event: SupportedMouseEvent,
+        hasAllUrlAndFilePermissions: boolean,
+    ) => {
+        const payload: SetAllUrlsPermissionStatePayload = {
+            hasAllUrlAndFilePermissions,
+            telemetry: this.telemetryFactory.forSetAllUrlPermissionState(
+                event,
+                TelemetryEvents.TelemetryEventSource.DetailsView,
+                hasAllUrlAndFilePermissions,
+            ),
+        };
+
+        const message: Message = {
+            messageType: Messages.PermissionsState.SetPermissionsState,
+            payload,
+        };
+
+        this.dispatcher.dispatchMessage(message);
+    };
+
+    public leftNavPanelExpanded = (event: SupportedMouseEvent) => {
+        this.dispatcher.sendTelemetry(
+            TelemetryEvents.LEFT_NAV_PANEL_EXPANDED,
+            this.telemetryFactory.forLeftNavPanelExpanded(event),
+        );
+    };
 }

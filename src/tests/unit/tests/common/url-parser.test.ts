@@ -30,7 +30,9 @@ describe('UrlParserTest', () => {
         ];
 
         test.each(validCases)('return valid value', (testCase: ValidCase) => {
-            expect(testSubject.getIntParam(testCase.url, testCase.key)).toBe(testCase.expectedValue);
+            expect(testSubject.getIntParam(testCase.url, testCase.key)).toBe(
+                testCase.expectedValue,
+            );
         });
 
         interface InvalidCase {
@@ -53,20 +55,47 @@ describe('UrlParserTest', () => {
         ];
 
         test.each(invalidCases)('return invalid value', (testCase: ValidCase) => {
-            expect(testSubject.getIntParam(testCase.url, testCase.key)).toBeNaN();
+            expect(testSubject.getIntParam(testCase.url, testCase.key)).toBeNull();
         });
     });
 
-    describe('areURLHostNamesEqual', () => {
+    describe('areURLsEqual', () => {
         it('should return false as the host names are not the same', () => {
             const urlA = 'http://test.com';
             const urlB = 'http://notsame.com';
-            expect(testSubject.areURLHostNamesEqual(urlA, urlB)).toEqual(false);
+            expect(testSubject.areURLsEqual(urlA, urlB)).toEqual(false);
         });
         it('should return true as the host names are the same', () => {
             const urlA = 'http://same.com';
             const urlB = 'http://same.com/randompath&someparam=true';
-            expect(testSubject.areURLHostNamesEqual(urlA, urlB)).toEqual(true);
+            expect(testSubject.areURLsEqual(urlA, urlB)).toEqual(true);
+        });
+
+        it('should return false it anything changes for a file url', () => {
+            const urlA = 'file://same.com';
+            const urlB = 'file://same2.com';
+
+            expect(testSubject.areURLsEqual(urlA, urlB)).toEqual(false);
+        });
+
+        it('should return false when only protocol differs', () => {
+            const urlA = 'http://same.com';
+            const urlB = 'file://same.com';
+
+            expect(testSubject.areURLsEqual(urlA, urlB)).toEqual(false);
+        });
+        it('should only return true when urls match exactly', () => {
+            const urlA = 'file://same.com';
+            const urlB = 'file://same.com';
+
+            expect(testSubject.areURLsEqual(urlA, urlB)).toEqual(true);
+        });
+
+        it('should return false on any change', () => {
+            const urlA = 'file://same.com';
+            const urlB = 'file://same.com/randompath&someparam=true';
+
+            expect(testSubject.areURLsEqual(urlA, urlB)).toEqual(false);
         });
     });
 });

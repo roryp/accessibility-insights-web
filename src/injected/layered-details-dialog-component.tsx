@@ -4,47 +4,51 @@ import { getRTL } from '@uifabric/utilities';
 import { LayerHost } from 'office-ui-fabric-react';
 import * as React from 'react';
 
+import { BaseStore } from '../common/base-store';
 import { FeatureFlags } from '../common/feature-flags';
-import { IBaseStore } from '../common/istore';
 import { DevToolActionMessageCreator } from '../common/message-creators/dev-tool-action-message-creator';
-import { DevToolState } from '../common/types/store-data/idev-tool-state';
+import { NamedFC } from '../common/react/named-fc';
+import { DevToolStoreData } from '../common/types/store-data/dev-tool-store-data';
 import { UserConfigurationStoreData } from '../common/types/store-data/user-configuration-store';
+import { DictionaryStringTo } from '../types/common-types';
 import { DetailsDialog, DetailsDialogDeps } from './components/details-dialog';
 import { DetailsDialogHandler } from './details-dialog-handler';
 import { DecoratedAxeNodeResult } from './scanner-utils';
 
-export interface LayeredDetailsDialogDeps extends DetailsDialogDeps {
+export type LayeredDetailsDialogDeps = DetailsDialogDeps & {
     getRTL: typeof getRTL;
-}
+};
 
 export interface LayeredDetailsDialogProps {
     deps: LayeredDetailsDialogDeps;
-    userConfigStore: IBaseStore<UserConfigurationStoreData>;
+    userConfigStore: BaseStore<UserConfigurationStoreData>;
     elementSelector: string;
     failedRules: DictionaryStringTo<DecoratedAxeNodeResult>;
     target: string[];
     dialogHandler: DetailsDialogHandler;
-    devToolStore: IBaseStore<DevToolState>;
+    devToolStore: BaseStore<DevToolStoreData>;
     devToolActionMessageCreator: DevToolActionMessageCreator;
     featureFlagStoreData: DictionaryStringTo<boolean>;
     devToolsShortcut: string;
 }
 
-export class LayeredDetailsDialogComponent extends React.Component<LayeredDetailsDialogProps> {
-    public render(): JSX.Element {
-        const detailsDialog = <DetailsDialog {...this.props} />;
+export const LayeredDetailsDialogComponent = NamedFC<LayeredDetailsDialogProps>(
+    'LayeredDetailsDialogComponent',
+    props => {
+        const isShadowDOMDialogEnabled = (): boolean => {
+            return props.featureFlagStoreData[FeatureFlags.shadowDialog];
+        };
 
-        if (this.isShadowDOMDialogEnabled()) {
+        const detailsDialog = <DetailsDialog {...props} />;
+
+        if (isShadowDOMDialogEnabled()) {
             return detailsDialog;
         }
+
         return (
-            <LayerHost id="insights-dialog-layer-host" dir={this.props.deps.getRTL() ? 'rtl' : 'ltr'}>
+            <LayerHost id="insights-dialog-layer-host" dir={props.deps.getRTL() ? 'rtl' : 'ltr'}>
                 {detailsDialog}
             </LayerHost>
         );
-    }
-
-    private isShadowDOMDialogEnabled(): boolean {
-        return this.props.featureFlagStoreData[FeatureFlags.shadowDialog];
-    }
-}
+    },
+);

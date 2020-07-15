@@ -1,10 +1,11 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
-import { IInspectPayload, InspectActions } from '../../../../background/actions/inspect-actions';
-import { TabActions } from '../../../../background/actions/tab-actions';
-import { InspectMode } from '../../../../background/inspect-modes';
-import { InspectStore } from '../../../../background/stores/inspect-store';
+import { InspectActions, InspectPayload } from 'background/actions/inspect-actions';
+import { TabActions } from 'background/actions/tab-actions';
+import { InspectMode } from 'background/inspect-modes';
+import { InspectStore } from 'background/stores/inspect-store';
 import { StoreNames } from '../../../../common/stores/store-names';
+import { InspectStoreData } from '../../../../common/types/store-data/inspect-store-data';
 import { createStoreWithNullParams, StoreTester } from '../../common/store-tester';
 
 describe('InspectStoreTest', () => {
@@ -27,12 +28,15 @@ describe('InspectStoreTest', () => {
         const initialState = getDefaultState();
         const finalState = getDefaultState();
 
-        createStoreForInspectActions('getCurrentState').testListenerToBeCalledOnce(initialState, finalState);
+        createStoreForInspectActions('getCurrentState').testListenerToBeCalledOnce(
+            initialState,
+            finalState,
+        );
     });
 
     test('on changeMode', () => {
         const initialState = getDefaultState();
-        const payload: IInspectPayload = {
+        const payload: InspectPayload = {
             inspectMode: InspectMode.scopingAddInclude,
         };
 
@@ -53,28 +57,32 @@ describe('InspectStoreTest', () => {
             .testListenerToBeCalledOnce(initialState, finalState);
     });
 
-    test('on tabChange', () => {
+    test('on existingTabUpdated', () => {
         const initialState = getDefaultState();
         initialState.hoveredOverSelector = ['some selector'];
         initialState.inspectMode = InspectMode.scopingAddInclude;
         const finalState = getDefaultState();
-        createStoreForTabActions('tabChange')
+        createStoreForTabActions('existingTabUpdated')
             .withActionParam(null)
             .testListenerToBeCalledOnce(initialState, finalState);
     });
 
-    function getDefaultState() {
+    function getDefaultState(): InspectStoreData {
         return createStoreWithNullParams(InspectStore).getDefaultState();
     }
 
-    function createStoreForInspectActions(actionName: keyof InspectActions) {
+    function createStoreForInspectActions(
+        actionName: keyof InspectActions,
+    ): StoreTester<InspectStoreData, InspectActions> {
         const tabActions = new TabActions();
         const factory = (actions: InspectActions) => new InspectStore(actions, tabActions);
 
         return new StoreTester(InspectActions, actionName, factory);
     }
 
-    function createStoreForTabActions(actionName: keyof TabActions) {
+    function createStoreForTabActions(
+        actionName: keyof TabActions,
+    ): StoreTester<InspectStoreData, TabActions> {
         const factory = (actions: TabActions) => new InspectStore(new InspectActions(), actions);
         return new StoreTester(TabActions, actionName, factory);
     }

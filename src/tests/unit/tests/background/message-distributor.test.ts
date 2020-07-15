@@ -1,13 +1,13 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
+import { GlobalContext } from 'background/global-context';
+import { Interpreter } from 'background/interpreter';
+import { MessageDistributor, Sender } from 'background/message-distributor';
+import { TabContext, TabToContextMap } from 'background/tab-context';
 import { IMock, It, Mock, Times } from 'typemoq';
-
-import { BrowserAdapter } from '../../../../background/browser-adapter';
-import { GlobalContext } from '../../../../background/global-context';
-import { Interpreter } from '../../../../background/interpreter';
-import { MessageDistributor, Sender } from '../../../../background/message-distributor';
-import { TabContext, TabToContextMap } from '../../../../background/tab-context';
+import { BrowserAdapter } from '../../../../common/browser-adapters/browser-adapter';
 import { Logger } from '../../../../common/logging/logger';
+import { InterpreterMessage } from '../../../../common/message';
 
 describe('MessageDistributorTest', () => {
     let mockBrowserAdapter: IMock<BrowserAdapter>;
@@ -15,7 +15,7 @@ describe('MessageDistributorTest', () => {
     let tabToInterpreterMap: TabToContextMap;
     let globalContextMock: IMock<GlobalContext>;
     let globalInterpreter: Interpreter;
-    let consoleLoggerMock: IMock<Logger>;
+    let loggerMock: IMock<Logger>;
 
     let distributeMessageCallback: (message: any, sender?: Sender) => void;
 
@@ -26,12 +26,12 @@ describe('MessageDistributorTest', () => {
         globalContextMock = Mock.ofType(GlobalContext);
         globalContextMock.setup(x => x.interpreter).returns(() => globalInterpreter);
 
-        consoleLoggerMock = Mock.ofType<Logger>();
+        loggerMock = Mock.ofType<Logger>();
         testSubject = new MessageDistributor(
             globalContextMock.object,
             tabToInterpreterMap,
             mockBrowserAdapter.object,
-            consoleLoggerMock.object,
+            loggerMock.object,
         );
 
         mockBrowserAdapter
@@ -96,7 +96,7 @@ describe('MessageDistributorTest', () => {
 
     test('should distribute message, when sender has tab id', () => {
         const tabId = 1;
-        const message = { payload: {} } as IMessage;
+        const message = { payload: {} } as InterpreterMessage;
 
         const globalInterpreterMock = createInterpreterMockWithInteraction();
         globalInterpreter = globalInterpreterMock.object;

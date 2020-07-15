@@ -2,25 +2,31 @@
 // Licensed under the MIT License.
 import { IMock, Mock } from 'typemoq';
 
-import { ClientRectOffset, ClientUtils, IBoundRectAccessor, IElementMatcher, IScrollAccessor } from '../../../injected/client-utils';
+import {
+    BoundRectAccessor,
+    ClientRectOffset,
+    ClientUtils,
+    ElementMatcher,
+    ScrollAccessor,
+} from '../../../injected/client-utils';
 
-class ScrollAccessorStub implements IScrollAccessor {
+class ScrollAccessorStub implements ScrollAccessor {
     public scrollX: number = 0;
     public scrollY: number = 0;
 }
 
-class BoundRectAccessorStub implements IBoundRectAccessor {
+class BoundRectAccessorStub implements BoundRectAccessor {
     public getBoundingClientRect(): ClientRectOffset {
         return null;
     }
 }
 
 describe('ClientUtilsTest', () => {
-    let scrollGetterMock: IMock<IScrollAccessor>;
+    let scrollGetterMock: IMock<ScrollAccessor>;
     let testObject: ClientUtils;
 
     beforeEach(() => {
-        scrollGetterMock = Mock.ofType<IScrollAccessor>(ScrollAccessorStub);
+        scrollGetterMock = Mock.ofType<ScrollAccessor>(ScrollAccessorStub);
         testObject = new ClientUtils(scrollGetterMock.object);
     });
 
@@ -30,7 +36,7 @@ describe('ClientUtilsTest', () => {
         });
         const elementStub = {
             msMatchesSelector: matchesMock.object,
-        } as IElementMatcher;
+        } as ElementMatcher;
 
         const selector1 = 'selector1';
         const selector2 = 'selector2';
@@ -50,7 +56,7 @@ describe('ClientUtilsTest', () => {
         const matchesMock = Mock.ofInstance((selector: string) => {
             return true;
         });
-        const elementStub: IElementMatcher = {
+        const elementStub: ElementMatcher = {
             webkitMatchesSelector: matchesMock.object,
         };
 
@@ -74,7 +80,7 @@ describe('ClientUtilsTest', () => {
         });
         const elementStub = {
             matches: matchesMock.object,
-        } as IElementMatcher;
+        } as ElementMatcher;
 
         const selector1 = 'selector1';
         const selector2 = 'selector2';
@@ -101,7 +107,7 @@ describe('ClientUtilsTest', () => {
         const elementTop = 100;
         const elementLeft = 25;
 
-        const elementMock = Mock.ofType<IBoundRectAccessor>(BoundRectAccessorStub);
+        const elementMock = Mock.ofType<BoundRectAccessor>(BoundRectAccessorStub);
         elementMock
             .setup(em => em.getBoundingClientRect())
             .returns(() => {
@@ -112,6 +118,32 @@ describe('ClientUtilsTest', () => {
             });
 
         const result = testObject.getOffset(elementMock.object);
+
+        expect(result.left).toBe(elementLeft + initialScrollX);
+        expect(result.top).toBe(elementTop + initialScrollY);
+    });
+
+    test('getOffsetFromBoundingRect', () => {
+        const initialScrollX = 10;
+        const initialScrollY = 20;
+
+        scrollGetterMock.setup(sg => sg.scrollX).returns(() => initialScrollX);
+
+        scrollGetterMock.setup(sg => sg.scrollY).returns(() => initialScrollY);
+
+        const elementTop = 100;
+        const elementLeft = 25;
+
+        const elementRect: ClientRect = {
+            left: elementLeft,
+            top: elementTop,
+            bottom: 0,
+            right: 0,
+            width: 0,
+            height: 0,
+        };
+
+        const result = testObject.getOffsetFromBoundingRect(elementRect);
 
         expect(result.left).toBe(elementLeft + initialScrollX);
         expect(result.top).toBe(elementTop + initialScrollY);

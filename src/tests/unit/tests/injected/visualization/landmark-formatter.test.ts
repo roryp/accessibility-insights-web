@@ -1,9 +1,9 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
-import { IAssessmentVisualizationInstance } from '../../../../../injected/frameCommunicators/html-element-axe-results-helper';
+import { AssessmentVisualizationInstance } from '../../../../../injected/frameCommunicators/html-element-axe-results-helper';
 import { FailureInstanceFormatter } from '../../../../../injected/visualization/failure-instance-formatter';
 import { DrawerConfiguration } from '../../../../../injected/visualization/formatter';
-import { IHeadingStyleConfiguration } from '../../../../../injected/visualization/heading-formatter';
+import { HeadingStyleConfiguration } from '../../../../../injected/visualization/heading-formatter';
 import { LandmarkFormatter } from '../../../../../injected/visualization/landmark-formatter';
 
 describe('LandmarkFormatterTests', () => {
@@ -18,7 +18,16 @@ describe('LandmarkFormatterTests', () => {
         testStyling(config, 'banner');
     });
 
-    const landmarkRoles: string[] = ['banner', 'complementary', 'contentinfo', 'form', 'main', 'navigation', 'region', 'search'];
+    const landmarkRoles: string[] = [
+        'banner',
+        'complementary',
+        'contentinfo',
+        'form',
+        'main',
+        'navigation',
+        'region',
+        'search',
+    ];
 
     test.each(landmarkRoles)('verify styling for landmark role %s', role => {
         const axeData = getAxeData(role);
@@ -26,36 +35,36 @@ describe('LandmarkFormatterTests', () => {
         testStyling(config, role);
     });
 
-    test.each(['application', 'unrecognized-role'])('verify styling for non-landmark-role %s', role => {
-        const axeData = getAxeData(role, true);
-        const config = testSubject.getDrawerConfiguration(null, axeData);
-        testStyling(config, role, true);
-    });
+    test.each(['application', 'unrecognized-role'])(
+        'verify styling for non-landmark-role %s',
+        role => {
+            const axeData = getAxeData(role, true);
+            const config = testSubject.getDrawerConfiguration(null, axeData);
+            testStyling(config, role, true);
+        },
+    );
 
-    function getLandmarkStyle(key: string): IHeadingStyleConfiguration {
+    function getLandmarkStyle(key: string): HeadingStyleConfiguration {
         const landmarkStyle = LandmarkFormatter.getStyleForLandmarkRole(key);
 
         expect(landmarkStyle).toBeDefined();
         return landmarkStyle;
     }
 
-    function getAssessmentBannerInstance(): IAssessmentVisualizationInstance {
+    function getAssessmentBannerInstance(): AssessmentVisualizationInstance {
         return {
             propertyBag: {
                 role: 'banner',
                 label: 'label',
             },
-        } as IAssessmentVisualizationInstance;
+        } as AssessmentVisualizationInstance;
     }
 
-    function getAxeData(givenRole: string, isFailure = false): IAssessmentVisualizationInstance {
-        const axeData: IAssessmentVisualizationInstance = {
+    function getAxeData(givenRole: string, isFailure = false): AssessmentVisualizationInstance {
+        const axeData: AssessmentVisualizationInstance = {
             isFailure: isFailure,
             isVisualizationEnabled: true,
-            html: 'html',
             target: ['html'],
-            isVisible: true,
-            identifier: 'some id',
             ruleResults: {
                 'unique-landmark': {
                     any: [
@@ -79,8 +88,6 @@ describe('LandmarkFormatterTests', () => {
                     id: 'id1',
                     guidanceLinks: [],
                     helpUrl: 'help1',
-                    fingerprint: 'fp1',
-                    snippet: 'html',
                 },
                 rule2: {
                     any: [],
@@ -95,8 +102,6 @@ describe('LandmarkFormatterTests', () => {
                     id: 'id2',
                     guidanceLinks: [],
                     helpUrl: 'help2',
-                    fingerprint: 'fp2',
-                    snippet: 'html',
                 },
             },
         };
@@ -108,8 +113,12 @@ describe('LandmarkFormatterTests', () => {
         const landmarkStyle = getLandmarkStyle(givenRole);
         expect(config.showVisualization).toBe(true);
         expect(config.outlineStyle).toEqual('dashed');
+        expect(config.outlineWidth).toBe('3px');
         expect(config.borderColor).toEqual(landmarkStyle.borderColor);
         expect(config.textBoxConfig.fontColor).toEqual(landmarkStyle.fontColor);
+        expect(config.textBoxConfig.fontSize).toEqual('14pt !important');
+        expect(config.textBoxConfig.fontWeight).toBe('600');
+        expect(config.textBoxConfig.outline).toBe(`3px dashed ${landmarkStyle.borderColor}`);
 
         if (isFailure) {
             expect(config.failureBoxConfig).toEqual(FailureInstanceFormatter.failureBoxConfig);

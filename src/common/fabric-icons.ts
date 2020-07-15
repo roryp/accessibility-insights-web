@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 import { registerIcons } from '@uifabric/styling/lib/index';
 
-export function initializeFabricIcons() {
+export function initializeFabricIcons(): void {
     registerIcons({
         style: {
             MozOsxFontSmoothing: 'grayscale',
@@ -19,6 +19,8 @@ export function initializeFabricIcons() {
             back: '\uE72B',
             calculatorAddition: '\uE948',
             cancel: '\uE711',
+            cat: '\uED7F',
+            cellPhone: '\uE8EA',
             checkBox: '\uE739',
             checkMark: '\uE73E',
             chevronDown: '\uE70D',
@@ -27,13 +29,17 @@ export function initializeFabricIcons() {
             chevronRightMed: '\uE974',
             chevronUp: '\uE70E',
             chromeClose: '\uE8BB',
+            chromeMinimize: '\uE921',
             circleRing: '\uEA3A',
             completedSolid: '\uEC61',
             copy: '\uE8C8',
             contactCard: '\uEEBD',
             delete: '\uE74D',
+            devices3: '\uEA6C',
+            diagnostic: '\uE9D9',
             edit: '\uE70F',
             export: '\uEDE1',
+            FabricFolder: '\uF0A9',
             feedback: '\uED15',
             fileHTML: '\uF2ED',
             gear: '\uE713',
@@ -43,9 +49,12 @@ export function initializeFabricIcons() {
             home: '\uE80F',
             incidentTriangle: '\uE814',
             info: '\uE946',
+            keyboardClassic: '\uE765',
             ladybugSolid: '\uF44A',
             mail: '\uE715',
             medical: '\uEAD4',
+            more: '\uE712',
+            offlineStorage: '\uEC8C',
             play: '\uE768',
             refresh: '\uE72C',
             rocket: '\uF3B3',
@@ -55,9 +64,11 @@ export function initializeFabricIcons() {
             skypeCheck: '\uEF80',
             statusCircleCheckMark: '\uF13E',
             statusErrorFull: '\uEB90',
+            stop: '\uE71A',
             tag: '\uE8EC',
             testBeaker: '\uF3A5',
             testBeakerSolid: '\uF3A6',
+            textDocument: '\uF029',
             undo: '\uE7A7',
             unknown: '\uE9CE',
             view: '\uE890',

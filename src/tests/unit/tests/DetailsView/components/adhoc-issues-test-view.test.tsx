@@ -1,79 +1,81 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
+import { NamedFC } from 'common/react/named-fc';
+import { DetailsViewSwitcherNavConfiguration } from 'DetailsView/components/details-view-switcher-nav';
+import { WarningConfiguration } from 'DetailsView/components/warning-configuration';
 import { shallow } from 'enzyme';
-import { ISelection } from 'office-ui-fabric-react/lib/DetailsList';
 import * as React from 'react';
 import { IMock, Mock, MockBehavior } from 'typemoq';
-
-import { IDisplayableVisualizationTypeData } from '../../../../../common/configs/visualization-configuration-factory';
-import { ITabStoreData } from '../../../../../common/types/store-data/itab-store-data';
-import { IVisualizationScanResultData } from '../../../../../common/types/store-data/ivisualization-scan-result-data';
-import { IScanData, IVisualizationStoreData, TestsEnabledState } from '../../../../../common/types/store-data/ivisualization-store-data';
+import { VisualizationConfiguration } from '../../../../../common/configs/visualization-configuration';
+import { DisplayableVisualizationTypeData } from '../../../../../common/configs/visualization-configuration-factory';
+import { TabStoreData } from '../../../../../common/types/store-data/tab-store-data';
+import {
+    ScanData,
+    TestsEnabledState,
+    VisualizationStoreData,
+} from '../../../../../common/types/store-data/visualization-store-data';
 import { VisualizationType } from '../../../../../common/types/visualization-type';
-import { DetailsViewActionMessageCreator } from '../../../../../DetailsView/actions/details-view-action-message-creator';
-import { AdhocIssuesTestView, AdhocIssuesTestViewProps } from '../../../../../DetailsView/components/adhoc-issues-test-view';
-import { IssuesTableHandler } from '../../../../../DetailsView/components/issues-table-handler';
+import {
+    AdhocIssuesTestView,
+    AdhocIssuesTestViewProps,
+    InstancesSectionProps,
+} from '../../../../../DetailsView/components/adhoc-issues-test-view';
 import { DetailsViewToggleClickHandlerFactory } from '../../../../../DetailsView/handlers/details-view-toggle-click-handler-factory';
-import { ReportGenerator } from '../../../../../DetailsView/reports/report-generator';
-import { VisualizationScanResultStoreDataBuilder } from '../../../common/visualization-scan-result-store-data-builder';
 
 describe('AdhocIssuesTestView', () => {
-    let props: AdhocIssuesTestViewProps;
-    let getStoreDataMock: IMock<(data: TestsEnabledState) => IScanData>;
-    let clickHandlerFactoryMock: IMock<DetailsViewToggleClickHandlerFactory>;
-    let displayableDataStub: IDisplayableVisualizationTypeData;
-    let contentStub: JSX.Element;
-    let scanDataStub: IScanData;
-    let clickHandlerStub: (event: any) => void;
-    let visualizationStoreDataStub: IVisualizationStoreData;
-    let visualizationScanResultStoreDataStub: IVisualizationScanResultData;
-    let selectedTest: VisualizationType;
-    let actionMessageCreatorStub: DetailsViewActionMessageCreator;
-    let issuesSelectionStub: ISelection;
-    let reportGeneratorStub: ReportGenerator;
-    let issuesTableHandlerStub: IssuesTableHandler;
+    const visualizationStoreDataStub = {
+        tests: {},
+        scanning: 'test-scanning',
+    } as VisualizationStoreData;
+
+    let getStoreDataMock: IMock<(data: TestsEnabledState) => ScanData>;
+    getStoreDataMock = Mock.ofInstance(() => null, MockBehavior.Strict);
+
+    const displayableDataStub = {
+        title: 'test title',
+    } as DisplayableVisualizationTypeData;
+
+    const configuration = {
+        getStoreData: getStoreDataMock.object,
+        displayableData: displayableDataStub,
+    } as VisualizationConfiguration;
+
+    const clickHandlerFactoryMock = Mock.ofType(DetailsViewToggleClickHandlerFactory);
+    const selectedTest: VisualizationType = -1;
+
+    let props = {
+        configuration: configuration,
+        clickHandlerFactory: clickHandlerFactoryMock.object,
+        visualizationStoreData: visualizationStoreDataStub,
+        selectedTest: selectedTest,
+        scanIncompleteWarnings: [],
+        instancesSection: NamedFC<InstancesSectionProps>('test', _ => null),
+    } as AdhocIssuesTestViewProps;
+
+    const scanDataStub: ScanData = {
+        enabled: true,
+    };
+
+    const clickHandlerStub = () => {};
+
+    let switcherNavConfigurationStub: DetailsViewSwitcherNavConfiguration;
+    let warningConfigurationStub: WarningConfiguration;
 
     beforeEach(() => {
-        getStoreDataMock = Mock.ofInstance(() => null, MockBehavior.Strict);
-        clickHandlerFactoryMock = Mock.ofType(DetailsViewToggleClickHandlerFactory, MockBehavior.Strict);
-        visualizationScanResultStoreDataStub = new VisualizationScanResultStoreDataBuilder().build();
-        contentStub = {} as JSX.Element;
-        displayableDataStub = {
-            title: 'test title',
-            toggleLabel: 'test toggle label',
-        } as IDisplayableVisualizationTypeData;
-        contentStub = {} as JSX.Element;
-        scanDataStub = {
-            enabled: true,
-        };
-        visualizationStoreDataStub = {
-            tests: {},
-            scanning: 'test-scanning',
-        } as IVisualizationStoreData;
-        clickHandlerStub = () => {};
-        actionMessageCreatorStub = {} as DetailsViewActionMessageCreator;
-        issuesSelectionStub = {} as ISelection;
-        reportGeneratorStub = {} as ReportGenerator;
-        issuesTableHandlerStub = {} as IssuesTableHandler;
-        selectedTest = -1;
+        warningConfigurationStub = {} as WarningConfiguration;
+        switcherNavConfigurationStub = {
+            warningConfiguration: warningConfigurationStub,
+        } as DetailsViewSwitcherNavConfiguration;
 
-        props = {
-            deps: {
-                detailsViewActionMessageCreator: actionMessageCreatorStub,
-            },
-            configuration: {
-                getStoreData: getStoreDataMock.object,
-                displayableData: displayableDataStub,
-                detailsViewStaticContent: contentStub,
-            },
-            clickHandlerFactory: clickHandlerFactoryMock.object,
-            visualizationStoreData: visualizationStoreDataStub,
-            selectedTest,
-            issuesSelection: issuesSelectionStub,
-            reportGenerator: reportGeneratorStub,
-            issuesTableHandler: issuesTableHandlerStub,
-            visualizationScanResultData: visualizationScanResultStoreDataStub,
-        } as any;
+        props = { ...props, switcherNavConfiguration: switcherNavConfigurationStub };
+        getStoreDataMock.reset();
+        clickHandlerFactoryMock.reset();
+    });
+
+    it('should return target page changed view as tab is changed', () => {
+        props.tabStoreData = {
+            isChanged: true,
+        } as TabStoreData;
 
         getStoreDataMock
             .setup(gsdm => gsdm(visualizationStoreDataStub.tests))
@@ -84,38 +86,20 @@ describe('AdhocIssuesTestView', () => {
             .setup(chfm => chfm.createClickHandler(selectedTest, !scanDataStub.enabled))
             .returns(() => clickHandlerStub)
             .verifiable();
-    });
-
-    it('should return target page changed view as tab is changed', () => {
-        props.tabStoreData = {
-            isChanged: true,
-        } as ITabStoreData;
 
         const actual = shallow(<AdhocIssuesTestView {...props} />);
-        expect(actual.debug()).toMatchSnapshot();
+
+        expect(actual.getElement()).toMatchSnapshot();
         verifyAll();
     });
 
-    it('should return issues table with scanning to false', () => {
+    it('should return DetailsListIssuesView', () => {
         props.tabStoreData = {
             isChanged: false,
-        } as ITabStoreData;
-        props.visualizationStoreData.scanning = null;
-
-        const actual = shallow(<AdhocIssuesTestView {...props} />);
-        expect(actual.debug()).toMatchSnapshot();
-        verifyAll();
-    });
-
-    it('should return issues table with violations to null', () => {
-        props.tabStoreData = {
-            isChanged: false,
-        } as ITabStoreData;
-        props.visualizationScanResultData.issues.scanResult = null;
+        } as TabStoreData;
 
         const actual = shallow(<AdhocIssuesTestView {...props} />);
         expect(actual.getElement()).toMatchSnapshot();
-        verifyAll();
     });
 
     function verifyAll(): void {

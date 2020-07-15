@@ -2,9 +2,9 @@
 // Licensed under the MIT License.
 import * as React from 'react';
 
-import { Messages } from '../../common/messages';
-import { VisualizationType } from '../../common/types/visualization-type';
-import { test as content } from '../../content/test';
+import { Messages } from 'common/messages';
+import { VisualizationType } from 'common/types/visualization-type';
+import { test as content } from 'content/test';
 import { AssessmentBuilder } from '../assessment-builder';
 import { Assessment } from '../types/iassessment';
 import { ClosingContent } from './test-steps/closing-content';
@@ -19,12 +19,14 @@ const { guidance } = content.focus;
 const keyboardInteractionGettingStarted: JSX.Element = (
     <React.Fragment>
         <p>
-            When interacting with a website or web app using a keyboard, users need to know which component currently has the input focus.
-            By default, web browsers indicate focus visually, but custom programming, styles, style sheets, and scripting can disrupt it.
+            When interacting with a website or web app using a keyboard, users need to know which
+            component currently has the input focus. By default, web browsers indicate focus
+            visually, but custom programming, styles, style sheets, and scripting can disrupt it.
         </p>
         <p>
-            When navigating sequentially through a user interface, keyboard users need to encounter information in an order that preserves
-            its meaning and allows them to perform all supported functions.
+            When navigating sequentially through a user interface, keyboard users need to encounter
+            information in an order that preserves its meaning and allows them to perform all
+            supported functions.
         </p>
     </React.Fragment>
 );
@@ -34,12 +36,11 @@ export const VisibleFocusOrderAssessment: Assessment = AssessmentBuilder.Assiste
     title: keyboardInteractionTitle,
     gettingStarted: keyboardInteractionGettingStarted,
     guidance,
-    type: VisualizationType.VisibleFocusOrderAssessment,
-    steps: [VisibleFocus, RevealingContent, ModalDialogs, ClosingContent, FocusOrder],
+    visualizationType: VisualizationType.VisibleFocusOrderAssessment,
+    requirements: [VisibleFocus, RevealingContent, ModalDialogs, ClosingContent, FocusOrder],
     storeDataKey: 'visibleFocusOrderAssessment',
     visualizationConfiguration: {
         key: key,
-        analyzerMessageType: Messages.Assessment.AssessmentScanCompleted,
         analyzerProgressMessageType: Messages.Assessment.TabbedElementAdded,
     },
 });

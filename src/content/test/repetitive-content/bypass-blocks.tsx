@@ -4,7 +4,6 @@ import { create, React } from '../../common';
 
 export const infoAndExamples = create(({ Markup }) => (
     <>
-        <h1>Bypass blocks</h1>
         <p>A page must provide a keyboard-accessible method to bypass repetitive content.</p>
 
         <h2>Why it matters</h2>
@@ -21,8 +20,8 @@ export const infoAndExamples = create(({ Markup }) => (
         <p>
             <Markup.Emphasis>
                 "I navigate content and interfaces using a screen reader and a keyboard. Repeated blocks of navigation and content force me
-                to "re-read" everything as I work back and forth over the interface to complete a task or, enjoy content. Allow me a way to
-                "bypass" repetitive blocks of navigation and content via keyboard commands, skip links, and WAI-ARIA regions."
+                to 're-read' everything as I work back and forth over the interface to complete a task or, enjoy content. Allow me a way to
+                'bypass' repetitive blocks of navigation and content via keyboard commands, skip links, and WAI-ARIA regions."
             </Markup.Emphasis>
         </p>
 

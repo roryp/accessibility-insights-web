@@ -1,58 +1,55 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
-import { autobind } from '@uifabric/utilities';
+import { ActionMessageDispatcher } from 'common/message-creators/types/dispatcher';
+import * as React from 'react';
+
+import { TelemetryEventSource } from '../extension-telemetry-events';
 import { Messages } from '../messages';
 import { TelemetryDataFactory } from '../telemetry-data-factory';
-import { IScopingPayload } from './../../background/actions/scoping-actions';
-import { TelemetryEventSource } from './../telemetry-events';
-import { BaseActionMessageCreator } from './base-action-message-creator';
+import { ScopingPayload } from './../../background/actions/scoping-actions';
 
-export class ScopingActionMessageCreator extends BaseActionMessageCreator {
-    private telemetryFactory: TelemetryDataFactory;
-    private source: TelemetryEventSource;
-
+export class ScopingActionMessageCreator {
     constructor(
-        postMessage: (message: IMessage) => void,
-        tabId: number,
-        telemetryFactory: TelemetryDataFactory,
-        source: TelemetryEventSource,
-    ) {
-        super(postMessage, tabId);
-        this.telemetryFactory = telemetryFactory;
-        this.source = source;
-    }
+        private readonly telemetryFactory: TelemetryDataFactory,
+        private readonly source: TelemetryEventSource,
+        private readonly dispatcher: ActionMessageDispatcher,
+    ) {}
 
-    @autobind
-    public addSelector(event: React.MouseEvent<HTMLElement> | MouseEvent, inputType: string, selector: string[]): void {
-        const type = Messages.Scoping.AddSelector;
+    public addSelector = (
+        event: React.MouseEvent<HTMLElement> | MouseEvent,
+        inputType: string,
+        selector: string[],
+    ): void => {
+        const messageType = Messages.Scoping.AddSelector;
         const telemetry = this.telemetryFactory.forAddSelector(event, inputType, this.source);
-        const payload: IScopingPayload = {
+        const payload: ScopingPayload = {
             inputType,
             selector,
             telemetry,
         };
 
-        this.dispatchMessage({
-            type: type,
-            tabId: this._tabId,
+        this.dispatcher.dispatchMessage({
+            messageType: messageType,
             payload: payload,
         });
-    }
+    };
 
-    @autobind
-    public deleteSelector(event: React.MouseEvent<HTMLElement> | MouseEvent, inputType: string, selector: string[]): void {
-        const type = Messages.Scoping.DeleteSelector;
+    public deleteSelector = (
+        event: React.MouseEvent<HTMLElement> | MouseEvent,
+        inputType: string,
+        selector: string[],
+    ): void => {
+        const messageType = Messages.Scoping.DeleteSelector;
         const telemetry = this.telemetryFactory.forDeleteSelector(event, inputType, this.source);
-        const payload: IScopingPayload = {
+        const payload: ScopingPayload = {
             inputType,
             selector,
             telemetry,
         };
 
-        this.dispatchMessage({
-            type: type,
-            tabId: this._tabId,
+        this.dispatcher.dispatchMessage({
+            messageType: messageType,
             payload: payload,
         });
-    }
+    };
 }

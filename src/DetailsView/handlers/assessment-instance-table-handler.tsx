@@ -1,81 +1,104 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
-import { autobind } from '@uifabric/utilities';
-import { IColumn } from 'office-ui-fabric-react/lib/DetailsList';
+import { IColumn } from 'office-ui-fabric-react';
 import * as React from 'react';
 
-import { IAssessmentsProvider } from '../../assessments/types/iassessments-provider';
+import { AssessmentsProvider } from 'assessments/types/assessments-provider';
+import { ManualTestStatus } from '../../common/types/manual-test-status';
 import {
     AssessmentNavState,
-    IGeneratedAssessmentInstance,
-    IUserCapturedInstance,
-} from '../../common/types/store-data/iassessment-result-data';
+    GeneratedAssessmentInstance,
+    UserCapturedInstance,
+} from '../../common/types/store-data/assessment-result-data';
+import { FeatureFlagStoreData } from '../../common/types/store-data/feature-flag-store-data';
+import { PathSnippetStoreData } from '../../common/types/store-data/path-snippet-store-data';
 import { VisualizationType } from '../../common/types/visualization-type';
+import { DictionaryStringTo } from '../../types/common-types';
+import { DetailsViewActionMessageCreator } from '../actions/details-view-action-message-creator';
 import { AssessmentInstanceEditAndRemoveControl } from '../components/assessment-instance-edit-and-remove-control';
 import { AssessmentInstanceSelectedButton } from '../components/assessment-instance-selected-button';
-import { IAssessmentInstanceRowData, ICapturedInstanceRowData } from '../components/assessment-instance-table';
+import {
+    AssessmentInstanceRowData,
+    CapturedInstanceRowData,
+} from '../components/assessment-instance-table';
 import { AssessmentTableColumnConfigHandler } from '../components/assessment-table-column-config-handler';
-import { ManualTestStatus } from './../../common/types/manual-test-status';
-import { DetailsViewActionMessageCreator } from './../actions/details-view-action-message-creator';
-import { TestStatusChoiceGroup } from './../components/test-status-choice-group';
+import { FailureInstanceData } from '../components/failure-instance-panel-control';
+import { TestStatusChoiceGroup } from '../components/test-status-choice-group';
 
 export class AssessmentInstanceTableHandler {
-    private actionMessageCreator: DetailsViewActionMessageCreator;
+    private detailsViewActionMessageCreator: DetailsViewActionMessageCreator;
     private assessmentTableColumnConfigHandler: AssessmentTableColumnConfigHandler;
-    private assessmentsProvider: IAssessmentsProvider;
+    private assessmentsProvider: AssessmentsProvider;
 
     constructor(
-        actionMessageCreator: DetailsViewActionMessageCreator,
+        detailsViewActionMessageCreator: DetailsViewActionMessageCreator,
         assessmentTableColumnConfigHandler: AssessmentTableColumnConfigHandler,
-        assessmentsProvider: IAssessmentsProvider,
+        assessmentsProvider: AssessmentsProvider,
     ) {
-        this.actionMessageCreator = actionMessageCreator;
+        this.detailsViewActionMessageCreator = detailsViewActionMessageCreator;
         this.assessmentTableColumnConfigHandler = assessmentTableColumnConfigHandler;
         this.assessmentsProvider = assessmentsProvider;
     }
 
-    @autobind
-    public changeStepStatus(status: ManualTestStatus, test: VisualizationType, step: string): void {
-        this.actionMessageCreator.changeManualTestStepStatus(status, test, step);
-    }
+    public changeRequirementStatus = (
+        status: ManualTestStatus,
+        test: VisualizationType,
+        step: string,
+    ): void => {
+        this.detailsViewActionMessageCreator.changeManualRequirementStatus(status, test, step);
+    };
 
-    @autobind
-    public undoStepStatusChange(test: VisualizationType, step: string): void {
-        this.actionMessageCreator.undoManualTestStepStatusChange(test, step);
-    }
+    public undoRequirementStatusChange = (test: VisualizationType, step: string): void => {
+        this.detailsViewActionMessageCreator.undoManualRequirementStatusChange(test, step);
+    };
 
-    @autobind
-    public addFailureInstance(description: string, test: VisualizationType, step: string): void {
-        this.actionMessageCreator.addFailureInstance(description, test, step);
-    }
+    public addFailureInstance = (
+        instanceData: FailureInstanceData,
+        test: VisualizationType,
+        step: string,
+    ): void => {
+        this.detailsViewActionMessageCreator.addFailureInstance(instanceData, test, step);
+    };
+
+    public addPathForValidation = (path: string): void => {
+        this.detailsViewActionMessageCreator.addPathForValidation(path);
+    };
+
+    public clearPathSnippetData = (): void => {
+        this.detailsViewActionMessageCreator.clearPathSnippetData();
+    };
 
     public passUnmarkedInstances(test: VisualizationType, step: string): void {
-        this.actionMessageCreator.passUnmarkedInstances(test, step);
+        this.detailsViewActionMessageCreator.passUnmarkedInstances(test, step);
     }
 
     public updateFocusedTarget(target: string[]): void {
-        this.actionMessageCreator.updateFocusedInstanceTarget(target);
+        this.detailsViewActionMessageCreator.updateFocusedInstanceTarget(target);
     }
 
     public createAssessmentInstanceTableItems(
-        instancesMap: DictionaryStringTo<IGeneratedAssessmentInstance>,
+        instancesMap: DictionaryStringTo<GeneratedAssessmentInstance>,
         assessmentNavState: AssessmentNavState,
         hasVisualHelper: boolean,
-    ): IAssessmentInstanceRowData[] {
-        const assessmentInstances = this.getInstanceKeys(instancesMap, assessmentNavState).map(key => {
-            const instance = instancesMap[key];
-            return {
-                key: key,
-                statusChoiceGroup: this.renderChoiceGroup(instance, key, assessmentNavState),
-                visualizationButton: hasVisualHelper ? this.renderSelectedButton(instance, key, assessmentNavState) : null,
-                instance: instance,
-            } as IAssessmentInstanceRowData;
-        });
+    ): AssessmentInstanceRowData[] {
+        const assessmentInstances = this.getInstanceKeys(instancesMap, assessmentNavState).map(
+            key => {
+                const instance = instancesMap[key];
+                return {
+                    key: key,
+                    statusChoiceGroup: this.renderChoiceGroup(instance, key, assessmentNavState),
+                    visualizationButton: hasVisualHelper
+                        ? this.renderSelectedButton(instance, key, assessmentNavState)
+                        : null,
+                    instance: instance,
+                } as AssessmentInstanceRowData;
+            },
+        );
         return assessmentInstances;
     }
 
     public getColumnConfigs(
-        instancesMap: DictionaryStringTo<IGeneratedAssessmentInstance>,
+        instancesMap: DictionaryStringTo<GeneratedAssessmentInstance>,
         assessmentNavState: AssessmentNavState,
         hasVisualHelper: boolean,
     ): IColumn[] {
@@ -84,24 +107,39 @@ export class AssessmentInstanceTableHandler {
         for (let keyIndex = 0; keyIndex < instanceKeys.length; keyIndex++) {
             const key = instanceKeys[keyIndex];
             const instance = instancesMap[key];
-            if (!instance.testStepResults[assessmentNavState.selectedTestStep].isVisualizationEnabled) {
+            if (
+                !instance.testStepResults[assessmentNavState.selectedTestSubview]
+                    .isVisualizationEnabled
+            ) {
                 allEnabled = false;
                 break;
             }
         }
 
-        return this.assessmentTableColumnConfigHandler.getColumnConfigs(assessmentNavState, allEnabled, hasVisualHelper);
+        return this.assessmentTableColumnConfigHandler.getColumnConfigs(
+            assessmentNavState,
+            allEnabled,
+            hasVisualHelper,
+        );
     }
 
     public createCapturedInstanceTableItems(
-        instances: IUserCapturedInstance[],
+        instances: UserCapturedInstance[],
         test: VisualizationType,
         step: string,
-    ): ICapturedInstanceRowData[] {
-        return instances.map((instance: IUserCapturedInstance) => {
+        featureFlagStoreData: FeatureFlagStoreData,
+        pathSnippetStoreData: PathSnippetStoreData,
+    ): CapturedInstanceRowData[] {
+        return instances.map((instance: UserCapturedInstance) => {
             return {
                 instance: instance,
-                instanceActionButtons: this.renderInstanceActionButtons(instance, test, step),
+                instanceActionButtons: this.renderInstanceActionButtons(
+                    instance,
+                    test,
+                    step,
+                    featureFlagStoreData,
+                    pathSnippetStoreData,
+                ),
             };
         });
     }
@@ -110,9 +148,12 @@ export class AssessmentInstanceTableHandler {
         return this.assessmentTableColumnConfigHandler.getColumnConfigsForCapturedInstances();
     }
 
-    @autobind
-    private renderChoiceGroup(instance: IGeneratedAssessmentInstance, key: string, assessmentNavState: AssessmentNavState): JSX.Element {
-        const step = assessmentNavState.selectedTestStep;
+    private renderChoiceGroup = (
+        instance: GeneratedAssessmentInstance,
+        key: string,
+        assessmentNavState: AssessmentNavState,
+    ): JSX.Element => {
+        const step = assessmentNavState.selectedTestSubview;
         const test = assessmentNavState.selectedTestType;
         return (
             <TestStatusChoiceGroup
@@ -121,15 +162,18 @@ export class AssessmentInstanceTableHandler {
                 selector={key}
                 status={instance.testStepResults[step].status}
                 originalStatus={instance.testStepResults[step].originalStatus}
-                onGroupChoiceChange={this.actionMessageCreator.changeManualTestStatus}
-                onUndoClicked={this.actionMessageCreator.undoManualTestStatusChange}
+                onGroupChoiceChange={this.detailsViewActionMessageCreator.changeManualTestStatus}
+                onUndoClicked={this.detailsViewActionMessageCreator.undoManualTestStatusChange}
             />
         );
-    }
+    };
 
-    @autobind
-    private renderSelectedButton(instance: IGeneratedAssessmentInstance, key: string, assessmentNavState: AssessmentNavState): JSX.Element {
-        const step = assessmentNavState.selectedTestStep;
+    private renderSelectedButton = (
+        instance: GeneratedAssessmentInstance,
+        key: string,
+        assessmentNavState: AssessmentNavState,
+    ): JSX.Element => {
+        const step = assessmentNavState.selectedTestSubview;
         const test = assessmentNavState.selectedTestType;
 
         return (
@@ -139,32 +183,47 @@ export class AssessmentInstanceTableHandler {
                 selector={key}
                 isVisualizationEnabled={instance.testStepResults[step].isVisualizationEnabled}
                 isVisible={instance.testStepResults[step].isVisible}
-                onSelected={this.actionMessageCreator.changeAssessmentVisualizationState}
+                onSelected={this.detailsViewActionMessageCreator.changeAssessmentVisualizationState}
             />
         );
-    }
+    };
 
-    @autobind
-    private renderInstanceActionButtons(instance: IUserCapturedInstance, test: VisualizationType, step: string): JSX.Element {
+    private renderInstanceActionButtons = (
+        instance: UserCapturedInstance,
+        test: VisualizationType,
+        step: string,
+        featureFlagStoreData: FeatureFlagStoreData,
+        pathSnippetStoreData: PathSnippetStoreData,
+    ): JSX.Element => {
+        const currentInstance = {
+            failureDescription: instance.description,
+            path: pathSnippetStoreData.path || instance.selector,
+            snippet: pathSnippetStoreData.snippet || instance.html,
+        };
         return (
             <AssessmentInstanceEditAndRemoveControl
                 test={test}
                 step={step}
                 id={instance.id}
-                description={instance.description}
-                onRemove={this.actionMessageCreator.removeFailureInstance}
-                onEdit={this.actionMessageCreator.editFailureInstance}
+                currentInstance={currentInstance}
+                onRemove={this.detailsViewActionMessageCreator.removeFailureInstance}
+                onEdit={this.detailsViewActionMessageCreator.editFailureInstance}
+                onClearPathSnippetData={this.detailsViewActionMessageCreator.clearPathSnippetData}
+                onAddPath={this.detailsViewActionMessageCreator.addPathForValidation}
                 assessmentsProvider={this.assessmentsProvider}
+                featureFlagStoreData={featureFlagStoreData}
             />
         );
-    }
+    };
 
     private getInstanceKeys(
-        instancesMap: DictionaryStringTo<IGeneratedAssessmentInstance>,
+        instancesMap: DictionaryStringTo<GeneratedAssessmentInstance>,
         assessmentNavState: AssessmentNavState,
     ): string[] {
         return Object.keys(instancesMap).filter(key => {
-            return instancesMap[key].testStepResults[assessmentNavState.selectedTestStep] != null;
+            return (
+                instancesMap[key].testStepResults[assessmentNavState.selectedTestSubview] != null
+            );
         });
     }
 }

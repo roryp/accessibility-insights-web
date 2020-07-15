@@ -1,49 +1,54 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
-import { forOwn } from 'lodash';
-import { IMock, It, Mock, MockBehavior, Times } from 'typemoq';
-
-import { ActionCreator } from '../../../../../background/actions/action-creator';
-import { ActionHub } from '../../../../../background/actions/action-hub';
+import { ActionCreator } from 'background/actions/action-creator';
+import { ActionHub } from 'background/actions/action-hub';
 import {
     AddTabbedElementPayload,
     BaseActionPayload,
     ChangeInstanceStatusPayload,
     OnDetailsViewOpenPayload,
     OnDetailsViewPivotSelected,
+    RescanVisualizationPayload,
     ToggleActionPayload,
     VisualizationTogglePayload,
-} from '../../../../../background/actions/action-payloads';
-import { DetailsViewActions } from '../../../../../background/actions/details-view-actions';
-import { DevToolActions } from '../../../../../background/actions/dev-tools-actions';
-import { InspectActions } from '../../../../../background/actions/inspect-actions';
-import { ScopingActions } from '../../../../../background/actions/scoping-actions';
-import { VisualizationActions } from '../../../../../background/actions/visualization-actions';
-import { VisualizationScanResultActions } from '../../../../../background/actions/visualization-scan-result-actions';
-import { ChromeFeatureController } from '../../../../../background/chrome-feature-controller';
-import { DetailsViewController } from '../../../../../background/details-view-controller';
-import { ContentScriptInjector } from '../../../../../background/injector/content-script-injector';
-import { TargetTabController } from '../../../../../background/target-tab-controller';
-import { TelemetryEventHandler } from '../../../../../background/telemetry/telemetry-event-handler';
-import { VisualizationConfigurationFactory } from '../../../../../common/configs/visualization-configuration-factory';
-import { Action } from '../../../../../common/flux/action';
-import { Messages } from '../../../../../common/messages';
-import { NotificationCreator } from '../../../../../common/notification-creator';
+} from 'background/actions/action-payloads';
+import { AssessmentActions } from 'background/actions/assessment-actions';
+import { CardSelectionActions } from 'background/actions/card-selection-actions';
+import { DetailsViewActions } from 'background/actions/details-view-actions';
+import { DevToolActions } from 'background/actions/dev-tools-actions';
+import { InspectActions } from 'background/actions/inspect-actions';
+import { PreviewFeaturesActions } from 'background/actions/preview-features-actions';
+import { ScopingActions } from 'background/actions/scoping-actions';
+import { VisualizationActions } from 'background/actions/visualization-actions';
+import { VisualizationScanResultActions } from 'background/actions/visualization-scan-result-actions';
+import { ExtensionDetailsViewController } from 'background/extension-details-view-controller';
+import { ContentScriptInjector } from 'background/injector/content-script-injector';
+import { Interpreter } from 'background/interpreter';
+import { TargetTabController } from 'background/target-tab-controller';
+import { TelemetryEventHandler } from 'background/telemetry/telemetry-event-handler';
+import { VisualizationConfigurationFactory } from 'common/configs/visualization-configuration-factory';
+import * as TelemetryEvents from 'common/extension-telemetry-events';
 import {
     BaseTelemetryData,
     DetailsViewOpenTelemetryData,
     DetailsViewPivotSelectedTelemetryData,
-    SettingsOpenTelemetryData,
     TelemetryEventSource,
     ToggleTelemetryData,
     TriggeredBy,
-} from '../../../../../common/telemetry-events';
-import * as TelemetryEvents from '../../../../../common/telemetry-events';
-import { DetailsViewPivotType } from '../../../../../common/types/details-view-pivot-type';
-import { VisualizationType } from '../../../../../common/types/visualization-type';
-import { IScanCompletedPayload } from '../../../../../injected/analyzers/ianalyzer';
-import { AssessmentActions } from './../../../../../background/actions/assessment-actions';
-import { PreviewFeaturesActions } from './../../../../../background/actions/preview-features-actions';
+} from 'common/extension-telemetry-events';
+import { Action } from 'common/flux/action';
+import { Logger } from 'common/logging/logger';
+import { getStoreStateMessage, Messages } from 'common/messages';
+import { NotificationCreator } from 'common/notification-creator';
+import { StoreNames } from 'common/stores/store-names';
+import { DetailsViewPivotType } from 'common/types/details-view-pivot-type';
+import { ScanIncompleteWarningId } from 'common/types/scan-incomplete-warnings';
+import { VisualizationType } from 'common/types/visualization-type';
+import { ScanCompletedPayload } from 'injected/analyzers/analyzer';
+import { forOwn } from 'lodash';
+import { tick } from 'tests/unit/common/tick';
+import { IMock, It, Mock, MockBehavior, Times } from 'typemoq';
+import { DictionaryStringTo } from 'types/common-types';
 
 const VisualizationMessage = Messages.Visualizations;
 const PreviewFeaturesMessage = Messages.PreviewFeatures;
@@ -74,7 +79,7 @@ describe('ActionCreatorTest', () => {
         const validator = new ActionCreatorValidator()
             .setupActionOnVisualizationActions(actionName)
             .setupVisualizationActionWithInvokeParameter(actionName, payload)
-            .setupSwithToTab(tabId)
+            .setupSwitchToTab(tabId)
             .setupRegistrationCallback(VisualizationMessage.Common.Toggle, args)
             .setupTelemetrySend(TelemetryEvents.TABSTOPS_TOGGLE, payload, tabId);
 
@@ -180,12 +185,12 @@ describe('ActionCreatorTest', () => {
         validator.verifyAll();
     });
 
-    test('registerCallbacks for openDetailsView == null', () => {
+    test('registerCallbacks for openDetailsView == null', async () => {
         const tabId = 1;
         const viewType = null;
-        const pivotType = DetailsViewPivotType.allTest;
+        const pivotType = DetailsViewPivotType.fastPass;
         const telemetry: DetailsViewOpenTelemetryData = {
-            detailsView: VisualizationType[viewType],
+            selectedTest: VisualizationType[viewType],
             triggeredBy: 'keypress',
             source: testSource,
         };
@@ -199,24 +204,30 @@ describe('ActionCreatorTest', () => {
         const updateViewActionName = 'updateSelectedPivotChild';
 
         const validator = new ActionCreatorValidator()
-            .setupRegistrationCallback(VisualizationMessage.DetailsView.Open, [actionCreatorPayload, tabId])
+            .setupRegistrationCallback(VisualizationMessage.DetailsView.Open, [
+                actionCreatorPayload,
+                tabId,
+            ])
             .setupActionOnVisualizationActions(updateViewActionName)
             .setupVisualizationActionWithInvokeParameter(updateViewActionName, actionCreatorPayload)
             .setupTelemetrySend(TelemetryEvents.PIVOT_CHILD_SELECTED, actionCreatorPayload, tabId)
-            .setupShowDetailsView(tabId);
+            .setupShowDetailsView(tabId, Promise.resolve());
 
         const actionCreator = validator.buildActionCreator();
 
         actionCreator.registerCallbacks();
+
+        await tick();
+
         validator.verifyAll();
     });
 
-    test('registerCallbacks for openDetailsView == Headings', () => {
+    test('registerCallbacks for openDetailsView == TabStops', async () => {
         const tabId = 1;
-        const viewType = VisualizationType.Headings;
-        const pivotType = DetailsViewPivotType.allTest;
+        const viewType = VisualizationType.TabStops;
+        const pivotType = DetailsViewPivotType.fastPass;
         const telemetry: DetailsViewOpenTelemetryData = {
-            detailsView: VisualizationType[viewType],
+            selectedTest: VisualizationType[viewType],
             triggeredBy: 'keypress',
             source: testSource,
         };
@@ -228,36 +239,32 @@ describe('ActionCreatorTest', () => {
         };
 
         const updateViewActionName = 'updateSelectedPivotChild';
-        const enableVisualizationActionName = 'enableVisualization';
-        const enableVisualizationTelemetryPayload: VisualizationTogglePayload = {
-            enabled: true,
-            test: viewType,
-            telemetry: null,
-        };
 
         const validator = new ActionCreatorValidator()
-            .setupRegistrationCallback(VisualizationMessage.DetailsView.Open, [actionCreatorPayload, tabId])
-            .setupActionOnVisualizationActions(enableVisualizationActionName)
-            .setupVisualizationActionWithInvokeParameter(enableVisualizationActionName, enableVisualizationTelemetryPayload)
+            .setupRegistrationCallback(VisualizationMessage.DetailsView.Open, [
+                actionCreatorPayload,
+                tabId,
+            ])
             .setupActionOnVisualizationActions(updateViewActionName)
             .setupVisualizationActionWithInvokeParameter(updateViewActionName, actionCreatorPayload)
             .setupTelemetrySend(TelemetryEvents.PIVOT_CHILD_SELECTED, actionCreatorPayload, tabId)
-            .setupTelemetrySend(TelemetryEvents.HEADINGS_TOGGLE, enableVisualizationTelemetryPayload, tabId)
-            .setupShowDetailsView(tabId);
+            .setupShowDetailsView(tabId, Promise.resolve());
 
         const actionCreator = validator.buildActionCreator();
 
         actionCreator.registerCallbacks();
 
+        await tick();
+
         validator.verifyAll();
     });
 
-    test('registerCallbacks for openDetailsView == Issues', () => {
+    test('registerCallbacks for openDetailsView == Issues', async () => {
         const tabId = 1;
         const viewType = VisualizationType.Issues;
         const pivotType = DetailsViewPivotType.fastPass;
         const telemetry: DetailsViewOpenTelemetryData = {
-            detailsView: VisualizationType[viewType],
+            selectedTest: VisualizationType[viewType],
             triggeredBy: 'keypress',
             source: testSource,
         };
@@ -277,112 +284,40 @@ describe('ActionCreatorTest', () => {
         };
 
         const validator = new ActionCreatorValidator()
-            .setupRegistrationCallback(VisualizationMessage.DetailsView.Open, [actionCreatorPayload, tabId])
+            .setupRegistrationCallback(VisualizationMessage.DetailsView.Open, [
+                actionCreatorPayload,
+                tabId,
+            ])
             .setupActionOnVisualizationActions(updateViewActionName)
             .setupVisualizationActionWithInvokeParameter(updateViewActionName, actionCreatorPayload)
             .setupActionOnVisualizationActions(enablingIssuesActionName)
-            .setupVisualizationActionWithInvokeParameter(enablingIssuesActionName, enableVisualizationTelemetryPayload)
+            .setupVisualizationActionWithInvokeParameter(
+                enablingIssuesActionName,
+                enableVisualizationTelemetryPayload,
+            )
             .setupTelemetrySend(TelemetryEvents.PIVOT_CHILD_SELECTED, actionCreatorPayload, tabId)
-            .setupTelemetrySend(TelemetryEvents.AUTOMATED_CHECKS_TOGGLE, enableVisualizationTelemetryPayload, tabId)
-            .setupShowDetailsView(tabId);
+            .setupTelemetrySend(
+                TelemetryEvents.AUTOMATED_CHECKS_TOGGLE,
+                enableVisualizationTelemetryPayload,
+                tabId,
+            )
+            .setupShowDetailsView(tabId, Promise.resolve());
 
         const actionCreator = validator.buildActionCreator();
 
         actionCreator.registerCallbacks();
 
-        validator.verifyAll();
-    });
-
-    test('registerCallbacks for openDetailsView == Color', () => {
-        const tabId = 1;
-        const viewType = VisualizationType.Color;
-        const pivotType = DetailsViewPivotType.allTest;
-        const telemetry: DetailsViewOpenTelemetryData = {
-            detailsView: VisualizationType[viewType],
-            triggeredBy: 'keypress',
-            source: testSource,
-        };
-
-        const actionCreatorPayload: OnDetailsViewOpenPayload = {
-            detailsViewType: viewType,
-            pivotType,
-            telemetry,
-        };
-
-        const updateViewActionName = 'updateSelectedPivotChild';
-        const enablingColorActionName = 'enableVisualization';
-
-        const enableVisualizationTelemetryPayload: VisualizationTogglePayload = {
-            enabled: true,
-            test: viewType,
-            telemetry: null,
-        };
-
-        const validator = new ActionCreatorValidator()
-            .setupRegistrationCallback(VisualizationMessage.DetailsView.Open, [actionCreatorPayload, tabId])
-            .setupActionOnVisualizationActions(updateViewActionName)
-            .setupVisualizationActionWithInvokeParameter(updateViewActionName, actionCreatorPayload)
-            .setupActionOnVisualizationActions(enablingColorActionName)
-            .setupVisualizationActionWithInvokeParameter(enablingColorActionName, enableVisualizationTelemetryPayload)
-            .setupTelemetrySend(TelemetryEvents.PIVOT_CHILD_SELECTED, actionCreatorPayload, tabId)
-            .setupTelemetrySend(TelemetryEvents.COLOR_TOGGLE, enableVisualizationTelemetryPayload, tabId)
-            .setupShowDetailsView(tabId);
-
-        const actionCreator = validator.buildActionCreator();
-
-        actionCreator.registerCallbacks();
+        await tick();
 
         validator.verifyAll();
     });
 
-    test('registerCallbacks for openDetailsView == Landmarks', () => {
-        const tabId = 1;
-        const viewType = VisualizationType.Landmarks;
-        const pivotType = DetailsViewPivotType.allTest;
-        const telemetry: DetailsViewOpenTelemetryData = {
-            detailsView: VisualizationType[viewType],
-            triggeredBy: 'keypress',
-            source: testSource,
-        };
-
-        const actionCreatorPayload: OnDetailsViewOpenPayload = {
-            detailsViewType: viewType,
-            pivotType: pivotType,
-            telemetry: telemetry,
-        };
-
-        const updateViewActionName = 'updateSelectedPivotChild';
-        const enablingIssuesActionName = 'enableVisualization';
-
-        const enableVisualizationTelemetryPayload: VisualizationTogglePayload = {
-            enabled: true,
-            test: viewType,
-            telemetry: null,
-        };
-
-        const validator = new ActionCreatorValidator()
-            .setupRegistrationCallback(VisualizationMessage.DetailsView.Open, [actionCreatorPayload, tabId])
-            .setupActionOnVisualizationActions(updateViewActionName)
-            .setupVisualizationActionWithInvokeParameter(updateViewActionName, actionCreatorPayload)
-            .setupActionOnVisualizationActions(enablingIssuesActionName)
-            .setupVisualizationActionWithInvokeParameter(enablingIssuesActionName, enableVisualizationTelemetryPayload)
-            .setupTelemetrySend(TelemetryEvents.PIVOT_CHILD_SELECTED, actionCreatorPayload, tabId)
-            .setupTelemetrySend(TelemetryEvents.LANDMARKS_TOGGLE, enableVisualizationTelemetryPayload, tabId)
-            .setupShowDetailsView(tabId);
-
-        const actionCreator = validator.buildActionCreator();
-
-        actionCreator.registerCallbacks();
-
-        validator.verifyAll();
-    });
-
-    test('registerCallbacks for openDetailsView == HeadingsAssessment', () => {
+    test('registerCallbacks for openDetailsView == HeadingsAssessment', async () => {
         const tabId = 1;
         const viewType = VisualizationType.HeadingsAssessment;
         const pivotType = DetailsViewPivotType.assessment;
         const telemetry: DetailsViewOpenTelemetryData = {
-            detailsView: VisualizationType[viewType],
+            selectedTest: VisualizationType[viewType],
             triggeredBy: 'keypress',
             source: testSource,
         };
@@ -395,15 +330,20 @@ describe('ActionCreatorTest', () => {
 
         const updateViewActionName = 'updateSelectedPivotChild';
         const validator = new ActionCreatorValidator()
-            .setupRegistrationCallback(VisualizationMessage.DetailsView.Open, [actionCreatorPayload, tabId])
+            .setupRegistrationCallback(VisualizationMessage.DetailsView.Open, [
+                actionCreatorPayload,
+                tabId,
+            ])
             .setupActionOnVisualizationActions(updateViewActionName)
             .setupVisualizationActionWithInvokeParameter(updateViewActionName, actionCreatorPayload)
             .setupTelemetrySend(TelemetryEvents.PIVOT_CHILD_SELECTED, actionCreatorPayload, tabId)
-            .setupShowDetailsView(tabId);
+            .setupShowDetailsView(tabId, Promise.resolve());
 
         const actionCreator = validator.buildActionCreator();
 
         actionCreator.registerCallbacks();
+
+        await tick();
 
         validator.verifyAll();
     });
@@ -415,7 +355,10 @@ describe('ActionCreatorTest', () => {
         const validator = new ActionCreatorValidator()
             .setupRegistrationCallback(VisualizationMessage.DetailsView.Close, [null, tabId])
             .setupActionOnVisualizationActions(disableAssessmentVisualizationActionName)
-            .setupVisualizationActionWithInvokeParameter(disableAssessmentVisualizationActionName, null);
+            .setupVisualizationActionWithInvokeParameter(
+                disableAssessmentVisualizationActionName,
+                null,
+            );
 
         const actionCreator = validator.buildActionCreator();
         actionCreator.registerCallbacks();
@@ -441,11 +384,14 @@ describe('ActionCreatorTest', () => {
     });
 
     test('registerCallbacks for scrollRequested', () => {
-        const actionName = 'scrollRequested';
+        const visualizationActionName = 'scrollRequested';
+        const cardSelectionActionName = 'resetFocusedIdentifier';
         const tabId = 1;
         const builder = new ActionCreatorValidator()
-            .setupActionOnVisualizationActions(actionName)
-            .setupVisualizationActionWithInvokeParameter(actionName, null)
+            .setupActionOnVisualizationActions(visualizationActionName)
+            .setupVisualizationActionWithInvokeParameter(visualizationActionName, null)
+            .setupActionOnCardSelectionActions(cardSelectionActionName)
+            .setupCardSelectionActionWithInvokeParameter(cardSelectionActionName, null)
             .setupRegistrationCallback(VisualizationMessage.Common.ScrollRequested, [null, tabId]);
 
         const actionCreator = builder.buildActionCreator();
@@ -486,68 +432,12 @@ describe('ActionCreatorTest', () => {
         builder.verifyAll();
     });
 
-    test('registerCallbacks for onSetDetailsViewRightContentPanel', () => {
-        const args = 'Overview';
-        const actionName = 'setSelectedDetailsViewRightContentPanel';
-        const builder = new ActionCreatorValidator()
-            .setupRegistrationCallback(Messages.Visualizations.DetailsView.SetDetailsViewRightContentPanel, [args])
-            .setupActionOnDetailsViewActions(actionName)
-            .setupDetailsViewActionWithInvokeParameter(actionName, args);
-
-        const actionCreator = builder.buildActionCreator();
-
-        actionCreator.registerCallbacks();
-
-        builder.verifyAll();
-    });
-
-    test('registerCallback for onScanCompleted', () => {
+    test('registerCallback for onAdHocScanCompleted', () => {
         const key = 'Key should not matter';
         const actionName = 'scanCompleted';
         const message = VisualizationMessage.Common.ScanCompleted;
         const telemetryEventName = TelemetryEvents.ADHOC_SCAN_COMPLETED;
         testScanCompleteWithExpectedParams(key, message, actionName, telemetryEventName);
-    });
-
-    test('registerCallback for injectionCompleted', () => {
-        const actionName = 'injectionCompleted';
-        const builder = new ActionCreatorValidator()
-            .setupRegistrationCallback(VisualizationMessage.State.InjectionCompleted)
-            .setupActionOnVisualizationActions(actionName)
-            .setupVisualizationActionWithInvokeParameter(actionName, null);
-
-        const actionCreator = builder.buildActionCreator();
-
-        actionCreator.registerCallbacks();
-
-        builder.verifyAll();
-    });
-
-    test('registerCallback for injectionStarted', () => {
-        const actionName = 'injectionStarted';
-        const builder = new ActionCreatorValidator()
-            .setupRegistrationCallback(VisualizationMessage.State.InjectionStarted)
-            .setupActionOnVisualizationActions(actionName)
-            .setupVisualizationActionWithInvokeParameter(actionName, null);
-
-        const actionCreator = builder.buildActionCreator();
-
-        actionCreator.registerCallbacks();
-
-        builder.verifyAll();
-    });
-
-    test('registerCallback for onSendTelemetry', () => {
-        const payload = { eventName: 'launch-panel/open', telemetry: {} };
-        const args = [payload, 1];
-        const builder = new ActionCreatorValidator()
-            .setupRegistrationCallback(Messages.Telemetry.Send, args)
-            .setupTelemetrySend('launch-panel/open', payload, 1);
-
-        const actionCreator = builder.buildActionCreator();
-        actionCreator.registerCallbacks();
-
-        builder.verifyAll();
     });
 
     test('registerCallback for tabbed element added', () => {
@@ -578,7 +468,7 @@ describe('ActionCreatorTest', () => {
         const args = [];
         const actionName = 'getCurrentState';
         const builder = new ActionCreatorValidator()
-            .setupRegistrationCallback(Messages.Visualizations.State.GetCurrentVisualizationToggleState, args)
+            .setupRegistrationCallback(getStoreStateMessage(StoreNames.VisualizationStore), args)
             .setupActionOnVisualizationActions(actionName)
             .setupVisualizationActionWithInvokeParameter(actionName, null);
 
@@ -593,7 +483,10 @@ describe('ActionCreatorTest', () => {
         const args = [];
         const actionName = 'getCurrentState';
         const builder = new ActionCreatorValidator()
-            .setupRegistrationCallback(Messages.Visualizations.State.GetCurrentVisualizationResultState, args)
+            .setupRegistrationCallback(
+                getStoreStateMessage(StoreNames.VisualizationScanResultStore),
+                args,
+            )
             .setupActionOnVisualizationScanResultActions(actionName)
             .setupVisualizationScanResultActionWithInvokeParameter(actionName, null);
 
@@ -604,24 +497,9 @@ describe('ActionCreatorTest', () => {
         builder.verifyAll();
     });
 
-    test('test for open configureCommand tab', () => {
-        const tabId: number = 1;
-        const payload = { eventName: TelemetryEvents.SHORTCUT_CONFIGURE_OPEN, telemetry: {} };
-        const args = [payload, tabId];
-        const builder = new ActionCreatorValidator()
-            .setupRegistrationCallback(Messages.ChromeFeature.configureCommand, args)
-            .setupTelemetrySend(TelemetryEvents.SHORTCUT_CONFIGURE_OPEN, payload, tabId)
-            .setupChromeFeatureController();
-
-        const actionCreator = builder.buildActionCreator();
-        actionCreator.registerCallbacks();
-
-        builder.verifyAll();
-    });
-
-    test('registerCallback for onDetailsViewSelected', () => {
+    describe('registerCallback for onDetailsViewSelected', () => {
         const viewType = VisualizationType.Issues;
-        const pivotType = DetailsViewPivotType.allTest;
+        const pivotType = DetailsViewPivotType.fastPass;
         const updateViewActionName = 'updateSelectedPivotChild';
         const closePreviewFeaturesActionName = 'closePreviewFeatures';
         const tabId = 1;
@@ -629,26 +507,67 @@ describe('ActionCreatorTest', () => {
             detailsViewType: viewType,
             pivotType: pivotType,
             telemetry: {
-                detailsView: VisualizationType[viewType],
+                selectedTest: VisualizationType[viewType],
                 triggeredBy: 'mouseclick',
                 source: testSource,
             },
         };
 
-        const builder = new ActionCreatorValidator()
-            .setupRegistrationCallback(VisualizationMessage.DetailsView.Select, [actionCreatorPayload, tabId])
-            .setupActionOnVisualizationActions(updateViewActionName)
-            .setupVisualizationActionWithInvokeParameter(updateViewActionName, actionCreatorPayload)
-            .setupActionOnPreviewFeaturesActions(closePreviewFeaturesActionName)
-            .setupPreviewFeaturesActionWithInvokeParameter(closePreviewFeaturesActionName, null)
-            .setupTelemetrySend(TelemetryEvents.PIVOT_CHILD_SELECTED, actionCreatorPayload, 1)
-            .setupShowDetailsView(tabId);
+        it('updates details view state and sends telemetry', async () => {
+            const builder = new ActionCreatorValidator()
+                .setupRegistrationCallback(VisualizationMessage.DetailsView.Select, [
+                    actionCreatorPayload,
+                    tabId,
+                ])
+                .setupActionOnVisualizationActions(updateViewActionName)
+                .setupVisualizationActionWithInvokeParameter(
+                    updateViewActionName,
+                    actionCreatorPayload,
+                )
+                .setupActionOnPreviewFeaturesActions(closePreviewFeaturesActionName)
+                .setupPreviewFeaturesActionWithInvokeParameter(closePreviewFeaturesActionName, null)
+                .setupTelemetrySend(TelemetryEvents.PIVOT_CHILD_SELECTED, actionCreatorPayload, 1)
+                .setupShowDetailsView(tabId, Promise.resolve());
 
-        const actionCreator = builder.buildActionCreator();
+            const actionCreator = builder.buildActionCreator();
 
-        actionCreator.registerCallbacks();
+            actionCreator.registerCallbacks();
 
-        builder.verifyAll();
+            await tick();
+
+            builder.verifyAll();
+        });
+
+        it('propagates show details view error to the logger', async () => {
+            const showDetailsViewErrorMessage = 'error on showDetailsView';
+
+            const builder = new ActionCreatorValidator()
+                .setupRegistrationCallback(VisualizationMessage.DetailsView.Select, [
+                    actionCreatorPayload,
+                    tabId,
+                ])
+                .setupActionOnVisualizationActions(updateViewActionName)
+                .setupVisualizationActionWithInvokeParameter(
+                    updateViewActionName,
+                    actionCreatorPayload,
+                )
+                .setupActionOnPreviewFeaturesActions(closePreviewFeaturesActionName)
+                .setupPreviewFeaturesActionWithInvokeParameter(closePreviewFeaturesActionName, null)
+                .setupTelemetrySend(TelemetryEvents.PIVOT_CHILD_SELECTED, actionCreatorPayload, 1)
+                .setupShowDetailsView(
+                    tabId,
+                    Promise.reject({ message: showDetailsViewErrorMessage }),
+                )
+                .setupLogError(showDetailsViewErrorMessage);
+
+            const actionCreator = builder.buildActionCreator();
+
+            actionCreator.registerCallbacks();
+
+            await tick();
+
+            builder.verifyAll();
+        });
     });
 
     test('registerCallback for onRecordingCompleted', () => {
@@ -658,8 +577,15 @@ describe('ActionCreatorTest', () => {
         };
 
         const validator = new ActionCreatorValidator()
-            .setupRegistrationCallback(VisualizationMessage.TabStops.RecordingCompleted, [actionCreatorPayload, tabId])
-            .setupTelemetrySend(TelemetryEvents.TABSTOPS_RECORDING_COMPLETE, actionCreatorPayload, tabId);
+            .setupRegistrationCallback(VisualizationMessage.TabStops.RecordingCompleted, [
+                actionCreatorPayload,
+                tabId,
+            ])
+            .setupTelemetrySend(
+                TelemetryEvents.TABSTOPS_RECORDING_COMPLETE,
+                actionCreatorPayload,
+                tabId,
+            );
         const actionCreator = validator.buildActionCreator();
 
         actionCreator.registerCallbacks();
@@ -707,57 +633,6 @@ describe('ActionCreatorTest', () => {
         validator.verifyAll();
     });
 
-    test('registerCallback for onOpenSettingsPanel', () => {
-        const tabId: number = 1;
-        const telemetryData: SettingsOpenTelemetryData = {
-            triggeredBy: 'mouseclick',
-            source: testSource,
-            sourceItem: 'menu',
-        };
-
-        const payload = {
-            telemetryData,
-        };
-        const actionName = 'openSettingsPanel';
-
-        const validator = new ActionCreatorValidator()
-            .setupRegistrationCallback(Messages.SettingsPanel.OpenPanel, [payload, tabId])
-            .setupActionOnDetailsViewActions(actionName)
-            .setupDetailsViewActionWithInvokeParameter(actionName, null)
-            .setupTelemetrySend(TelemetryEvents.SETTINGS_PANEL_OPEN, payload, tabId)
-            .setupShowDetailsView(tabId);
-
-        const actionCreator = validator.buildActionCreator();
-
-        actionCreator.registerCallbacks();
-
-        validator.verifyAll();
-    });
-
-    test('registerCallback for onCloseSettingPanel', () => {
-        const tabId = 1;
-        const telemetryData: BaseTelemetryData = {
-            triggeredBy: 'stub triggered by' as TriggeredBy,
-            source: testSource,
-        };
-        const actionName = 'closeSettingsPanel';
-        const telemetryInfo = {
-            telemetryData,
-        };
-
-        const validator = new ActionCreatorValidator()
-            .setupRegistrationCallback(Messages.SettingsPanel.ClosePanel, [telemetryInfo, tabId])
-            .setupActionOnDetailsViewActions(actionName)
-            .setupDetailsViewActionWithInvokeParameter(actionName, null)
-            .setupTelemetrySend(TelemetryEvents.SETTINGS_PANEL_CLOSE, telemetryInfo, tabId);
-
-        const actionCreator = validator.buildActionCreator();
-
-        actionCreator.registerCallbacks();
-
-        validator.verifyAll();
-    });
-
     test('registerCallback for onAssessmentScanCompleted', () => {
         const tabId = -1;
         const telemetryData: BaseTelemetryData = {
@@ -765,18 +640,27 @@ describe('ActionCreatorTest', () => {
             source: testSource,
         };
 
-        const payload: IScanCompletedPayload<any> = {
+        const payload: ScanCompletedPayload<any> = {
             telemetry: telemetryData,
             selectorMap: {},
             scanResult: null,
             testType: VisualizationType.HeadingsAssessment,
             key: 'key',
+            scanIncompleteWarnings: [],
         };
 
         const validator = new ActionCreatorValidator()
-            .setupRegistrationCallback(Messages.Assessment.AssessmentScanCompleted, [payload, tabId])
+            .setupRegistrationCallback(Messages.Assessment.AssessmentScanCompleted, [
+                payload,
+                tabId,
+            ])
             .setupTelemetrySend(TelemetryEvents.ASSESSMENT_SCAN_COMPLETED, payload, tabId)
-            .setupCreateNotificationByVisualizationKey(payload.selectorMap, payload.key, payload.testType)
+            .setupCreateNotificationByVisualizationKey(
+                payload.selectorMap,
+                payload.key,
+                payload.testType,
+                payload.scanIncompleteWarnings,
+            )
             .setupShowTargetTab(tabId, payload.testType, payload.key);
 
         const actionCreator = validator.buildActionCreator();
@@ -791,16 +675,16 @@ describe('ActionCreatorTest', () => {
         const payload: ChangeInstanceStatusPayload = {
             test: VisualizationType.HeadingsAssessment,
             status: null,
-            step: null,
+            requirement: null,
             selector: null,
         };
         const disableActionName = 'disableVisualization';
 
         const validator = new ActionCreatorValidator()
-            .setupRegistrationCallback(Messages.Assessment.StartOver, [payload, tabId])
+            .setupRegistrationCallback(Messages.Assessment.StartOverTest, [payload, tabId])
             .setupActionOnVisualizationActions(disableActionName)
             .setupVisualizationActionWithInvokeParameter(disableActionName, payload.test)
-            .setupTelemetrySend(TelemetryEvents.START_OVER_ASSESSMENT, payload, 1);
+            .setupTelemetrySend(TelemetryEvents.START_OVER_TEST, payload, 1);
         const actionCreator = validator.buildActionCreator();
 
         actionCreator.registerCallbacks();
@@ -814,7 +698,7 @@ describe('ActionCreatorTest', () => {
 
         const validator = new ActionCreatorValidator()
             .setupRegistrationCallback(Messages.Assessment.CancelStartOver, [payload, tabId])
-            .setupTelemetrySend(TelemetryEvents.CANCEL_START_OVER_ASSESSMENT, payload, tabId);
+            .setupTelemetrySend(TelemetryEvents.CANCEL_START_OVER_TEST, payload, tabId);
 
         const actionCreator = validator.buildActionCreator();
 
@@ -828,16 +712,19 @@ describe('ActionCreatorTest', () => {
         const payload: ChangeInstanceStatusPayload = {
             test: VisualizationType.HeadingsAssessment,
             status: null,
-            step: null,
+            requirement: null,
             selector: null,
         };
         const disableActionName = 'disableAssessmentVisualizations';
 
         const validator = new ActionCreatorValidator()
-            .setupRegistrationCallback(Messages.Assessment.StartOverAllAssessments, [payload, tabId])
+            .setupRegistrationCallback(Messages.Assessment.StartOverAllAssessments, [
+                payload,
+                tabId,
+            ])
             .setupActionOnVisualizationActions(disableActionName)
             .setupVisualizationActionWithInvokeParameter(disableActionName, null)
-            .setupTelemetrySend(TelemetryEvents.START_OVER_ALL_ASSESSMENTS, payload, 1);
+            .setupTelemetrySend(TelemetryEvents.START_OVER_ASSESSMENT, payload, 1);
         const actionCreator = validator.buildActionCreator();
 
         actionCreator.registerCallbacks();
@@ -850,9 +737,55 @@ describe('ActionCreatorTest', () => {
         const payload: BaseActionPayload = {};
 
         const validator = new ActionCreatorValidator()
-            .setupRegistrationCallback(Messages.Assessment.CancelStartOverAllAssessments, [payload, tabId])
-            .setupTelemetrySend(TelemetryEvents.CANCEL_START_OVER_ALL_ASSESSMENTS, payload, tabId);
+            .setupRegistrationCallback(Messages.Assessment.CancelStartOverAllAssessments, [
+                payload,
+                tabId,
+            ])
+            .setupTelemetrySend(TelemetryEvents.CANCEL_START_OVER_ASSESSMENT, payload, tabId);
 
+        const actionCreator = validator.buildActionCreator();
+
+        actionCreator.registerCallbacks();
+
+        validator.verifyAll();
+    });
+
+    test('registerCallback for onRescanVisualization', () => {
+        const tabId = 1;
+        const payload: RescanVisualizationPayload = {
+            test: VisualizationType.HeadingsAssessment,
+        };
+        const disableActionName = 'disableVisualization';
+        const enableActionName = 'enableVisualization';
+
+        const validator = new ActionCreatorValidator()
+            .setupRegistrationCallback(Messages.Visualizations.Common.RescanVisualization, [
+                payload,
+                tabId,
+            ])
+            .setupActionOnVisualizationActions(disableActionName)
+            .setupActionOnVisualizationActions(enableActionName)
+            .setupVisualizationActionWithInvokeParameter(disableActionName, payload.test)
+            .setupVisualizationActionWithInvokeParameter(enableActionName, payload)
+            .setupTelemetrySend(TelemetryEvents.RESCAN_VISUALIZATION, payload, tabId);
+        const actionCreator = validator.buildActionCreator();
+
+        actionCreator.registerCallbacks();
+
+        validator.verifyAll();
+    });
+
+    test('registerCallback for onEnableVisualHelper', () => {
+        const tabId = 1;
+        const payload: ToggleActionPayload = {
+            test: VisualizationType.HeadingsAssessment,
+        };
+        const actionName = 'enableVisualization';
+
+        const validator = new ActionCreatorValidator()
+            .setupRegistrationCallback(Messages.Assessment.EnableVisualHelper, [payload, tabId])
+            .setupActionOnVisualizationActions(actionName)
+            .setupVisualizationActionWithInvokeParameter(actionName, payload);
         const actionCreator = validator.buildActionCreator();
 
         actionCreator.registerCallbacks();
@@ -868,10 +801,12 @@ describe('ActionCreatorTest', () => {
         const actionName = 'enableVisualizationWithoutScan';
 
         const validator = new ActionCreatorValidator()
-            .setupRegistrationCallback(Messages.Assessment.EnableVisualHelperWithoutScan, [payload, tabId])
+            .setupRegistrationCallback(Messages.Assessment.EnableVisualHelperWithoutScan, [
+                payload,
+                tabId,
+            ])
             .setupActionOnVisualizationActions(actionName)
-            .setupVisualizationActionWithInvokeParameter(actionName, payload)
-            .setupTelemetrySend(TelemetryEvents.ENABLE_VISUAL_HELPER, payload, 1);
+            .setupVisualizationActionWithInvokeParameter(actionName, payload);
         const actionCreator = validator.buildActionCreator();
 
         actionCreator.registerCallbacks();
@@ -907,35 +842,12 @@ describe('ActionCreatorTest', () => {
         const actionName = 'disableVisualization';
 
         const validator = new ActionCreatorValidator()
-            .setupRegistrationCallback(Messages.Assessment.DisableVisualHelperForTest, [payload, tabId])
+            .setupRegistrationCallback(Messages.Assessment.DisableVisualHelperForTest, [
+                payload,
+                tabId,
+            ])
             .setupActionOnVisualizationActions(actionName)
             .setupVisualizationActionWithInvokeParameter(actionName, payload.test);
-        const actionCreator = validator.buildActionCreator();
-
-        actionCreator.registerCallbacks();
-
-        validator.verifyAll();
-    });
-
-    test('registerCallback for onOpenPreviewFeaturesPanel', () => {
-        const tabId = 1;
-        const actionName = 'openPreviewFeatures';
-        const telemetryData: BaseTelemetryData = {
-            triggeredBy: 'stub triggered by' as TriggeredBy,
-            source: testSource,
-        };
-
-        const telemetryInfo = {
-            telemetryData,
-        };
-
-        const validator = new ActionCreatorValidator()
-            .setupRegistrationCallback(PreviewFeaturesMessage.OpenPanel, [telemetryInfo, tabId])
-            .setupActionOnPreviewFeaturesActions(actionName)
-            .setupTelemetrySend(TelemetryEvents.PREVIEW_FEATURES_OPEN, telemetryInfo, tabId)
-            .setupShowDetailsView(tabId)
-            .setupPreviewFeaturesActionWithInvokeParameter(actionName, null);
-
         const actionCreator = validator.buildActionCreator();
 
         actionCreator.registerCallbacks();
@@ -960,10 +872,20 @@ describe('ActionCreatorTest', () => {
         };
 
         const builder = new ActionCreatorValidator()
-            .setupRegistrationCallback(VisualizationMessage.DetailsView.PivotSelect, [actionCreatorPayload, tabId])
+            .setupRegistrationCallback(VisualizationMessage.DetailsView.PivotSelect, [
+                actionCreatorPayload,
+                tabId,
+            ])
             .setupActionOnVisualizationActions(updatePivotActionName)
-            .setupTelemetrySend(TelemetryEvents.DETAILS_VIEW_PIVOT_ACTIVATED, actionCreatorPayload, tabId)
-            .setupVisualizationActionWithInvokeParameter(updatePivotActionName, actionCreatorPayload);
+            .setupTelemetrySend(
+                TelemetryEvents.DETAILS_VIEW_PIVOT_ACTIVATED,
+                actionCreatorPayload,
+                tabId,
+            )
+            .setupVisualizationActionWithInvokeParameter(
+                updatePivotActionName,
+                actionCreatorPayload,
+            );
 
         const actionCreator = builder.buildActionCreator();
 
@@ -985,6 +907,7 @@ describe('ActionCreatorTest', () => {
                 key: 'value',
             },
             testType: -1,
+            scanIncompleteWarnings: [],
         };
         const args = [payload, tabId];
         const actionName = 'scanCompleted';
@@ -996,7 +919,12 @@ describe('ActionCreatorTest', () => {
             .setupVisualizationScanResultActionWithInvokeParameter(scanResultActionName, payload)
             .setupManifest({ name: 'testname', icons: { 128: 'iconUrl' } })
             .setupTelemetrySend(telemetryName, payload, tabId)
-            .setupCreateNotificationByVisualizationKey(payload.selectorMap, key, payload.testType)
+            .setupCreateNotificationByVisualizationKey(
+                payload.selectorMap,
+                key,
+                payload.testType,
+                payload.scanIncompleteWarnings,
+            )
             .setupShowTargetTab(tabId, payload.testType, key);
 
         const actionCreator = validator.buildActionCreator();
@@ -1011,8 +939,11 @@ class ActionCreatorValidator {
     private visualizationActionsContainerMock = Mock.ofType(VisualizationActions);
     private visualizationActionMocks: DictionaryStringTo<IMock<Action<any>>> = {};
     private devToolsActionMocks: DictionaryStringTo<IMock<Action<any>>> = {};
+    private cardSelectionActionsMocks: DictionaryStringTo<IMock<Action<any>>> = {};
 
-    private visualizationScanResultActionsContainerMock = Mock.ofType(VisualizationScanResultActions);
+    private visualizationScanResultActionsContainerMock = Mock.ofType(
+        VisualizationScanResultActions,
+    );
     private visualizationScanResultActionMocks: DictionaryStringTo<IMock<Action<any>>> = {};
 
     private detailsViewActionsContainerMock = Mock.ofType(DetailsViewActions);
@@ -1020,6 +951,7 @@ class ActionCreatorValidator {
     private scopingActionsContainerMock = Mock.ofType(ScopingActions);
     private assessmentActionsContainerMock = Mock.ofType(AssessmentActions);
     private inspectActionsContainerMock = Mock.ofType(InspectActions);
+    private cardSelectionActionsContainerMock = Mock.ofType(CardSelectionActions);
     private previewFeaturesActionMocks: DictionaryStringTo<IMock<Action<any>>> = {};
     private scopingActionMocks: DictionaryStringTo<IMock<Action<any>>> = {};
     private detailsViewActionsMocks: DictionaryStringTo<IMock<Action<any>>> = {};
@@ -1028,8 +960,11 @@ class ActionCreatorValidator {
 
     private devToolActionsContainerMock = Mock.ofType(DevToolActions);
 
-    private contentScriptInjectorStrictMock = Mock.ofType<ContentScriptInjector>(null, MockBehavior.Strict);
-    private registerCallbackMock = Mock.ofInstance((messageType: string, callback: IPayloadCallback) => {});
+    private contentScriptInjectorStrictMock = Mock.ofType<ContentScriptInjector>(
+        null,
+        MockBehavior.Strict,
+    );
+    private interpreterMock = Mock.ofType<Interpreter>();
     private getManifestMock = Mock.ofInstance(() => {
         return null;
     });
@@ -1038,27 +973,34 @@ class ActionCreatorValidator {
     private actionHubMock: ActionHub = {
         visualizationActions: this.visualizationActionsContainerMock.object,
         visualizationScanResultActions: this.visualizationScanResultActionsContainerMock.object,
-        tabActions: null,
-        featureFlagActions: null,
         devToolActions: this.devToolActionsContainerMock.object,
         previewFeaturesActions: this.previewFeaturesActionsContainerMock.object,
         scopingActions: this.scopingActionsContainerMock.object,
         assessmentActions: this.assessmentActionsContainerMock.object,
         inspectActions: this.inspectActionsContainerMock.object,
-        contentActions: null,
         detailsViewActions: this.detailsViewActionsContainerMock.object,
-    };
+        cardSelectionActions: this.cardSelectionActionsContainerMock.object,
+    } as ActionHub;
 
-    private telemetryEventHandlerStrictMock = Mock.ofType<TelemetryEventHandler>(null, MockBehavior.Strict);
-    private notificationCreatorStrictMock = Mock.ofType<NotificationCreator>(null, MockBehavior.Strict);
-    private targetTabControllerStrictMock = Mock.ofType<TargetTabController>(null, MockBehavior.Strict);
-    private detailsViewControllerStrictMock: IMock<DetailsViewController> = Mock.ofType<DetailsViewController>(null, MockBehavior.Strict);
-    private chromeFeatureControllerStrictMock: IMock<ChromeFeatureController> = Mock.ofType<ChromeFeatureController>(
+    private telemetryEventHandlerStrictMock = Mock.ofType<TelemetryEventHandler>(
         null,
         MockBehavior.Strict,
     );
+    private notificationCreatorStrictMock = Mock.ofType<NotificationCreator>(
+        null,
+        MockBehavior.Strict,
+    );
+    private targetTabControllerStrictMock = Mock.ofType<TargetTabController>(
+        null,
+        MockBehavior.Strict,
+    );
+    private detailsViewControllerStrictMock: IMock<ExtensionDetailsViewController> = Mock.ofType<
+        ExtensionDetailsViewController
+    >(null, MockBehavior.Strict);
 
-    public setupSwithToTab(tabId: number): ActionCreatorValidator {
+    private loggerMock = Mock.ofType<Logger>();
+
+    public setupSwitchToTab(tabId: number): ActionCreatorValidator {
         this.switchToTabMock.setup(stt => stt(tabId)).verifiable(Times.once());
 
         return this;
@@ -1085,7 +1027,29 @@ class ActionCreatorValidator {
         actionName: keyof VisualizationActions,
         expectedInvokeParam: any,
     ): ActionCreatorValidator {
-        this.setupActionWithInvokeParameter(actionName, expectedInvokeParam, this.visualizationActionMocks);
+        this.setupActionWithInvokeParameter(
+            actionName,
+            expectedInvokeParam,
+            this.visualizationActionMocks,
+        );
+        return this;
+    }
+
+    public setupCardSelectionActionWithInvokeParameter(
+        actionName: keyof CardSelectionActions,
+        expectedInvokeParam: any,
+    ): ActionCreatorValidator {
+        this.setupActionWithInvokeParameter(
+            actionName,
+            expectedInvokeParam,
+            this.cardSelectionActionsMocks,
+        );
+        return this;
+    }
+
+    public setupLogError(message: string): ActionCreatorValidator {
+        this.loggerMock.setup(logger => logger.error(message)).verifiable(Times.once());
+
         return this;
     }
 
@@ -1093,12 +1057,11 @@ class ActionCreatorValidator {
         actionName: keyof PreviewFeaturesActions,
         expectedInvokeParam: any,
     ): ActionCreatorValidator {
-        this.setupActionWithInvokeParameter(actionName, expectedInvokeParam, this.previewFeaturesActionMocks);
-        return this;
-    }
-
-    public setupScopingActionWithInvokeParameter(actionName: string, expectedInvokeParam: any): ActionCreatorValidator {
-        this.setupActionWithInvokeParameter(actionName, expectedInvokeParam, this.scopingActionMocks);
+        this.setupActionWithInvokeParameter(
+            actionName,
+            expectedInvokeParam,
+            this.previewFeaturesActionMocks,
+        );
         return this;
     }
 
@@ -1106,48 +1069,54 @@ class ActionCreatorValidator {
         actionName: keyof VisualizationScanResultActions,
         expectedInvokeParam: any,
     ): ActionCreatorValidator {
-        this.setupActionWithInvokeParameter(actionName, expectedInvokeParam, this.visualizationScanResultActionMocks);
+        this.setupActionWithInvokeParameter(
+            actionName,
+            expectedInvokeParam,
+            this.visualizationScanResultActionMocks,
+        );
         return this;
     }
 
-    public setupDevToolsActionWithInvokeParameter(actionName: keyof DevToolActions, expectedInvokeParam: any): ActionCreatorValidator {
-        this.setupActionWithInvokeParameter(actionName, expectedInvokeParam, this.devToolsActionMocks);
-        return this;
-    }
-
-    public setupInspectActionWithInvokeParameter(actionName: keyof InspectActions, expectedInvokeParam: any): ActionCreatorValidator {
-        this.setupActionWithInvokeParameter(actionName, expectedInvokeParam, this.inspectActionsMock);
-        return this;
-    }
-
-    public setupDetailsViewActionWithInvokeParameter(
-        actionName: keyof DetailsViewActions,
+    public setupInspectActionWithInvokeParameter(
+        actionName: keyof InspectActions,
         expectedInvokeParam: any,
     ): ActionCreatorValidator {
-        this.setupActionWithInvokeParameter(actionName, expectedInvokeParam, this.detailsViewActionsMocks);
+        this.setupActionWithInvokeParameter(
+            actionName,
+            expectedInvokeParam,
+            this.inspectActionsMock,
+        );
         return this;
     }
 
     public setupCreateNotificationByVisualizationKey(
         selectorMap: DictionaryStringTo<any>,
         key: string,
-        type: VisualizationType,
+        visualizationType: VisualizationType,
+        warnings: ScanIncompleteWarningId[],
     ): ActionCreatorValidator {
         this.notificationCreatorStrictMock
-            .setup(x => x.createNotificationByVisualizationKey(selectorMap, key, type))
+            .setup(x =>
+                x.createNotificationByVisualizationKey(
+                    selectorMap,
+                    key,
+                    visualizationType,
+                    warnings,
+                ),
+            )
             .verifiable(Times.once());
 
         return this;
     }
 
-    public setupCreateNotification(message: string): ActionCreatorValidator {
-        this.notificationCreatorStrictMock.setup(x => x.createNotification(message)).verifiable();
-
-        return this;
-    }
-
-    public setupShowTargetTab(tabId: number, testType: VisualizationType, step: string): ActionCreatorValidator {
-        this.targetTabControllerStrictMock.setup(ttcm => ttcm.showTargetTab(tabId, testType, step)).verifiable();
+    public setupShowTargetTab(
+        tabId: number,
+        testType: VisualizationType,
+        step: string,
+    ): ActionCreatorValidator {
+        this.targetTabControllerStrictMock
+            .setup(controller => controller.showTargetTab(tabId, testType, step))
+            .verifiable();
 
         return this;
     }
@@ -1158,7 +1127,11 @@ class ActionCreatorValidator {
         return this;
     }
 
-    public setupTelemetrySend(eventName: string, telemetryInfo: any, tabId: number): ActionCreatorValidator {
+    public setupTelemetrySend(
+        eventName: string,
+        telemetryInfo: any,
+        tabId: number,
+    ): ActionCreatorValidator {
         this.telemetryEventHandlerStrictMock
             .setup(tsm => tsm.publishTelemetry(It.isValue(eventName), It.isValue(telemetryInfo)))
             .verifiable(Times.once());
@@ -1183,33 +1156,48 @@ class ActionCreatorValidator {
         return this;
     }
 
-    public setupActionOnDevToolsActions(actionName: keyof DevToolActions): ActionCreatorValidator {
-        this.setupAction(actionName, this.devToolsActionMocks, this.devToolActionsContainerMock);
+    public setupActionOnCardSelectionActions(
+        actionName: keyof CardSelectionActions,
+    ): ActionCreatorValidator {
+        this.setupAction(
+            actionName,
+            this.cardSelectionActionsMocks,
+            this.cardSelectionActionsContainerMock,
+        );
+
         return this;
     }
 
-    public setupActionOnVisualizationActions(actionName: keyof VisualizationActions): ActionCreatorValidator {
-        this.setupAction(actionName, this.visualizationActionMocks, this.visualizationActionsContainerMock);
+    public setupActionOnVisualizationActions(
+        actionName: keyof VisualizationActions,
+    ): ActionCreatorValidator {
+        this.setupAction(
+            actionName,
+            this.visualizationActionMocks,
+            this.visualizationActionsContainerMock,
+        );
         return this;
     }
 
-    public setupActionOnPreviewFeaturesActions(actionName: keyof PreviewFeaturesActions): ActionCreatorValidator {
-        this.setupAction(actionName, this.previewFeaturesActionMocks, this.previewFeaturesActionsContainerMock);
+    public setupActionOnPreviewFeaturesActions(
+        actionName: keyof PreviewFeaturesActions,
+    ): ActionCreatorValidator {
+        this.setupAction(
+            actionName,
+            this.previewFeaturesActionMocks,
+            this.previewFeaturesActionsContainerMock,
+        );
         return this;
     }
 
-    public setupActionsOnScopingActions(actionName: keyof ScopingActions): ActionCreatorValidator {
-        this.setupAction(actionName, this.scopingActionMocks, this.scopingActionsContainerMock);
-        return this;
-    }
-
-    public setupActionOnDetailsViewActions(actionName: keyof DetailsViewActions): ActionCreatorValidator {
-        this.setupAction(actionName, this.detailsViewActionsMocks, this.detailsViewActionsContainerMock);
-        return this;
-    }
-
-    public setupActionOnVisualizationScanResultActions(actionName: keyof VisualizationScanResultActions): ActionCreatorValidator {
-        this.setupAction(actionName, this.visualizationScanResultActionMocks, this.visualizationScanResultActionsContainerMock);
+    public setupActionOnVisualizationScanResultActions(
+        actionName: keyof VisualizationScanResultActions,
+    ): ActionCreatorValidator {
+        this.setupAction(
+            actionName,
+            this.visualizationScanResultActionMocks,
+            this.visualizationScanResultActionsContainerMock,
+        );
         return this;
     }
 
@@ -1218,9 +1206,14 @@ class ActionCreatorValidator {
         return this;
     }
 
-    public setupRegistrationCallback(expectedType: string, callbackParams?: any[]): ActionCreatorValidator {
-        this.registerCallbackMock
-            .setup(rc => rc(It.isValue(expectedType), It.isAny()))
+    public setupRegistrationCallback(
+        expectedType: string,
+        callbackParams?: any[],
+    ): ActionCreatorValidator {
+        this.interpreterMock
+            .setup(interpreter =>
+                interpreter.registerTypeToPayloadCallback(It.isValue(expectedType), It.isAny()),
+            )
             .callback((messageType, callback) => {
                 if (callbackParams) {
                     callback.apply(null, callbackParams);
@@ -1233,22 +1226,25 @@ class ActionCreatorValidator {
         return this;
     }
 
-    public setupShowDetailsView(tabId: number): ActionCreatorValidator {
-        this.detailsViewControllerStrictMock.setup(ct => ct.showDetailsView(It.isValue(tabId))).verifiable();
+    public setupShowDetailsView(tabId: number, result: Promise<void>): ActionCreatorValidator {
+        this.detailsViewControllerStrictMock
+            .setup(controller => controller.showDetailsView(tabId))
+            .returns(() => result)
+            .verifiable(Times.once());
 
         return this;
     }
 
     public buildActionCreator(): ActionCreator {
         return new ActionCreator(
+            this.interpreterMock.object,
             this.actionHubMock,
-            this.registerCallbackMock.object,
             this.detailsViewControllerStrictMock.object,
-            this.chromeFeatureControllerStrictMock.object,
             this.telemetryEventHandlerStrictMock.object,
             this.notificationCreatorStrictMock.object,
             new VisualizationConfigurationFactory(),
             this.targetTabControllerStrictMock.object,
+            this.loggerMock.object,
         );
     }
 
@@ -1260,17 +1256,11 @@ class ActionCreatorValidator {
         this.visualizationScanResultActionsContainerMock.verifyAll();
 
         this.notificationCreatorStrictMock.verifyAll();
-        this.registerCallbackMock.verifyAll();
+        this.interpreterMock.verifyAll();
         this.detailsViewControllerStrictMock.verifyAll();
         this.contentScriptInjectorStrictMock.verifyAll();
-        this.chromeFeatureControllerStrictMock.verifyAll();
         this.targetTabControllerStrictMock.verifyAll();
-    }
-
-    public setupChromeFeatureController(): ActionCreatorValidator {
-        this.chromeFeatureControllerStrictMock.setup(cfc => cfc.openCommandConfigureTab()).verifiable();
-
-        return this;
+        this.loggerMock.verifyAll();
     }
 
     private verifyAllActionMocks(): void {
@@ -1281,6 +1271,7 @@ class ActionCreatorValidator {
         this.verifyAllActions(this.detailsViewActionsMocks);
         this.verifyAllActions(this.previewFeaturesActionMocks);
         this.verifyAllActions(this.scopingActionMocks);
+        this.verifyAllActions(this.cardSelectionActionsMocks);
     }
 
     private verifyAllActions(actionsMap: DictionaryStringTo<IMock<Action<any>>>): void {

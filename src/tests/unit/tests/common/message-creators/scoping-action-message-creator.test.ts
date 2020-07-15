@@ -1,30 +1,36 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
-import { IMock, It, Mock, MockBehavior, Times } from 'typemoq';
+import { ActionMessageDispatcher } from 'common/message-creators/types/dispatcher';
+import { IMock, Mock, MockBehavior, Times } from 'typemoq';
 
+import {
+    ScopingTelemetryData,
+    TelemetryEventSource,
+} from '../../../../../common/extension-telemetry-events';
+import { Message } from '../../../../../common/message';
 import { ScopingActionMessageCreator } from '../../../../../common/message-creators/scoping-action-message-creator';
 import { Messages } from '../../../../../common/messages';
 import { TelemetryDataFactory } from '../../../../../common/telemetry-data-factory';
-import { ScopingTelemetryData, TelemetryEventSource } from '../../../../../common/telemetry-events';
 import { EventStubFactory } from './../../../common/event-stub-factory';
 
 describe('ScopingActionMessageCreatorTest', () => {
     const eventStubFactory = new EventStubFactory();
     const testSource: TelemetryEventSource = -1 as TelemetryEventSource;
-    let postMessageMock: IMock<(message) => {}>;
+    const dispatcherMock = Mock.ofType<ActionMessageDispatcher>();
     let telemetryFactoryMock: IMock<TelemetryDataFactory>;
     let testSubject: ScopingActionMessageCreator;
-    const tabId: number = -1;
 
     beforeEach(() => {
-        postMessageMock = Mock.ofInstance(message => {
-            return null;
-        });
+        dispatcherMock.reset();
         telemetryFactoryMock = Mock.ofType(TelemetryDataFactory, MockBehavior.Strict);
-        testSubject = new ScopingActionMessageCreator(postMessageMock.object, tabId, telemetryFactoryMock.object, testSource);
+        testSubject = new ScopingActionMessageCreator(
+            telemetryFactoryMock.object,
+            testSource,
+            dispatcherMock.object,
+        );
     });
 
-    test('addSelector', () => {
+    it('dispatches message for addSelector', () => {
         const event = eventStubFactory.createMouseClickEvent() as any;
         const inputType = 'test';
         const telemetry: ScopingTelemetryData = {
@@ -35,9 +41,8 @@ describe('ScopingActionMessageCreatorTest', () => {
 
         const testSelector: string[] = ['iFrame', 'selector'];
 
-        const expectedMessage = {
-            tabId: tabId,
-            type: Messages.Scoping.AddSelector,
+        const expectedMessage: Message = {
+            messageType: Messages.Scoping.AddSelector,
             payload: {
                 inputType: inputType,
                 selector: testSelector,
@@ -50,13 +55,15 @@ describe('ScopingActionMessageCreatorTest', () => {
             .returns(() => telemetry)
             .verifiable(Times.once());
 
-        setupPostMessage(expectedMessage);
         testSubject.addSelector(event, inputType, testSelector);
-        postMessageMock.verifyAll();
         telemetryFactoryMock.verifyAll();
+        dispatcherMock.verify(
+            dispatcher => dispatcher.dispatchMessage(expectedMessage),
+            Times.once(),
+        );
     });
 
-    test('deleteSelector', () => {
+    it('dispatches message for deleteSelector', () => {
         const event = eventStubFactory.createMouseClickEvent() as any;
         const inputType = 'test';
         const telemetry: ScopingTelemetryData = {
@@ -67,9 +74,8 @@ describe('ScopingActionMessageCreatorTest', () => {
 
         const testSelector: string[] = ['iFrame', 'selector'];
 
-        const expectedMessage = {
-            tabId: tabId,
-            type: Messages.Scoping.DeleteSelector,
+        const expectedMessage: Message = {
+            messageType: Messages.Scoping.DeleteSelector,
             payload: {
                 inputType: inputType,
                 selector: testSelector,
@@ -82,13 +88,11 @@ describe('ScopingActionMessageCreatorTest', () => {
             .returns(() => telemetry)
             .verifiable(Times.once());
 
-        setupPostMessage(expectedMessage);
         testSubject.deleteSelector(event, inputType, testSelector);
-        postMessageMock.verifyAll();
         telemetryFactoryMock.verifyAll();
+        dispatcherMock.verify(
+            dispatcher => dispatcher.dispatchMessage(expectedMessage),
+            Times.once(),
+        );
     });
-
-    function setupPostMessage(expectedMessage): void {
-        postMessageMock.setup(post => post(It.isValue(expectedMessage))).verifiable(Times.once());
-    }
 });

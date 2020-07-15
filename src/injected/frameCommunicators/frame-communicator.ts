@@ -1,16 +1,12 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 import * as Q from 'q';
-
 import { HTMLElementUtils } from '../../common/html-element-utils';
-import { createDefaultLogger } from '../../common/logging/default-logger';
 import { Logger } from '../../common/logging/logger';
-import { WindowUtils } from '../../common/window-utils';
+import { ErrorMessageContent } from './error-message-content';
 import { FrameMessageResponseCallback, WindowMessageHandler } from './window-message-handler';
-import { IErrorMessageContent } from './window-message-marshaller';
 
-// tslint:disable-next-line:interface-name
-export interface IMessageRequest<T> {
+export interface MessageRequest<T> {
     frame?: HTMLIFrameElement;
     win?: Window;
     command: string;
@@ -30,9 +26,8 @@ export class FrameCommunicator {
     constructor(
         protected windowMessageHandler: WindowMessageHandler,
         protected htmlElementUtils: HTMLElementUtils,
-        protected windowUtils: WindowUtils,
         private q: typeof Q,
-        private logger: Logger = createDefaultLogger(),
+        private logger: Logger,
     ) {
         this.window = window;
         this.document = document;
@@ -44,14 +39,24 @@ export class FrameCommunicator {
 
             this.subscribe(
                 FrameCommunicator.PingCommand,
-                (data: any, error: IErrorMessageContent, messageSourceWindow: Window, callback: Function) => {
+                (
+                    data: any,
+                    error: ErrorMessageContent,
+                    messageSourceWindow: Window,
+                    callback: Function,
+                ) => {
                     this.invokeMethodIfExists(callback, data);
                 },
             );
 
             this.subscribe(
                 FrameCommunicator.DisposeCommand,
-                (data: any, error: IErrorMessageContent, messageSourceWindow: Window, callback: Function) => {
+                (
+                    data: any,
+                    error: ErrorMessageContent,
+                    messageSourceWindow: Window,
+                    callback: Function,
+                ) => {
                     this.dispose().then(() => {
                         this.invokeMethodIfExists(callback, data);
                     });
@@ -63,16 +68,19 @@ export class FrameCommunicator {
     public dispose(): Q.IPromise<Q.PromiseState<FrameMessageResponseCallback>[]> {
         const allframes = this.getAllFrames();
         const framesLength = allframes.length;
-        const frameMessageRequests: IMessageRequest<null>[] = [];
+        const frameMessageRequests: MessageRequest<null>[] = [];
 
         for (let i = 0; i < framesLength; i++) {
             frameMessageRequests.push({
                 command: FrameCommunicator.DisposeCommand,
                 frame: allframes[i],
-            } as IMessageRequest<null>);
+            } as MessageRequest<null>);
         }
 
-        const promise = this.executeRequestForAllFrameRequests(frameMessageRequests, FrameCommunicator.disposeTimeout);
+        const promise = this.executeRequestForAllFrameRequests(
+            frameMessageRequests,
+            FrameCommunicator.disposeTimeout,
+        );
         promise.then(() => {
             this.windowMessageHandler.dispose();
         });
@@ -84,10 +92,16 @@ export class FrameCommunicator {
         this.windowMessageHandler.addSubscriber(command, callback);
     }
 
-    public sendMessage<TMessage, TResponse>(messageRequest: IMessageRequest<TMessage>): Q.IPromise<TResponse> {
-        const win = messageRequest.win ? messageRequest.win : this.htmlElementUtils.getContentWindow(messageRequest.frame);
+    public sendMessage<TMessage, TResponse>(
+        messageRequest: MessageRequest<TMessage>,
+    ): Q.IPromise<TResponse> {
+        const win = messageRequest.win
+            ? messageRequest.win
+            : this.htmlElementUtils.getContentWindow(messageRequest.frame);
         const defered = this.q.defer<TResponse>();
-        const elementToReportOnFailure = messageRequest.win ? messageRequest.win : messageRequest.frame;
+        const elementToReportOnFailure = messageRequest.win
+            ? messageRequest.win
+            : messageRequest.frame;
 
         if (win == null) {
             this.logger.log('cannot get content window for ', elementToReportOnFailure);
@@ -104,18 +118,25 @@ export class FrameCommunicator {
             const pingDeferred = this.q.defer<boolean>();
 
             // send 'insights.ping' to the window / frame
-            this.windowMessageHandler.post(win, FrameCommunicator.PingCommand, null, () => pingDeferred.resolve(true));
+            this.windowMessageHandler.post(win, FrameCommunicator.PingCommand, null, () =>
+                pingDeferred.resolve(true),
+            );
             const timeoutPingPromise = this.q.timeout(pingDeferred.promise, 500);
 
             timeoutPingPromise.then(
                 () => {
-                    this.windowMessageHandler.post(win, messageRequest.command, messageRequest.message, data => {
-                        if (data instanceof Error) {
-                            defered.reject(data);
-                        } else {
-                            defered.resolve(data);
-                        }
-                    });
+                    this.windowMessageHandler.post(
+                        win,
+                        messageRequest.command,
+                        messageRequest.message,
+                        data => {
+                            if (data instanceof Error) {
+                                defered.reject(data);
+                            } else {
+                                defered.resolve(data);
+                            }
+                        },
+                    );
                 },
                 () => {
                     this.logger.log('cannot connect to ', elementToReportOnFailure);
@@ -129,15 +150,12 @@ export class FrameCommunicator {
     private doesFrameSupportScripting(frame: HTMLIFrameElement): boolean {
         return (
             !frame.hasAttribute('sandbox') ||
-            frame
-                .getAttribute('sandbox')
-                .toLocaleLowerCase()
-                .lastIndexOf('allow-scripts') >= 0
+            frame.getAttribute('sandbox').toLocaleLowerCase().lastIndexOf('allow-scripts') >= 0
         );
     }
 
     public executeRequestForAllFrameRequests<T>(
-        frameMessageRequests: IMessageRequest<T>[],
+        frameMessageRequests: MessageRequest<T>[],
         timeOut: number,
     ): Q.IPromise<Q.PromiseState<FrameMessageResponseCallback>[]> {
         const frameMessageRequestsLength = frameMessageRequests.length;
@@ -159,7 +177,9 @@ export class FrameCommunicator {
         }
     }
 
-    private getAllFrames(): NodeListOf<HTMLIFrameElement> {
-        return this.htmlElementUtils.getAllElementsByTagName('iframe') as NodeListOf<HTMLIFrameElement>;
+    private getAllFrames(): HTMLCollectionOf<HTMLIFrameElement> {
+        return this.htmlElementUtils.getAllElementsByTagName('iframe') as HTMLCollectionOf<
+            HTMLIFrameElement
+        >;
     }
 }

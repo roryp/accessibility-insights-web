@@ -1,15 +1,29 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
-import { link } from '../content/link';
-import { HyperlinkDefinition } from '../views/content/content-page';
-import { IDictionaryStringTo } from './dictionary-types';
+import { GuidanceTag } from 'content/guidance-tags';
+import { link } from 'content/link';
+import { HyperlinkDefinition } from 'views/content/content-page';
+import { DictionaryStringTo } from '../types/common-types';
+
+export interface GuidanceLink {
+    href: string;
+    text: string;
+    tags?: GuidanceTag[];
+}
 
 const BestPractice: HyperlinkDefinition = {
     text: 'Best Practice',
     href: '',
 };
 
-export const ruleToLinkConfiguration: IDictionaryStringTo<HyperlinkDefinition[]> = {
+export const ruleToLinkConfiguration: DictionaryStringTo<HyperlinkDefinition[]> = {
+    'aria-input-field-name': [link.WCAG_4_1_2],
+    'aria-toggle-field-name': [link.WCAG_4_1_2],
+    'avoid-inline-spacing': [link.WCAG_1_4_12],
+    'input-button-name': [link.WCAG_4_1_2],
+    'landmark-unique': [BestPractice],
+    'role-img-alt': [link.WCAG_1_1_1],
+    'scrollable-region-focusable': [link.WCAG_2_1_1, BestPractice],
     'area-alt': [link.WCAG_1_1_1],
     'image-alt': [link.WCAG_1_1_1],
     'image-redundant-alt': [BestPractice],
@@ -25,7 +39,7 @@ export const ruleToLinkConfiguration: IDictionaryStringTo<HyperlinkDefinition[]>
     'definition-list': [link.WCAG_1_3_1],
     dlitem: [link.WCAG_1_3_1],
     'empty-heading': [BestPractice],
-    'layout-table': [link.WCAG_1_3_1],
+    'layout-table': [BestPractice],
     list: [link.WCAG_1_3_1],
     listitem: [link.WCAG_1_3_1],
     'p-as-heading': [BestPractice],
@@ -40,8 +54,8 @@ export const ruleToLinkConfiguration: IDictionaryStringTo<HyperlinkDefinition[]>
     'link-in-text-block': [BestPractice],
     'color-contrast': [link.WCAG_1_4_3],
     'meta-viewport-large': [BestPractice],
-    'meta-viewport': [link.WCAG_1_4_4],
-    accesskeys: [link.WCAG_2_1_1],
+    'meta-viewport': [BestPractice],
+    accesskeys: [BestPractice],
     'server-side-image-map': [link.WCAG_2_1_1],
     'meta-refresh': [link.WCAG_2_2_1],
     blink: [link.WCAG_2_2_2],
@@ -68,16 +82,16 @@ export const ruleToLinkConfiguration: IDictionaryStringTo<HyperlinkDefinition[]>
     'label-title-only': [BestPractice],
     region: [BestPractice],
     'skip-link': [BestPractice],
-    'unique-landmark': [link.WCAG_2_4_1],
-    'landmark-main-is-top-level': [link.WCAG_1_3_1, link.WCAG_2_4_1],
+    'unique-landmark': [link.WCAG_2_4_1, BestPractice],
+    'landmark-main-is-top-level': [link.WCAG_1_3_1, BestPractice],
     'landmark-one-main': [BestPractice],
     'aria-dpub-role-fallback': [BestPractice],
     'focus-order-semantics': [BestPractice],
     'frame-tested': [BestPractice],
-    'landmark-banner-is-top-level': [link.WCAG_1_3_1, link.WCAG_2_4_1],
-    'landmark-contentinfo-is-top-level': [link.WCAG_1_3_1, link.WCAG_2_4_1],
-    'landmark-no-duplicate-banner': [link.WCAG_1_3_1, link.WCAG_2_4_1],
-    'landmark-no-duplicate-contentinfo': [link.WCAG_1_3_1, link.WCAG_2_4_1],
+    'landmark-banner-is-top-level': [link.WCAG_1_3_1, BestPractice],
+    'landmark-contentinfo-is-top-level': [link.WCAG_1_3_1, BestPractice],
+    'landmark-no-duplicate-banner': [link.WCAG_1_3_1, BestPractice],
+    'landmark-no-duplicate-contentinfo': [link.WCAG_1_3_1, BestPractice],
     'page-has-heading-one': [BestPractice],
     'duplicate-id-active': [link.WCAG_4_1_1],
     'duplicate-id-aria': [link.WCAG_4_1_1],
@@ -85,6 +99,15 @@ export const ruleToLinkConfiguration: IDictionaryStringTo<HyperlinkDefinition[]>
     'get-frame-title': [link.WCAG_4_1_2],
     'page-title': [link.WCAG_2_4_2],
     'aria-allowed-role': [BestPractice],
-    'autocomplete-valid': [BestPractice],
+    'autocomplete-valid': [link.WCAG_1_3_5],
     'css-orientation-lock': [BestPractice],
+    'aria-hidden-focus': [link.WCAG_4_1_2, link.WCAG_1_3_1],
+    'form-field-multiple-labels': [BestPractice],
+    'label-content-name-mismatch': [BestPractice],
+    'landmark-complementary-is-top-level': [link.WCAG_1_3_1, BestPractice],
+    'svg-img-alt': [link.WCAG_1_1_1],
+    'aria-roledescription': [link.WCAG_4_1_2],
+    'identical-links-same-purpose': [BestPractice],
+    'landmark-no-duplicate-main': [BestPractice],
+    'no-autoplay-audio': [BestPractice],
 };

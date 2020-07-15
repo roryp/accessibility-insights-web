@@ -1,31 +1,37 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
-import { IMock, It, Mock, MockBehavior, Times } from 'typemoq';
+import { InspectMode } from 'background/inspect-modes';
+import { ActionMessageDispatcher } from 'common/message-creators/types/dispatcher';
+import { IMock, Mock, MockBehavior, Times } from 'typemoq';
 
-import { InspectMode } from '../../../../../background/inspect-modes';
+import {
+    BaseTelemetryData,
+    TelemetryEventSource,
+} from '../../../../../common/extension-telemetry-events';
+import { Message } from '../../../../../common/message';
 import { InspectActionMessageCreator } from '../../../../../common/message-creators/inspect-action-message-creator';
 import { Messages } from '../../../../../common/messages';
 import { TelemetryDataFactory } from '../../../../../common/telemetry-data-factory';
-import { BaseTelemetryData, TelemetryEventSource } from '../../../../../common/telemetry-events';
 import { EventStubFactory } from './../../../common/event-stub-factory';
 
 describe('InspectActionMessageCreatorTest', () => {
     const eventStubFactory = new EventStubFactory();
     const testSource: TelemetryEventSource = -1 as TelemetryEventSource;
-    let postMessageMock: IMock<(message) => {}>;
+    const dispatcherMock = Mock.ofType<ActionMessageDispatcher>();
     let telemetryFactoryMock: IMock<TelemetryDataFactory>;
     let testSubject: InspectActionMessageCreator;
-    const tabId: number = -1;
 
     beforeEach(() => {
-        postMessageMock = Mock.ofInstance(message => {
-            return null;
-        });
+        dispatcherMock.reset();
         telemetryFactoryMock = Mock.ofType(TelemetryDataFactory, MockBehavior.Strict);
-        testSubject = new InspectActionMessageCreator(postMessageMock.object, tabId, telemetryFactoryMock.object, testSource);
+        testSubject = new InspectActionMessageCreator(
+            telemetryFactoryMock.object,
+            testSource,
+            dispatcherMock.object,
+        );
     });
 
-    test('changeMode', () => {
+    it('dispatches message for changeMode', () => {
         const event = eventStubFactory.createMouseClickEvent() as any;
         const telemetry: BaseTelemetryData = {
             triggeredBy: 'mouseclick',
@@ -34,9 +40,8 @@ describe('InspectActionMessageCreatorTest', () => {
 
         const inspectMode = InspectMode.scopingAddInclude;
 
-        const expectedMessage = {
-            tabId: tabId,
-            type: Messages.Inspect.ChangeInspectMode,
+        const expectedMessage: Message = {
+            messageType: Messages.Inspect.ChangeInspectMode,
             payload: {
                 inspectMode,
                 telemetry,
@@ -48,13 +53,11 @@ describe('InspectActionMessageCreatorTest', () => {
             .returns(() => telemetry)
             .verifiable(Times.once());
 
-        setupPostMessage(expectedMessage);
         testSubject.changeInspectMode(event, inspectMode);
-        postMessageMock.verifyAll();
         telemetryFactoryMock.verifyAll();
+        dispatcherMock.verify(
+            dispatcher => dispatcher.dispatchMessage(expectedMessage),
+            Times.once(),
+        );
     });
-
-    function setupPostMessage(expectedMessage): void {
-        postMessageMock.setup(post => post(It.isValue(expectedMessage))).verifiable(Times.once());
-    }
 });

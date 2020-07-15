@@ -1,17 +1,17 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
-import { IColumn } from 'office-ui-fabric-react/lib/DetailsList';
+import { IColumn } from 'office-ui-fabric-react';
 import * as React from 'react';
 
-import { AssessmentsProvider } from '../../../assessments/assessments-provider';
-import { Assessment } from '../../../assessments/types/iassessment';
+import { AssessmentsProviderImpl } from 'assessments/assessments-provider';
+import { Assessment } from 'assessments/types/iassessment';
+import { ContentPage } from 'views/content/content-page';
 import { RequirementComparer } from '../../../common/assessment/requirement-comparer';
-import { IAssesssmentVisualizationConfiguration } from '../../../common/configs/visualization-configuration-factory';
+import { AssessmentVisualizationConfiguration } from '../../../common/configs/assessment-visualization-configuration';
 import { FeatureFlags } from '../../../common/feature-flags';
-import { ManualTestStatus } from '../../../common/types/manual-test-status';
+import { AssessmentData } from '../../../common/types/store-data/assessment-result-data';
 import { VisualizationType } from '../../../common/types/visualization-type';
-import { TestStepLink } from '../../../DetailsView/components/test-step-link';
-import { ContentPage } from '../../../views/content/content-page';
+import { RequirementLink } from '../../../DetailsView/components/requirement-link';
 
 const content = {
     assessment1: {
@@ -19,15 +19,20 @@ const content = {
     },
 };
 
+const initialDataCreator = () => {
+    return {} as AssessmentData;
+};
+
 export const contentProvider = ContentPage.provider(content);
 
 const assessmentWithColumns: Assessment = {
     key: 'assessment-1',
-    type: -1 as VisualizationType,
+    visualizationType: -1 as VisualizationType,
     title: 'assessment 1',
     gettingStarted: null,
     guidance: content.assessment1.guidance,
-    steps: [
+    initialDataCreator,
+    requirements: [
         {
             key: 'assessment-1-step-1',
             description: <div> assessment-1-step-1 description</div>,
@@ -75,17 +80,18 @@ const assessmentWithColumns: Assessment = {
     getVisualizationConfiguration: () => {
         return {
             getAssessmentData: data => data.assessments['assessment-1'],
-        } as IAssesssmentVisualizationConfiguration;
+        } as AssessmentVisualizationConfiguration;
     },
     requirementOrder: RequirementComparer.byOrdinal,
 };
 
 const simpleAssessment = {
     key: 'assessment-2',
-    type: -2 as VisualizationType,
+    visualizationType: -2 as VisualizationType,
     title: 'assessment 2',
     gettingStarted: null,
-    steps: [
+    initialDataCreator,
+    requirements: [
         {
             key: 'assessment-2-step-1',
             description: null,
@@ -110,17 +116,18 @@ const simpleAssessment = {
     getVisualizationConfiguration: () => {
         return {
             getAssessmentData: data => data.assessments['assessment-2'],
-        } as IAssesssmentVisualizationConfiguration;
+        } as AssessmentVisualizationConfiguration;
     },
     requirementOrder: RequirementComparer.byOrdinal,
 };
 
 const automatedAssessment = {
     key: 'assessment-3',
-    type: -3 as VisualizationType,
+    visualizationType: -3 as VisualizationType,
     title: 'assessment 3',
     gettingStarted: null,
-    steps: [
+    initialDataCreator,
+    requirements: [
         {
             key: 'assessment-3-step-2',
             description: null,
@@ -129,7 +136,6 @@ const automatedAssessment = {
             isManual: null,
             guidanceLinks: [],
             columnsConfig: [],
-            defaultInstanceStatus: ManualTestStatus.FAIL,
             renderInstanceTableHeader: () => null,
             getInstanceStatusColumns: () => [],
             renderRequirementDescription: renderRequirementDescription,
@@ -142,7 +148,6 @@ const automatedAssessment = {
             isManual: null,
             guidanceLinks: [],
             columnsConfig: [],
-            defaultInstanceStatus: ManualTestStatus.FAIL,
             renderInstanceTableHeader: () => null,
             getInstanceStatusColumns: () => [],
             renderRequirementDescription: renderRequirementDescription,
@@ -151,7 +156,7 @@ const automatedAssessment = {
     getVisualizationConfiguration: () => {
         return {
             getAssessmentData: data => data.assessments['assessment-3'],
-        } as IAssesssmentVisualizationConfiguration;
+        } as AssessmentVisualizationConfiguration;
     },
     requirementOrder: RequirementComparer.byOutcomeAndName,
 };
@@ -160,7 +165,7 @@ function getInstanceStatusColumns(): Readonly<IColumn>[] {
     return [TestStatusChoiceColumn];
 }
 
-function renderRequirementDescription(testStepLink: TestStepLink): JSX.Element {
+function renderRequirementDescription(requirementLink: RequirementLink): JSX.Element {
     return null;
 }
 
@@ -169,12 +174,14 @@ const simpleAssessmentWithFeatureFlag = {
     featureFlag: { required: [FeatureFlags.showAllAssessments] },
 };
 
-export const CreateTestAssessmentProvider = () => AssessmentsProvider.Create([assessmentWithColumns, simpleAssessment]);
+export const CreateTestAssessmentProvider = () =>
+    AssessmentsProviderImpl.Create([assessmentWithColumns, simpleAssessment]);
 
 export const CreateTestAssessmentProviderWithFeatureFlag = () =>
-    AssessmentsProvider.Create([assessmentWithColumns, simpleAssessmentWithFeatureFlag]);
+    AssessmentsProviderImpl.Create([assessmentWithColumns, simpleAssessmentWithFeatureFlag]);
 
-export const CreateTestAssessmentProviderAutomated = () => AssessmentsProvider.Create([automatedAssessment]);
+export const CreateTestAssessmentProviderAutomated = () =>
+    AssessmentsProviderImpl.Create([automatedAssessment]);
 
 export const TestStatusChoiceColumn: Readonly<IColumn> = {
     key: 'test - statusChoiceGroup',

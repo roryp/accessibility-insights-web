@@ -3,6 +3,7 @@
 import { css } from '@uifabric/utilities';
 import * as React from 'react';
 import { WindowUtils } from '../window-utils';
+import * as styles from './toast.scss';
 
 export type ToastDeps = {
     windowUtils: WindowUtils;
@@ -10,17 +11,32 @@ export type ToastDeps = {
 
 export type ToastProps = {
     deps: ToastDeps;
-    onTimeout?: () => void;
     timeoutLength?: number;
 };
 
-export class Toast extends React.Component<ToastProps> {
-    private timeoutId: number;
-    private hidden: boolean;
+export type ToastState = {
+    toastVisible: boolean;
+    content: React.ReactNode;
+};
+
+export class Toast extends React.Component<ToastProps, ToastState> {
+    private timeoutId: number | null;
 
     public static defaultProps = {
-        timeoutLength: 1000,
+        timeoutLength: 6000,
     };
+
+    constructor(props) {
+        super(props);
+        this.state = { toastVisible: false, content: null };
+    }
+
+    public show(content: React.ReactNode): void {
+        this.setState({ toastVisible: true, content });
+        this.timeoutId = this.props.deps.windowUtils.setTimeout(() => {
+            this.setState({ toastVisible: false, content: null });
+        }, this.props.timeoutLength ?? Toast.defaultProps.timeoutLength);
+    }
 
     public componentWillUnmount(): void {
         if (this.timeoutId) {
@@ -29,17 +45,15 @@ export class Toast extends React.Component<ToastProps> {
         }
     }
 
-    public componentDidMount(): void {
-        this.timeoutId = this.props.deps.windowUtils.setTimeout(() => {
-            this.hidden = true;
-            this.forceUpdate();
-            if (this.props.onTimeout) {
-                this.props.onTimeout();
-            }
-        }, this.props.timeoutLength);
-    }
-
     public render(): JSX.Element {
-        return this.hidden ? null : <div className={css('ms-fadeIn100', 'toast')}>{this.props.children}</div>;
+        return (
+            <div className={styles.toastContainer} aria-live="polite">
+                {this.state.toastVisible ? (
+                    <div className={css('ms-fadeIn100', styles.toastContent)}>
+                        {this.state.content}
+                    </div>
+                ) : null}
+            </div>
+        );
     }
 }

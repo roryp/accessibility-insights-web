@@ -1,56 +1,100 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
+import { DetailsViewPivotType } from 'common/types/details-view-pivot-type';
+import { DetailsViewActionMessageCreator } from 'DetailsView/actions/details-view-action-message-creator';
+import { Switcher, SwitcherProps } from 'DetailsView/components/switcher';
 import { shallow } from 'enzyme';
-import { Dropdown } from 'office-ui-fabric-react/lib/Dropdown';
+import { Dropdown, IDropdownOption } from 'office-ui-fabric-react';
 import * as React from 'react';
 import { IMock, Mock, Times } from 'typemoq';
 
-import { DetailsViewPivotType } from '../../../../../common/types/details-view-pivot-type';
-import { DetailsViewActionMessageCreator } from '../../../../../DetailsView/actions/details-view-action-message-creator';
-import { Switcher, SwitcherProps } from '../../../../../DetailsView/components/switcher';
-
 describe('Switcher', () => {
     let defaultProps: SwitcherProps;
-    let actionCreatorMock: IMock<DetailsViewActionMessageCreator>;
+    let detailsViewActionMessageCreatorMock: IMock<DetailsViewActionMessageCreator>;
 
     beforeEach(() => {
-        actionCreatorMock = Mock.ofType<DetailsViewActionMessageCreator>();
+        detailsViewActionMessageCreatorMock = Mock.ofType<DetailsViewActionMessageCreator>();
         defaultProps = {
             pivotKey: DetailsViewPivotType.fastPass,
             deps: {
-                detailsViewActionMessageCreator: actionCreatorMock.object,
+                detailsViewActionMessageCreator: detailsViewActionMessageCreatorMock.object,
+            },
+            styles: {
+                dropdownOptionClassName: 'dropdown-option',
+                switcherClassName: 'header-switcher',
+                dropdownClassName: 'header-switcher-dropdown',
             },
         };
     });
 
-    test('render', () => {
-        const renderer = shallow(<Switcher {...defaultProps} />);
+    describe('renders', () => {
+        it('Switcher itself matches snapshot', () => {
+            const renderer = shallow(<Switcher {...defaultProps} />);
 
-        expect(renderer.debug()).toMatchSnapshot();
+            expect(renderer.debug()).toMatchSnapshot();
+        });
+
+        it('option renderer override matches snapshot ', () => {
+            const renderer = shallow(<Switcher {...defaultProps} />);
+
+            const dropdown = renderer.find(Dropdown);
+
+            const options = dropdown.prop('options');
+
+            const onRenderOption = dropdown.prop('onRenderOption');
+
+            expect(onRenderOption(options[0])).toMatchSnapshot();
+        });
     });
 
-    test('render options', () => {
-        const renderer = shallow(<Switcher {...defaultProps} />);
-        renderer.find(Dropdown).simulate('click');
+    describe('props', () => {
+        it('dropdown has correct options', () => {
+            const renderer = shallow(<Switcher {...defaultProps} />);
 
-        expect(renderer.debug()).toMatchSnapshot();
+            const dropdown = renderer.find(Dropdown);
+
+            expect(dropdown.prop('options')).toMatchSnapshot();
+        });
     });
 
-    test('onOptionClick', () => {
-        actionCreatorMock
-            .setup(creator => creator.sendPivotItemClicked(DetailsViewPivotType[DetailsViewPivotType.fastPass]))
-            .verifiable(Times.once());
-        const renderer = shallow(<Switcher {...defaultProps} />);
+    describe('user interaction', () => {
+        it('triggers action message and state change when the user changes selection', () => {
+            detailsViewActionMessageCreatorMock
+                .setup(creator =>
+                    creator.sendPivotItemClicked(
+                        DetailsViewPivotType[DetailsViewPivotType.assessment],
+                    ),
+                )
+                .verifiable(Times.once());
+            const wrapper = shallow<Switcher>(<Switcher {...defaultProps} />);
+            const dropdown = wrapper.find(Dropdown);
 
-        renderer
-            .find(Dropdown)
-            .props()
-            .onChange(null, {
-                data: {
-                    key: DetailsViewPivotType.fastPass,
-                },
-            } as any);
+            expect(wrapper.state().selectedKey).toBe(DetailsViewPivotType.fastPass);
 
-        actionCreatorMock.verifyAll();
+            dropdown.props().onChange(null, {
+                key: DetailsViewPivotType.assessment,
+            } as IDropdownOption);
+
+            expect(wrapper.state().selectedKey).toBe(DetailsViewPivotType.assessment);
+            detailsViewActionMessageCreatorMock.verifyAll();
+        });
+    });
+
+    describe('componentDidUpdate', () => {
+        it('pivotKey has changed', () => {
+            const newProps = {
+                ...defaultProps,
+                pivotKey: DetailsViewPivotType.assessment,
+            };
+            const component = shallow(<Switcher {...newProps} />).instance() as Switcher;
+            component.componentDidUpdate(defaultProps);
+            expect(component.state).toMatchObject({ selectedKey: DetailsViewPivotType.assessment });
+        });
+
+        it('pivotKey has not changed', () => {
+            const component = shallow(<Switcher {...defaultProps} />).instance() as Switcher;
+            component.componentDidUpdate(defaultProps);
+            expect(component.state).toMatchObject({ selectedKey: DetailsViewPivotType.fastPass });
+        });
     });
 });

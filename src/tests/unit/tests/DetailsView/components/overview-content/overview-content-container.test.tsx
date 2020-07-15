@@ -4,57 +4,63 @@ import { shallow } from 'enzyme';
 import * as React from 'react';
 import { Mock, MockBehavior } from 'typemoq';
 
-import { IAssessmentsProvider } from '../../../../../../assessments/types/iassessments-provider';
-import { IAssessmentStoreData, PersistedTabInfo } from '../../../../../../common/types/store-data/iassessment-result-data';
-import { ITabStoreData } from '../../../../../../common/types/store-data/itab-store-data';
+import { AssessmentsProvider } from 'assessments/types/assessments-provider';
+import {
+    AssessmentStoreData,
+    PersistedTabInfo,
+} from '../../../../../../common/types/store-data/assessment-result-data';
+import { TabStoreData } from '../../../../../../common/types/store-data/tab-store-data';
 import { UrlParser } from '../../../../../../common/url-parser';
 import { DetailsViewActionMessageCreator } from '../../../../../../DetailsView/actions/details-view-action-message-creator';
 import {
     OverviewContainer,
     OverviewContainerDeps,
 } from '../../../../../../DetailsView/components/overview-content/overview-content-container';
-import { HelpLinkDeps } from '../../../../../../DetailsView/components/overview-content/overview-help-section';
+import { OverviewHelpSectionDeps } from '../../../../../../DetailsView/components/overview-content/overview-help-section';
 
 describe('OverviewContainer', () => {
     const urlParserMock = {} as UrlParser;
 
     const openExternalLink = jest.fn();
 
-    const tabStoreDataStub: ITabStoreData = {
+    const tabStoreDataStub: TabStoreData = {
         url: 'some url',
         title: 'some title',
         id: -1,
-    } as ITabStoreData;
+    } as TabStoreData;
 
-    const helpLinkDeps = {
+    const overviewHelpSectionDeps = {
         actionInitiators: {
             openExternalLink,
         },
-    } as HelpLinkDeps;
+    } as OverviewHelpSectionDeps;
 
-    const assessmentsProvider: IAssessmentsProvider = {
+    const assessmentsProvider: AssessmentsProvider = {
         all: () => [],
     } as any;
 
-    const filteredProvider = {} as IAssessmentsProvider;
-    const detailsViewActionMessageCreatorStub = {} as DetailsViewActionMessageCreator;
-    const assessmentsProviderWithFeaturesEnabledMock = Mock.ofInstance((provider, featureFlagData) => null, MockBehavior.Strict);
+    const filteredProvider = {} as AssessmentsProvider;
+    const detailsViewActionMessageCreator = {} as DetailsViewActionMessageCreator;
+    const assessmentsProviderWithFeaturesEnabledMock = Mock.ofInstance(
+        (provider, featureFlagData) => null,
+        MockBehavior.Strict,
+    );
     const getAssessmentSummaryModelFromProviderAndStoreData = jest.fn();
 
     const deps: OverviewContainerDeps = {
         assessmentsProvider: assessmentsProvider,
-        actionInitiators: helpLinkDeps.actionInitiators,
+        actionInitiators: overviewHelpSectionDeps.actionInitiators,
         getAssessmentSummaryModelFromProviderAndStoreData: getAssessmentSummaryModelFromProviderAndStoreData,
-        detailsViewActionMessageCreator: detailsViewActionMessageCreatorStub,
+        detailsViewActionMessageCreator,
         urlParser: urlParserMock,
         assessmentsProviderWithFeaturesEnabled: assessmentsProviderWithFeaturesEnabledMock.object,
     };
 
     const featureFlagDataStub = {};
 
-    const assessmentStoreData: IAssessmentStoreData = {
+    const assessmentStoreData: AssessmentStoreData = {
         persistedTabInfo: {} as PersistedTabInfo,
-    } as IAssessmentStoreData;
+    } as AssessmentStoreData;
 
     assessmentsProviderWithFeaturesEnabledMock
         .setup(mock => mock(assessmentsProvider, featureFlagDataStub))

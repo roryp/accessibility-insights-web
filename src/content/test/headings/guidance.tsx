@@ -55,18 +55,13 @@ export const guidance = create(({ Markup, Link }) => (
                     <li>Programmatic heading levels should match their visual appearance (like size and boldness).</li>
                 </ul>
 
-                <h3>
-                    Use exactly one top-level heading. (<Link.WCAG_1_3_1 />){' '}
-                </h3>
+                <h3>Use exactly one top-level heading. (best practice) </h3>
                 <ul>
                     <li>
                         Top-level (<Markup.Code>h1</Markup.Code>) headings should give an overall description of the page content.
                     </li>
                     <li>
                         Top-level (<Markup.Code>h1</Markup.Code>) headings can be similar, or even identical, to the page title.
-                    </li>
-                    <li>
-                        If the page uses headings, an automated check will fail if the page does not have exactly one top-level heading.
                     </li>
                 </ul>
 
@@ -159,7 +154,8 @@ export const guidance = create(({ Markup, Link }) => (
         </Markup.HyperLink>
 
         <h4>Sufficient techniques</h4>
-        <Markup.HyperLink href="https://www.w3.org/TR/WCAG20-TECHS/H42.html">Using h1 - h6 to identify headings</Markup.HyperLink>
+        <Link.IdentifyHeadings>Using h1 - h6 to identify headings</Link.IdentifyHeadings>
+        <br />
         <Markup.HyperLink href="https://www.w3.org/TR/WCAG20-TECHS/G141.html">Organizing a page using headings</Markup.HyperLink>
 
         <h4>Common failures</h4>

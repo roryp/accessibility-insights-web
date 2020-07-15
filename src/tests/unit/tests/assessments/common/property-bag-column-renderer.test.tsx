@@ -1,11 +1,15 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
-import { shallow } from 'enzyme';
+import { shallow, ShallowWrapper } from 'enzyme';
 import * as React from 'react';
 
-import { propertyBagColumnRenderer, PropertyBagColumnRendererConfig } from '../../../../../assessments/common/property-bag-column-renderer';
+import {
+    propertyBagColumnRenderer,
+    PropertyBagColumnRendererConfig,
+} from 'assessments/common/property-bag-column-renderer';
 import { ColumnValueBag } from '../../../../../common/types/property-bag/column-value-bag';
-import { IAssessmentInstanceRowData } from '../../../../../DetailsView/components/assessment-instance-table';
+import { AssessmentInstanceRowData } from '../../../../../DetailsView/components/assessment-instance-table';
+import { DictionaryStringTo } from '../../../../../types/common-types';
 import { RendererWrapper } from './renderer-wrapper';
 
 interface TestPropertyBag extends ColumnValueBag {
@@ -53,7 +57,9 @@ describe('PropertyBagColumnRendererTest', () => {
         const propertyBag = getPropertyBag();
         const item = buildItemWithPropertyBag(propertyBag);
 
-        const configs: PropertyBagColumnRendererConfig<TestPropertyBag>[] = [{ propertyName: 'e', displayName: 'display e', expand: true }];
+        const configs: PropertyBagColumnRendererConfig<TestPropertyBag>[] = [
+            { propertyName: 'e', displayName: 'display e', expand: true },
+        ];
 
         const wrapper = createWrapper(item, configs);
 
@@ -133,7 +139,7 @@ describe('PropertyBagColumnRendererTest', () => {
     });
 });
 
-function createWrapper(item, configs) {
+function createWrapper(item, configs): ShallowWrapper {
     const renderer = () => propertyBagColumnRenderer(item, configs);
 
     return shallow(<RendererWrapper render={renderer} />);
@@ -157,7 +163,9 @@ function getPropertyBag(): TestPropertyBag {
     };
 }
 
-function buildItemWithPropertyBag(bag: TestPropertyBag): IAssessmentInstanceRowData<TestPropertyBag> {
+function buildItemWithPropertyBag(
+    bag: TestPropertyBag,
+): AssessmentInstanceRowData<TestPropertyBag> {
     return {
         instance: {
             propertyBag: bag,

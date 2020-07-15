@@ -1,11 +1,11 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
-import { DetailsViewStore } from '../../../background/stores/details-view-store';
-import { IDetailsViewData } from '../../../common/types/store-data/idetails-view-data';
+import { DetailsViewStore } from 'background/stores/details-view-store';
+import { DetailsViewStoreData } from '../../../common/types/store-data/details-view-store-data';
 import { DetailsViewRightContentPanelType } from '../../../DetailsView/components/left-nav/details-view-right-content-panel-type';
 import { BaseDataBuilder } from './base-data-builder';
 
-export class DetailsViewStoreDataBuilder extends BaseDataBuilder<IDetailsViewData> {
+export class DetailsViewStoreDataBuilder extends BaseDataBuilder<DetailsViewStoreData> {
     constructor() {
         super();
         this.data = new DetailsViewStore(null, null, null, null).getDefaultState();
@@ -21,14 +21,21 @@ export class DetailsViewStoreDataBuilder extends BaseDataBuilder<IDetailsViewDat
         return this;
     }
 
-    public withDetailsViewRightContentPanel(detailsViewRightContentPanel: DetailsViewRightContentPanelType): DetailsViewStoreDataBuilder {
+    public withDetailsViewRightContentPanel(
+        detailsViewRightContentPanel: DetailsViewRightContentPanelType,
+    ): DetailsViewStoreDataBuilder {
         this.data.detailsViewRightContentPanel = detailsViewRightContentPanel;
         return this;
     }
 
-    public withContentOpen(isContentOpen: boolean, contentPath?: string): DetailsViewStoreDataBuilder {
+    public withContentOpen(
+        isContentOpen: boolean,
+        contentPath?: string,
+        contentTitle?: string,
+    ): DetailsViewStoreDataBuilder {
         this.data.currentPanel.isContentOpen = isContentOpen;
         this.data.contentPath = contentPath || null;
+        this.data.contentTitle = contentTitle || null;
         return this;
     }
 

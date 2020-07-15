@@ -1,0 +1,76 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`DeviceConnectViewContainer renders 1`] = `
+<div
+  className="windowContainer"
+>
+  <WindowTitle
+    deps={Object {}}
+    pageTitle="Connect to your Android device"
+    windowStateStoreData={
+      Object {
+        "currentWindowState": "customSize",
+        "routeId": "deviceConnectView",
+      }
+    }
+  >
+    <WithStoreSubscriptionForHeaderIconComponent
+      deps={Object {}}
+      invertColors={true}
+    />
+  </WindowTitle>
+  <div
+    className="contentScrollContainer"
+  >
+    <div
+      className="contentContainer"
+    >
+      <FlaggedComponent
+        deps={Object {}}
+        disableJSXElement={
+          <DeviceConnectBody
+            deps={Object {}}
+            viewState={
+              Object {
+                "connectedDevice": undefined,
+                "deviceConnectState": 0,
+              }
+            }
+          />
+        }
+        enableJSXElement={
+          <AndroidSetupStepContainer
+            androidSetupStoreData={
+              Object {
+                "currentStepId": "detect-adb",
+              }
+            }
+            deps={Object {}}
+            deviceStoreData={
+              Object {
+                "deviceConnectState": 0,
+              }
+            }
+            userConfigurationStoreData={
+              Object {
+                "isFirstTime": true,
+              }
+            }
+            windowStateStoreData={
+              Object {
+                "currentWindowState": "customSize",
+                "routeId": "deviceConnectView",
+              }
+            }
+          />
+        }
+        featureFlag="adbSetupView"
+      />
+      <TelemetryPermissionDialog
+        deps={Object {}}
+        isFirstTime={true}
+      />
+    </div>
+  </div>
+</div>
+`;

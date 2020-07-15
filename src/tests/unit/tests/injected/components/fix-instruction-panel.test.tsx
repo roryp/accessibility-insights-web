@@ -1,14 +1,30 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
+import {
+    FixInstructionPanel,
+    FixInstructionPanelProps,
+} from 'common/components/fix-instruction-panel';
+import { FixInstructionProcessor } from 'common/components/fix-instruction-processor';
+import { shallow } from 'enzyme';
+import { CheckType } from 'injected/components/details-dialog';
 import * as React from 'react';
-
-import { CheckType } from '../../../../../injected/components/details-dialog';
-import { FixInstructionPanel, FixInstructionPanelProps } from '../../../../../injected/components/fix-instruction-panel';
-import { ShallowRenderer } from '../../../common/shallow-renderer';
+import { IMock, It, Mock, MockBehavior } from 'typemoq';
 
 describe('FixInstructionPanelTests', () => {
+    let fixInstructionProcessorMock: IMock<FixInstructionProcessor>;
+
+    beforeEach(() => {
+        fixInstructionProcessorMock = Mock.ofType<FixInstructionProcessor>(
+            undefined,
+            MockBehavior.Strict,
+        );
+        fixInstructionProcessorMock
+            .setup(processor => processor.process(It.isAnyString()))
+            .returns(instruction => <>{instruction}</>);
+    });
+
     test('render all checks', () => {
-        const allchecks: FormattedCheckResult[] = [
+        const allChecks: FormattedCheckResult[] = [
             {
                 message: 'message',
                 id: 'id1',
@@ -23,25 +39,20 @@ describe('FixInstructionPanelTests', () => {
 
         const props: FixInstructionPanelProps = {
             checkType: CheckType.All,
-            checks: allchecks,
+            checks: allChecks,
+            renderTitleElement: renderTitleAsDiv,
+            deps: {
+                fixInstructionProcessor: fixInstructionProcessorMock.object,
+            },
         };
 
-        const testObject = new FixInstructionPanel(props);
-        const expected = (
-            <div>
-                <div className="insights-fix-instruction-title">Fix ALL of the following:</div>
-                <ul className="insights-fix-instruction-list">
-                    <li key={'instruction-All-1'}>message</li>
-                    <li key={'instruction-All-2'}>message</li>
-                </ul>
-            </div>
-        );
+        const wrapped = shallow(<FixInstructionPanel {...props} />);
 
-        expect(testObject.render()).toEqual(expected);
+        expect(wrapped.getElement()).toMatchSnapshot();
     });
 
     test('render instruction only one check', () => {
-        const allchecks: FormattedCheckResult[] = [
+        const allChecks: FormattedCheckResult[] = [
             {
                 message: 'message',
                 id: 'id1',
@@ -51,13 +62,16 @@ describe('FixInstructionPanelTests', () => {
 
         const props: FixInstructionPanelProps = {
             checkType: CheckType.All,
-            checks: allchecks,
+            checks: allChecks,
+            renderTitleElement: renderTitleAsDiv,
+            deps: {
+                fixInstructionProcessor: fixInstructionProcessorMock.object,
+            },
         };
 
-        const component = ShallowRenderer.render(FixInstructionPanel, props);
-        const panelTitle = component.props.children[0];
+        const wrapped = shallow(<FixInstructionPanel {...props} />);
 
-        expect(panelTitle.props.children).toBe('Fix the following:');
+        expect(wrapped.getElement()).toMatchSnapshot();
     });
 
     test('render none checks', () => {
@@ -77,20 +91,15 @@ describe('FixInstructionPanelTests', () => {
         const props: FixInstructionPanelProps = {
             checkType: CheckType.None,
             checks: noneChecks,
+            renderTitleElement: renderTitleAsDiv,
+            deps: {
+                fixInstructionProcessor: fixInstructionProcessorMock.object,
+            },
         };
 
-        const testObject = new FixInstructionPanel(props);
-        const expected = (
-            <div>
-                <div className="insights-fix-instruction-title">Fix ALL of the following:</div>
-                <ul className="insights-fix-instruction-list">
-                    <li key={'instruction-None-1'}>message</li>
-                    <li key={'instruction-None-2'}>message</li>
-                </ul>
-            </div>
-        );
+        const wrapped = shallow(<FixInstructionPanel {...props} />);
 
-        expect(testObject.render()).toEqual(expected);
+        expect(wrapped.getElement()).toMatchSnapshot();
     });
 
     test('render nothing', () => {
@@ -99,9 +108,18 @@ describe('FixInstructionPanelTests', () => {
         const props: FixInstructionPanelProps = {
             checkType: CheckType.None,
             checks: checks,
+            renderTitleElement: renderTitleAsDiv,
+            deps: {
+                fixInstructionProcessor: fixInstructionProcessorMock.object,
+            },
         };
 
-        const component = ShallowRenderer.render(FixInstructionPanel, props);
-        expect(component).toBeNull();
+        const wrapped = shallow(<FixInstructionPanel {...props} />);
+
+        expect(wrapped.getElement()).toMatchSnapshot();
     });
+
+    function renderTitleAsDiv(titleText: string): JSX.Element {
+        return <div>{titleText}</div>;
+    }
 });

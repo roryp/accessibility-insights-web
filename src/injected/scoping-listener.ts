@@ -1,12 +1,11 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
-import { autobind } from '@uifabric/utilities';
-import { ISingleElementSelector } from '../common/types/store-data/scoping-store-data';
+import { SingleElementSelector } from '../common/types/store-data/scoping-store-data';
 import { WindowUtils } from '../common/window-utils';
 import { ElementFinderByPosition } from './element-finder-by-position';
 import { ShadowUtils } from './shadow-utils';
 
-export type IInspectCallback = (event: MouseEvent, selector: ISingleElementSelector) => void;
+export type IInspectCallback = (event: MouseEvent, selector: SingleElementSelector) => void;
 export class ScopingListener {
     public static onClickTimeout: number = 250;
     public static onHoverTimeout: number = 200;
@@ -21,14 +20,22 @@ export class ScopingListener {
 
     public static readonly scopeLayoutContainerId = 'insights-inspect-selector-layout';
 
-    constructor(elementFinderByPosition: ElementFinderByPosition, windowUtils: WindowUtils, shadowUtils: ShadowUtils, dom: Document) {
+    constructor(
+        elementFinderByPosition: ElementFinderByPosition,
+        windowUtils: WindowUtils,
+        shadowUtils: ShadowUtils,
+        dom: Document,
+    ) {
         this.windowUtils = windowUtils;
         this.elementFinderByPosition = elementFinderByPosition;
         this.shadowUtils = shadowUtils;
         this.dom = dom || document;
     }
 
-    public start(onInspectClick: IInspectCallback, onInspectHover: (selector: string[]) => void): void {
+    public start(
+        onInspectClick: IInspectCallback,
+        onInspectHover: (selector: string[]) => void,
+    ): void {
         const shadowContainer = this.shadowUtils.getShadowContainer();
         this.addContainer(shadowContainer);
         this.onInspectClick = onInspectClick;
@@ -44,14 +51,16 @@ export class ScopingListener {
         this.dom.removeEventListener('mousemove', this.onHover);
     }
 
-    private removeContainer(shadowContainer: HTMLElement) {
-        const container = shadowContainer.querySelector(`#${ScopingListener.scopeLayoutContainerId}`);
+    private removeContainer(shadowContainer: HTMLElement): void {
+        const container = shadowContainer.querySelector(
+            `#${ScopingListener.scopeLayoutContainerId}`,
+        );
         if (container) {
             shadowContainer.removeChild(container);
         }
     }
 
-    private addContainer(shadowContainer: HTMLElement) {
+    private addContainer(shadowContainer: HTMLElement): void {
         this.removeContainer(shadowContainer);
 
         const scopeLayout = this.dom.createElement('div');
@@ -68,8 +77,7 @@ export class ScopingListener {
         shadowContainer.appendChild(scopeLayout);
     }
 
-    @autobind
-    protected onClick(event: MouseEvent): void {
+    protected onClick = (event: MouseEvent): void => {
         if (this.onClickCurrentTimeoutId != null) {
             this.windowUtils.clearTimeout(this.onClickCurrentTimeoutId);
             this.onClickCurrentTimeoutId = null;
@@ -80,10 +88,9 @@ export class ScopingListener {
                 this.onInspectClick(event, path);
             });
         }, ScopingListener.onClickTimeout);
-    }
+    };
 
-    @autobind
-    protected onHover(event: MouseEvent): void {
+    protected onHover = (event: MouseEvent): void => {
         if (this.onHoverCurrentTimeoutId != null) {
             this.windowUtils.clearTimeout(this.onHoverCurrentTimeoutId);
             this.onHoverCurrentTimeoutId = null;
@@ -94,12 +101,12 @@ export class ScopingListener {
                 this.onInspectHover(path);
             });
         }, ScopingListener.onHoverTimeout);
-    }
+    };
 
-    private processRequestForEvent(event: MouseEvent): PromiseLike<ISingleElementSelector> {
+    private processRequestForEvent = (event: MouseEvent): PromiseLike<SingleElementSelector> => {
         return this.elementFinderByPosition.processRequest({
             x: event.clientX,
             y: event.clientY,
         });
-    }
+    };
 }

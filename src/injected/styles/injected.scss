@@ -1,6 +1,6 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
-@import '../../../node_modules/office-ui-fabric-react/dist/sass/Icon.Definitions';
+@import '../../common/styles/root-level-only/color-definitions.scss';
 @import '../../common/styles/colors.scss';
 
 #accessibility-insights-root-container {
@@ -20,6 +20,7 @@
 
 #accessibility-insights-root-container,
 #insights-shadow-container {
+    @import '../../common/styles/colors.scss';
     @import '../../common/styles/common.scss';
     @import '../../common/components/toast.scss';
 
@@ -42,8 +43,6 @@
     height: 100% !important;
 
     .insights-dialog-container {
-        @import '../../../node_modules/office-ui-fabric-react/dist/sass/Fabric.scss';
-
         @include max-z-index();
     }
 
@@ -63,6 +62,16 @@
         max-width: 25%;
         user-select: text;
         min-width: 520px;
+        svg {
+            @media screen and (-ms-high-contrast: active) {
+                fill: inherit !important;
+            }
+        }
+        path {
+            @media screen and (-ms-high-contrast: active) {
+                fill: inherit !important;
+            }
+        }
     }
 
     div.insights-file-issue-details-dialog-container {
@@ -103,86 +112,57 @@
         padding: 0 19px 20px !important;
     }
 
-    .insights-dialog-main-override .insights-dialog-button-inspect i {
-        color: $communication-shade-10 !important;
+    .insights-dialog-main-override .insights-dialog-button-inspect svg path {
+        fill: $primary-text !important;
+
+        @media screen and (-ms-high-contrast: active) {
+            fill: inherit !important;
+        }
     }
 
-    .insights-dialog-main-override .insights-dialog-button-inspect.is-disabled i {
-        color: $neutral-30 !important;
+    .insights-dialog-main-override .insights-dialog-button-inspect.is-disabled svg path {
+        fill: $neutral-30 !important;
+
+        @media screen and (-ms-high-contrast: active) {
+            fill: inherit !important;
+        }
     }
 
-    .insights-dialog-main-override-shadow .insights-dialog-button-inspect i {
-        color: $communication-shade-10 !important;
-        font-style: normal;
-        font-family: FabricMDL2Icons;
+    .insights-dialog-main-override-shadow .insights-dialog-button-inspect svg path {
+        fill: $communication-primary !important;
     }
 
-    .insights-dialog-main-override-shadow .insights-dialog-button-inspect.is-disabled i {
-        color: $neutral-30 !important;
-        font-style: normal;
-        font-family: FabricMDL2Icons;
+    .insights-dialog-main-override-shadow .insights-dialog-button-inspect.is-disabled svg path {
+        fill: $neutral-30 !important;
     }
 
-    .insights-dialog-main-override .create-bug-button,
+    .insights-dialog-main-override .file-issue-button,
     .insights-dialog-main-override .copy-issue-details-button {
         margin-left: 8px !important;
+
+        svg path {
+            fill: $neutral-100 !important;
+            fill-opacity: 0.9 !important;
+
+            @media screen and (-ms-high-contrast: active) {
+                fill: inherit !important;
+            }
+        }
     }
 
-    .insights-dialog-main-override .insights-dialog-button-create-bug i {
-        color: $communication-shade-10 !important;
-    }
-
-    .insights-dialog-main-override-shadow .insights-dialog-button-create-bug {
+    .insights-dialog-main-override-shadow .file-issue-button,
+    .insights-dialog-main-override-shadow .copy-issue-details-button {
         margin-left: 8px !important;
-    }
 
-    .insights-dialog-main-override-shadow .insights-dialog-button-create-bug i {
-        color: $communication-shade-10 !important;
-        font-style: normal;
-        font-family: FabricMDL2Icons;
-    }
-
-    .insights-dialog-main-override .insights-dialog-button-left {
-        float: left !important;
-    }
-
-    .insights-dialog-main-override .insights-dialog-button-right {
-        float: right !important;
-        text-align: right !important;
-    }
-
-    .insights-dialog-main-override .insights-dialog-footer {
-        text-align: center !important;
-        margin-top: 5px !important;
-    }
-
-    .insights-dialog-main-override-shadow .insights-dialog-footer {
-        text-align: center !important;
-        float: left !important;
-        margin-top: 5px !important;
-        width: 50%;
-        font-size: 14px;
+        svg path {
+            fill: $neutral-100 !important;
+            fill-opacity: 0.9 !important;
+        }
     }
 
     .insights-dialog-main-override ul,
     .insights-dialog-main-override-shadow ul {
         margin-top: 3px !important;
-    }
-
-    .insights-dialog-main-override .insights-dialog-rule-link,
-    .insights-dialog-main-override-shadow .insights-dialog-rule-link {
-        margin-top: 5px !important;
-        margin-bottom: 6px !important;
-        padding: 0 !important;
-
-        .ms-Link {
-            color: $communication-shade-10;
-        }
-    }
-
-    .insights-dialog-main-override .insights-dialog-rule-container,
-    .insights-dialog-main-override-shadow .insights-dialog-rule-container {
-        margin-bottom: 12px !important;
     }
 
     .insights-dialog-main-override-shadow .insights-dialog-container {
@@ -218,11 +198,10 @@
                     cursor: pointer;
 
                     &:hover {
-                        color: $communication-shade-30;
+                        color: $communication-shade-20;
                     }
                 }
 
-                display: inline;
                 float: right;
 
                 i {
@@ -269,42 +248,6 @@
             color: $neutral-30;
             pointer-events: none;
         }
-
-        .ms-Grid-col.insights-dialog-button-left {
-            padding-left: 0px;
-            float: left;
-        }
-
-        .ms-Grid-col.insights-dialog-button-right {
-            padding-right: 0px;
-            float: right;
-            text-align: right;
-        }
-    }
-
-    .insights-dialog-main-override .insights-dialog-rule-container i {
-        color: $negative-outcome !important;
-        float: left !important;
-        margin-right: 1% !important;
-        margin-top: 3px !important;
-    }
-
-    .insights-dialog-main-override-shadow .insights-dialog-rule-container i {
-        color: $negative-outcome !important;
-        float: left !important;
-        margin-right: 1% !important;
-        margin-top: 2px !important;
-        font-style: normal;
-        font-family: FabricMDL2Icons;
-    }
-
-    .insights-dialog-main-override .insights-dialog-target-container {
-        margin-bottom: 16px !important;
-        font-size: 14px;
-    }
-
-    .insights-dialog-main-override .insights-dialog-target-button-container {
-        margin-top: 4px !important;
     }
 
     .insights-dialog-main-override-shadow .insights-dialog-target-button-container {
@@ -338,6 +281,11 @@
             &:focus {
                 outline: -webkit-focus-ring-color auto 5px;
             }
+
+            svg {
+                margin-left: 4px;
+                margin-right: 4px;
+            }
         }
 
         button:disabled {
@@ -356,9 +304,11 @@
     .insights-dialog-main-override .insights-dialog-inspect-disabled {
         margin-top: 4px !important;
         font-size: 12px !important;
+        color: $negative-outcome !important;
+        font-weight: $fontWeightSemiBold !important;
     }
 
-    .insights-dialog-main-override .create-bug-button-help {
+    .insights-dialog-main-override .file-issue-button-help {
         margin-top: 4px !important;
         margin-bottom: 8px !important;
         font-size: 12px !important;
@@ -366,27 +316,74 @@
         font-weight: $fontWeightSemiBold;
     }
 
-    .insights-dialog-main-override .insights-dialog-fix-instruction-container {
-        margin-bottom: 20px !important;
-        font-size: 14px;
-    }
+    .insights-dialog-main-override,
+    .insights-dialog-main-override-shadow {
+        .insights-dialog-title {
+            margin-bottom: 16px !important;
+            padding-bottom: 0px !important;
+            color: $primary-text !important;
+            font-size: 21px !important;
+            font-weight: $fontWeightSemiBold !important;
+            letter-spacing: -0.02em !important;
+        }
 
-    .insights-dialog-main-override .insights-fix-instruction-list {
-        padding-left: 5% !important;
-        margin: 0 !important;
-    }
+        .insights-dialog-section-title {
+            margin-top: 16px !important;
+            margin-bottom: 4px !important;
+            color: $primary-text !important;
+            font-size: 15px !important;
+            font-weight: $fontWeightSemiBold !important;
+        }
 
-    .insights-dialog-main-override .insights-fix-instruction-title {
-        font-weight: 600 !important;
-    }
+        .insights-dialog-content {
+            color: $secondary-text !important;
+            font-size: 14px !important;
 
-    .insights-dialog-main-override-shadow .insights-fix-instruction-title {
-        font-weight: 600 !important;
-        margin-top: 15px;
-    }
+            ul {
+                margin: 8px 8px 0px 8px !important;
+                padding-left: 8px !important;
+            }
+        }
 
-    .insights-dialog-main-override .insights-dialog-instance-selector {
-        padding-left: 2% !important;
+        .insights-dialog-target-button-container {
+            margin-top: 16px !important;
+
+            button {
+                padding-left: 8px !important;
+                padding-right: 8px !important;
+            }
+
+            .ms-Button-label {
+                margin-left: 4px !important;
+                margin-right: 4px !important;
+                line-height: 100% !important;
+                font-weight: $fontWeightSemiBold !important;
+            }
+
+            svg {
+                margin-left: 4px !important;
+                margin-right: 4px !important;
+            }
+        }
+
+        .insights-dialog-next-and-back-container {
+            margin-top: 16px !important;
+            display: grid !important;
+            color: $primary-text !important;
+            font-size: $fontSizeM !important;
+            align-items: center !important;
+
+            grid-template-columns: 100px 1fr 100px !important;
+            :nth-child(1) {
+                text-align: left !important;
+            }
+            :nth-child(2) {
+                text-align: center !important;
+            }
+            :nth-child(3) {
+                text-align: right !important;
+            }
+        }
     }
 
     .insights-highlight-container,

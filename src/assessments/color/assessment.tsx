@@ -2,8 +2,8 @@
 // Licensed under the MIT License.
 import * as React from 'react';
 
-import { VisualizationType } from '../../common/types/visualization-type';
-import { test as content } from '../../content/test';
+import { VisualizationType } from 'common/types/visualization-type';
+import { test as content } from 'content/test';
 import { AssessmentBuilder } from '../assessment-builder';
 import * as Markup from '../markup';
 import { Assessment } from '../types/iassessment';
@@ -19,10 +19,11 @@ const { guidance } = content.sensory;
 const colorSensoryGettingStartedText: JSX.Element = (
     <React.Fragment>
         <p>
-            When color, shape, location, audio, or other sensory characteristics are the only means used to convey information, people with
-            disabilities do not have access to the same information that others have. Meaning communicated through sensory characteristics
-            must <Markup.Emphasis>also</Markup.Emphasis> be available in a textual format that can be viewed by all users and read by screen
-            reader software.{' '}
+            When color, shape, location, audio, or other sensory characteristics are the only means
+            used to convey information, people with disabilities do not have access to the same
+            information that others have. Meaning communicated through sensory characteristics must{' '}
+            <Markup.Emphasis>also</Markup.Emphasis> be available in a textual format that can be
+            viewed by all users and read by screen reader software.{' '}
         </p>
     </React.Fragment>
 );
@@ -31,8 +32,8 @@ export const ColorSensoryAssessment: Assessment = AssessmentBuilder.Assisted({
     key,
     title: colorSensoryAssessmentTitle,
     gettingStarted: colorSensoryGettingStartedText,
-    type: VisualizationType.ColorSensoryAssessment,
+    visualizationType: VisualizationType.ColorSensoryAssessment,
     guidance,
-    steps: [UseOfColor, SensoryCharacteristics, AuditoryCues, Flashing],
+    requirements: [UseOfColor, SensoryCharacteristics, AuditoryCues, Flashing],
     storeDataKey: 'colorSensoryAssessment',
 });

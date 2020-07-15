@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 import * as React from 'react';
 
-import * as Markup from '../../../../assessments/markup';
+import * as Markup from 'assessments/markup';
 
 describe('markup tags', () => {
     test('test simple Tag', () => {
@@ -38,6 +38,12 @@ describe('markup tags', () => {
     test('test Code', () => {
         const rendered = Markup.Code({ children: 'children' });
         const expected = <span className="insights-code">children</span>;
+        expect(rendered).toEqual(expected);
+    });
+
+    test('test CodeBlock', () => {
+        const rendered = Markup.CodeBlock({ children: 'children' });
+        const expected = <div className="insights-code">children</div>;
         expect(rendered).toEqual(expected);
     });
 

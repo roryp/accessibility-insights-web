@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 import { Mock, Times } from 'typemoq';
 
-import { AssessmentNavState } from '../../../../../common/types/store-data/iassessment-result-data';
+import { AssessmentNavState } from '../../../../../common/types/store-data/assessment-result-data';
 import { VisualizationType } from '../../../../../common/types/visualization-type';
 import { DetailsViewActionMessageCreator } from '../../../../../DetailsView/actions/details-view-action-message-creator';
 import { MasterCheckBoxConfigProvider } from '../../../../../DetailsView/handlers/master-checkbox-config-provider';
@@ -12,13 +12,21 @@ describe('MasterCheckBoxConfigProviderTest', () => {
         const allEnabled = true;
         const navState: AssessmentNavState = {
             selectedTestType: VisualizationType.HeadingsAssessment,
-            selectedTestStep: '',
+            selectedTestSubview: '',
         };
-        const actionMessageCreatorMock = Mock.ofType(DetailsViewActionMessageCreator);
-        actionMessageCreatorMock
-            .setup(acm => acm.changeAssessmentVisualizationStateForAll(false, navState.selectedTestType, navState.selectedTestStep))
+        const detailsViewActionMessageCreatorMock = Mock.ofType(DetailsViewActionMessageCreator);
+        detailsViewActionMessageCreatorMock
+            .setup(acm =>
+                acm.changeAssessmentVisualizationStateForAll(
+                    false,
+                    navState.selectedTestType,
+                    navState.selectedTestSubview,
+                ),
+            )
             .verifiable(Times.once());
-        const provider = new MasterCheckBoxConfigProvider(actionMessageCreatorMock.object);
+        const provider = new MasterCheckBoxConfigProvider(
+            detailsViewActionMessageCreatorMock.object,
+        );
 
         const config = provider.getMasterCheckBoxProperty(navState, allEnabled);
         config.onColumnClick(null, null);
@@ -28,14 +36,14 @@ describe('MasterCheckBoxConfigProviderTest', () => {
         expect(config.name).toBe('Visualization toggle');
         expect(config.ariaLabel).toBe('Hide all visualizations');
 
-        actionMessageCreatorMock.verifyAll();
+        detailsViewActionMessageCreatorMock.verifyAll();
     });
 
     test('getMasterCheckBoxProperty: allEnabled = false', () => {
         const allEnabled = false;
         const navState: AssessmentNavState = {
             selectedTestType: VisualizationType.HeadingsAssessment,
-            selectedTestStep: '',
+            selectedTestSubview: '',
         };
 
         const provider = new MasterCheckBoxConfigProvider(null);

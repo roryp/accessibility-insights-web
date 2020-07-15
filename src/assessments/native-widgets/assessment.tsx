@@ -2,14 +2,15 @@
 // Licensed under the MIT License.
 import * as React from 'react';
 
-import { VisualizationType } from '../../common/types/visualization-type';
-import { test as content } from '../../content/test';
+import { VisualizationType } from 'common/types/visualization-type';
+import { test as content } from 'content/test';
 import { AssessmentBuilder } from '../assessment-builder';
 import * as Markup from '../markup';
 import { Assessment } from '../types/iassessment';
+import { Autocomplete } from './test-steps/autocomplete';
 import { Cues } from './test-steps/cues';
+import { ExpectedInput } from './test-steps/expected-input';
 import { Instructions } from './test-steps/instructions';
-import { Label } from './test-steps/label';
 import { WidgetFunction } from './test-steps/widget-function';
 
 const key = 'nativeWidgets';
@@ -18,9 +19,11 @@ const { guidance } = content.nativeWidgets;
 const gettingStarted: JSX.Element = (
     <React.Fragment>
         <p>
-            <Markup.Emphasis>Widgets</Markup.Emphasis> are interactive interface components, such as links, buttons, and combo boxes.
+            <Markup.Emphasis>Widgets</Markup.Emphasis> are interactive interface components, such as
+            links, buttons, and combo boxes.
         </p>
-        <Markup.Emphasis>Native widgets</Markup.Emphasis> include the following simple, interactive HTML elements:
+        <Markup.Emphasis>Native widgets</Markup.Emphasis> include the following simple, interactive
+        HTML elements:
         <ul>
             <li>button</li>
             <li>input</li>
@@ -28,8 +31,10 @@ const gettingStarted: JSX.Element = (
             <li>textarea</li>
         </ul>
         <p>
-            However, native widgets can function as <Markup.Emphasis>custom widgets</Markup.Emphasis>. For example, a button might function
-            as part of an accordion control or menu; or a text field, a button, and a listbox might function together as a combo box.
+            However, native widgets can function as{' '}
+            <Markup.Emphasis>custom widgets</Markup.Emphasis>. For example, a button might function
+            as part of an accordion control or menu; or a text field, a button, and a listbox might
+            function together as a combo box.
         </p>
         <p>Elements with valid widget roles are addressed in the Custom widgets test.</p>
     </React.Fragment>
@@ -37,10 +42,10 @@ const gettingStarted: JSX.Element = (
 
 export const NativeWidgetsAssessment: Assessment = AssessmentBuilder.Assisted({
     key,
-    type: VisualizationType.NativeWidgets,
+    visualizationType: VisualizationType.NativeWidgets,
     title,
     gettingStarted,
     guidance,
-    steps: [WidgetFunction, Instructions, Label, Cues],
+    requirements: [WidgetFunction, Instructions, ExpectedInput, Cues, Autocomplete],
     storeDataKey: 'nativeWidgetsAssessment',
 });

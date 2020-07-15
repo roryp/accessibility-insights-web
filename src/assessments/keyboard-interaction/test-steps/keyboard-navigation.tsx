@@ -2,36 +2,44 @@
 // Licensed under the MIT License.
 import * as React from 'react';
 
-import { Messages } from '../../../common/messages';
-import { VisualizationType } from '../../../common/types/visualization-type';
-import { generateUID } from '../../../common/uid-generator';
-import { link } from '../../../content/link';
-import * as content from '../../../content/test/keyboard/keyboard-navigation';
-import { RestartScanVisualHelperToggle } from '../../../DetailsView/components/restart-scan-visual-helper-toggle';
-import { VisualizationInstanceProcessor } from '../../../injected/visualization-instance-processor';
-import ManualTestRecordYourResults from '../../common/manual-test-record-your-results';
+import { Messages } from 'common/messages';
+import { VisualizationType } from 'common/types/visualization-type';
+import { generateUID } from 'common/uid-generator';
+import { link } from 'content/link';
+import * as content from 'content/test/keyboard/keyboard-navigation';
+import { RestartScanVisualHelperToggle } from 'DetailsView/components/restart-scan-visual-helper-toggle';
+import { VisualizationInstanceProcessor } from 'injected/visualization-instance-processor';
+import { ManualTestRecordYourResults } from '../../common/manual-test-record-your-results';
 import * as Markup from '../../markup';
-import { TestStep } from '../../types/test-step';
+import { Requirement } from '../../types/requirement';
 import { KeyboardInteractionTestStep } from './test-steps';
 
 const description: JSX.Element = (
     <span>
-        Users must be able to <Markup.Emphasis>navigate</Markup.Emphasis> to all interactive interface components using a keyboard.
+        Users must be able to <Markup.Emphasis>navigate</Markup.Emphasis> to all interactive
+        interface components using a keyboard.
     </span>
 );
 
 const howToTest: JSX.Element = (
     <div>
-        <p>The visual helper for this requirement records elements in the target page that receive the input focus.</p>
+        <p>
+            The visual helper for this requirement records elements in the target page that receive
+            the input focus.
+        </p>
         <ol>
             <li>
-                Use the keyboard to navigate through all the interactive interface components in the target page.
+                Use the keyboard to navigate through all the interactive interface components in the
+                target page.
                 <ol>
                     <li>
-                        Use <Markup.Term>Tab</Markup.Term> and <Markup.Term>Shift+Tab</Markup.Term> to navigate between widgets both
-                        forwards and backwards.
+                        Use <Markup.Term>Tab</Markup.Term> and <Markup.Term>Shift+Tab</Markup.Term>{' '}
+                        to navigate between widgets both forwards and backwards.
                     </li>
-                    <li>Use the arrow keys to navigate between the focusable elements within a composite widget.</li>
+                    <li>
+                        Use the arrow keys to navigate between the focusable elements within a
+                        composite widget.
+                    </li>
                 </ol>
             </li>
             <li>
@@ -57,7 +65,7 @@ const howToTest: JSX.Element = (
     </div>
 );
 
-export const KeyboardNavigation: TestStep = {
+export const KeyboardNavigation: Requirement = {
     key: KeyboardInteractionTestStep.keyboardNavigation,
     name: 'Keyboard navigation',
     description,
@@ -87,6 +95,5 @@ export const KeyboardNavigation: TestStep = {
         }),
     getNotificationMessage: selectorMap => 'Start pressing Tab to start visualizing tab stops.',
     switchToTargetTabOnScan: true,
-    updateVisibility: false,
     generateInstanceIdentifier: generateUID,
 };

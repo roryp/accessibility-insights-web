@@ -1,51 +1,41 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
-import { autobind } from '@uifabric/utilities';
-import { AssessmentsProvider } from './../assessments/assessments-provider';
-import { AnalyzerStateUpdateHandler } from './analyzer-state-update-handler';
-import { AnalyzerProvider } from './analyzers/analyzer-provider';
-
-import { IAssessmentsProvider } from '../assessments/types/iassessments-provider';
+import { AssessmentsProvider } from 'assessments/types/assessments-provider';
+import { BaseStore } from '../common/base-store';
+import { VisualizationConfigurationFactory } from '../common/configs/visualization-configuration-factory';
 import { EnumHelper } from '../common/enum-helper';
-import { FeatureFlags } from '../common/feature-flags';
-import { IBaseStore } from '../common/istore';
 import { FeatureFlagStoreData } from '../common/types/store-data/feature-flag-store-data';
-import { IVisualizationStoreData } from '../common/types/store-data/ivisualization-store-data';
-import { IScopingStoreData } from '../common/types/store-data/scoping-store-data';
+import { ScopingStoreData } from '../common/types/store-data/scoping-store-data';
+import { VisualizationStoreData } from '../common/types/store-data/visualization-store-data';
 import { VisualizationType } from '../common/types/visualization-type';
-import { VisualizationConfigurationFactory } from './../common/configs/visualization-configuration-factory';
-import { IAnalyzer } from './analyzers/ianalyzer';
-import { TabStopsListener } from './tab-stops-listener';
+import { DictionaryStringTo } from '../types/common-types';
+import { AnalyzerStateUpdateHandler } from './analyzer-state-update-handler';
+import { Analyzer } from './analyzers/analyzer';
+import { AnalyzerProvider } from './analyzers/analyzer-provider';
 
 export class AnalyzerController {
     private analyzerProvider: AnalyzerProvider;
-    private tabStopsListener: TabStopsListener;
-    private analyzers: DictionaryNumberTo<IAnalyzer<any>>;
-    private sendMessage: (message) => void;
-    private visualizationstore: IBaseStore<IVisualizationStoreData>;
-    private scopingStore: IBaseStore<IScopingStoreData>;
-    private featureFlagStore: IBaseStore<FeatureFlagStoreData>;
+    private analyzers: DictionaryStringTo<Analyzer>;
+    private visualizationstore: BaseStore<VisualizationStoreData>;
+    private scopingStore: BaseStore<ScopingStoreData>;
+    private featureFlagStore: BaseStore<FeatureFlagStoreData>;
     private visualizationConfigurationFactory: VisualizationConfigurationFactory;
     private analyzerStateUpdateHandler: AnalyzerStateUpdateHandler;
-    private assessmentsProvider: IAssessmentsProvider;
+    private assessmentsProvider: AssessmentsProvider;
 
     constructor(
-        sendMessage: (message) => void,
-        visualizationstore: IBaseStore<IVisualizationStoreData>,
-        featureFlagStore: IBaseStore<FeatureFlagStoreData>,
-        scopingStore: IBaseStore<IScopingStoreData>,
-        tabStopsListener: TabStopsListener,
+        visualizationstore: BaseStore<VisualizationStoreData>,
+        featureFlagStore: BaseStore<FeatureFlagStoreData>,
+        scopingStore: BaseStore<ScopingStoreData>,
         visualizationConfigurationFactory: VisualizationConfigurationFactory,
         analyzerProvider: AnalyzerProvider,
         analyzerStateUpdateHandler: AnalyzerStateUpdateHandler,
-        assessmentsProvider: IAssessmentsProvider,
+        assessmentsProvider: AssessmentsProvider,
     ) {
         this.analyzers = {};
-        this.sendMessage = sendMessage;
         this.visualizationstore = visualizationstore;
         this.scopingStore = scopingStore;
         this.featureFlagStore = featureFlagStore;
-        this.tabStopsListener = tabStopsListener;
         this.visualizationConfigurationFactory = visualizationConfigurationFactory;
         this.analyzerProvider = analyzerProvider;
         this.assessmentsProvider = assessmentsProvider;
@@ -53,7 +43,7 @@ export class AnalyzerController {
         this.analyzerStateUpdateHandler.setupHandlers(this.startScan, this.teardown);
     }
 
-    public listenToStore() {
+    public listenToStore(): void {
         this.initializeAnalyzers();
         this.visualizationstore.addChangedListener(this.onChangedState);
         this.featureFlagStore.addChangedListener(this.onChangedState);
@@ -61,33 +51,33 @@ export class AnalyzerController {
         this.onChangedState();
     }
 
-    @autobind
-    private onChangedState() {
+    private onChangedState = (): void => {
         if (this.hasInitializedStores() === false) {
             return;
         }
 
         this.analyzerStateUpdateHandler.handleUpdate(this.visualizationstore.getState());
-    }
+    };
 
-    @autobind
-    protected teardown(id: string): void {
+    protected teardown = (id: string): void => {
         const analyzer = this.getAnalyzerByIdentifier(id);
         analyzer.teardown();
-    }
+    };
 
-    @autobind
-    protected startScan(id: string): void {
+    protected startScan = (id: string): void => {
         const analyzer = this.getAnalyzerByIdentifier(id);
         analyzer.analyze();
-    }
+    };
 
     private initializeAnalyzers(): void {
         EnumHelper.getNumericValues(VisualizationType).forEach((test: VisualizationType) => {
             const config = this.visualizationConfigurationFactory.getConfiguration(test);
             if (this.assessmentsProvider.isValidType(test)) {
-                this.assessmentsProvider.forType(test).steps.forEach(stepConfig => {
-                    this.analyzers[stepConfig.key] = config.getAnalyzer(this.analyzerProvider, stepConfig.key);
+                this.assessmentsProvider.forType(test).requirements.forEach(stepConfig => {
+                    this.analyzers[stepConfig.key] = config.getAnalyzer(
+                        this.analyzerProvider,
+                        stepConfig.key,
+                    );
                 });
             } else {
                 const key = config.getIdentifier();
@@ -96,7 +86,7 @@ export class AnalyzerController {
         });
     }
 
-    private getAnalyzerByIdentifier(key: string) {
+    private getAnalyzerByIdentifier(key: string): Analyzer {
         if (!this.analyzers[key]) {
             return null;
         }
@@ -105,7 +95,9 @@ export class AnalyzerController {
 
     private hasInitializedStores(): boolean {
         return (
-            this.visualizationstore.getState() != null && this.scopingStore.getState() != null && this.featureFlagStore.getState() != null
+            this.visualizationstore.getState() != null &&
+            this.scopingStore.getState() != null &&
+            this.featureFlagStore.getState() != null
         );
     }
 }

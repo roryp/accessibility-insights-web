@@ -1,29 +1,33 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
+import {
+    FeatureFlags,
+    getAllFeatureFlagDetails,
+    getDefaultFeatureFlagsWeb,
+} from 'common/feature-flags';
+import { FeatureFlagStoreData } from 'common/types/store-data/feature-flag-store-data';
 import { findIndex, forEach, indexOf, keys } from 'lodash';
-
-import { FeatureFlags, getAllFeatureFlagDetails, getDefaultFeatureFlagValues } from '../../../../common/feature-flags';
-import { FeatureFlagStoreData } from '../../../../common/types/store-data/feature-flag-store-data';
 
 describe('FeatureFlagsTest', () => {
     let featureFlagValues: FeatureFlagStoreData;
 
     beforeEach(() => {
-        featureFlagValues = getDefaultFeatureFlagValues();
+        featureFlagValues = getDefaultFeatureFlagsWeb();
     });
 
     test('default values', () => {
         const expectedValues: FeatureFlagStoreData = {
-            [FeatureFlags.exportResult]: true,
             [FeatureFlags.shadowDialog]: false,
-            [FeatureFlags.newAssessmentExperience]: true,
             [FeatureFlags.showAllAssessments]: false,
             [FeatureFlags.logTelemetryToConsole]: false,
             [FeatureFlags.showAllFeatureFlags]: false,
             [FeatureFlags.scoping]: false,
-            [FeatureFlags.showBugFiling]: true,
             [FeatureFlags.showInstanceVisibility]: false,
-            [FeatureFlags.highContrastMode]: true,
+            [FeatureFlags.manualInstanceDetails]: false,
+            [FeatureFlags.debugTools]: false,
+            [FeatureFlags.exportReportOptions]: false,
+            [FeatureFlags.reflowUI]: true,
+            [FeatureFlags.needsReview]: false,
         };
 
         const featureFlagValueKeys = keys(featureFlagValues);
@@ -36,7 +40,7 @@ describe('FeatureFlagsTest', () => {
         });
     });
 
-    test('all feature flag have a corresponding feature flag value', () => {
+    test('all feature flags have a corresponding feature flag value', () => {
         const featureFlags = keys(FeatureFlags).sort();
         const featureFlagValueKeys = keys(featureFlagValues).sort();
 

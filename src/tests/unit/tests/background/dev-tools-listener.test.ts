@@ -1,36 +1,35 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
+import { DevToolsListener } from 'background/dev-tools-listener';
+import { Interpreter } from 'background/interpreter';
+import { TabContext, TabToContextMap } from 'background/tab-context';
 import { IMock, It, Mock, MockBehavior, Times } from 'typemoq';
-
-import { DevToolsListener } from '../../../../background/dev-tools-listener';
-import { Interpreter } from '../../../../background/interpreter';
-import { TabContext, TabToContextMap } from '../../../../background/tab-context';
 import { ConnectionNames } from '../../../../common/constants/connection-names';
 import { Messages } from '../../../../common/messages';
-import { IDevToolsOpenMessage } from '../../../../common/types/dev-tools-open-message';
-import { ChromeAdapterMock, PortWithTabTabIdStub } from '../../mock-helpers/chrome-adapter-mock';
+import { DevToolsOpenMessage } from '../../../../common/types/dev-tools-open-message';
+import {
+    DevToolsBrowserAdapterMock,
+    PortWithTabTabIdStub,
+} from '../../mock-helpers/dev-tools-chrome-adapter-mock';
 import { PortOnDisconnectMock } from '../../mock-helpers/port-on-disconnect-mock';
 import { PortOnMessageMock } from '../../mock-helpers/port-on-message-mock';
-import { PortStub } from '../../Stubs/chrome-adapter-stub';
 
 describe('DevToolsListenerTests', () => {
-    let _testSubject: DevToolsListener;
-    let _chromeAdapterMock: ChromeAdapterMock;
-    let _backgrountConnectionMock: IMock<chrome.runtime.Port>;
-    let _tabIdToContextMap: TabToContextMap;
-    let _tabId1InterpreterMock: IMock<Interpreter>;
-    let _tabId2InterpreterMock: IMock<Interpreter>;
+    let testSubject: DevToolsListener;
+    let browserAdapterMock: DevToolsBrowserAdapterMock;
+    let tabIdToContextMap: TabToContextMap;
+    let tabId1InterpreterMock: IMock<Interpreter>;
+    let tabId2InterpreterMock: IMock<Interpreter>;
 
     beforeEach(() => {
-        _tabId1InterpreterMock = Mock.ofType(Interpreter, MockBehavior.Strict);
-        _tabId2InterpreterMock = Mock.ofType(Interpreter, MockBehavior.Strict);
-        _tabIdToContextMap = {
-            1: new TabContext(_tabId1InterpreterMock.object, null),
-            2: new TabContext(_tabId2InterpreterMock.object, null),
+        tabId1InterpreterMock = Mock.ofType(Interpreter, MockBehavior.Strict);
+        tabId2InterpreterMock = Mock.ofType(Interpreter, MockBehavior.Strict);
+        tabIdToContextMap = {
+            1: new TabContext(tabId1InterpreterMock.object, null),
+            2: new TabContext(tabId2InterpreterMock.object, null),
         };
-        _chromeAdapterMock = new ChromeAdapterMock();
-        _backgrountConnectionMock = Mock.ofType(PortStub);
-        _testSubject = new DevToolsListener(_tabIdToContextMap, _chromeAdapterMock.getObject());
+        browserAdapterMock = new DevToolsBrowserAdapterMock();
+        testSubject = new DevToolsListener(tabIdToContextMap, browserAdapterMock.getObject());
     });
 
     test('initialize - ignore non-dev tools connections', () => {
@@ -42,16 +41,16 @@ describe('DevToolsListenerTests', () => {
             .returns(() => 'some other connection')
             .verifiable();
 
-        _chromeAdapterMock.setUpAddListenerOnConnect(cb => {
+        browserAdapterMock.setUpAddListenerOnConnect(cb => {
             listenerCB = cb;
         });
 
-        _testSubject.initialize();
+        testSubject.initialize();
 
         listenerCB(portMock.object);
 
         portMock.verifyAll();
-        _chromeAdapterMock.verifyAll();
+        browserAdapterMock.verifyAll();
     });
 
     test('initialize - ignore if tab context does not exist', () => {
@@ -69,15 +68,15 @@ describe('DevToolsListenerTests', () => {
         onMessagePortMock.setupAddListenerMock();
         onDisconnectPortMock.setupAddListenerMock();
 
-        _chromeAdapterMock.setUpAddListenerOnConnect(cb => {
+        browserAdapterMock.setUpAddListenerOnConnect(cb => {
             listenerCB = cb;
         });
 
-        _testSubject.initialize();
+        testSubject.initialize();
 
         listenerCB(portStub);
 
-        _chromeAdapterMock.verifyAll();
+        browserAdapterMock.verifyAll();
         onMessagePortMock.verify();
         onDisconnectPortMock.verify();
     });
@@ -91,18 +90,18 @@ describe('DevToolsListenerTests', () => {
             onDisconnectPortMock.getObject(),
         );
         let connectListenerCB: (port: PortWithTabTabIdStub) => void;
-        let messageListenerCB: (message: IDevToolsOpenMessage, port: chrome.runtime.Port) => void;
+        let messageListenerCB: (message: DevToolsOpenMessage, port: chrome.runtime.Port) => void;
 
         onMessagePortMock.setupAddListenerMock(cb => {
             messageListenerCB = cb;
         });
         onDisconnectPortMock.setupAddListenerMock();
 
-        _chromeAdapterMock.setUpAddListenerOnConnect(cb => {
+        browserAdapterMock.setUpAddListenerOnConnect(cb => {
             connectListenerCB = cb;
         });
 
-        _tabId2InterpreterMock
+        tabId2InterpreterMock
             .setup(x =>
                 x.interpret(
                     It.isValue({
@@ -110,23 +109,23 @@ describe('DevToolsListenerTests', () => {
                             status: true,
                         },
                         tabId: 2,
-                        type: Messages.DevTools.DevtoolStatus,
+                        messageType: Messages.DevTools.DevtoolStatus,
                     }),
                 ),
             )
             .verifiable(Times.once());
 
-        _testSubject.initialize();
+        testSubject.initialize();
         connectListenerCB(portStub);
 
         messageListenerCB({ tabId: 2 }, null);
 
-        _chromeAdapterMock.verifyAll();
+        browserAdapterMock.verifyAll();
         onMessagePortMock.verify();
         onDisconnectPortMock.verify();
 
         expect(portStub.targetPageTabId).toBe(2);
-        _tabId2InterpreterMock.verifyAll();
+        tabId2InterpreterMock.verifyAll();
     });
 
     test('initialize - disconnect - call interpreter with status false', () => {
@@ -138,7 +137,7 @@ describe('DevToolsListenerTests', () => {
             onDisconnectPortMockValidator.getObject(),
         );
         let connectListenerCB: (port: PortWithTabTabIdStub) => void;
-        let disconnectMessageCB: (message: IDevToolsOpenMessage, port: chrome.runtime.Port) => void;
+        let disconnectMessageCB: (message: DevToolsOpenMessage, port: chrome.runtime.Port) => void;
 
         portStub.targetPageTabId = 2;
 
@@ -148,11 +147,11 @@ describe('DevToolsListenerTests', () => {
             disconnectMessageCB = cb;
         });
 
-        _chromeAdapterMock.setUpAddListenerOnConnect(cb => {
+        browserAdapterMock.setUpAddListenerOnConnect(cb => {
             connectListenerCB = cb;
         });
 
-        _tabId2InterpreterMock
+        tabId2InterpreterMock
             .setup(x =>
                 x.interpret(
                     It.isValue({
@@ -160,21 +159,21 @@ describe('DevToolsListenerTests', () => {
                             status: false,
                         },
                         tabId: 2,
-                        type: Messages.DevTools.DevtoolStatus,
+                        messageType: Messages.DevTools.DevtoolStatus,
                     }),
                 ),
             )
             .verifiable(Times.once());
 
-        _testSubject.initialize();
+        testSubject.initialize();
         connectListenerCB(portStub);
 
         disconnectMessageCB({ tabId: 2 }, null);
 
-        _chromeAdapterMock.verifyAll();
+        browserAdapterMock.verifyAll();
         onMessagePortMockValidator.verify();
         onDisconnectPortMockValidator.verify();
 
-        _tabId2InterpreterMock.verifyAll();
+        tabId2InterpreterMock.verifyAll();
     });
 });

@@ -1,27 +1,22 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
-import { autobind } from '@uifabric/utilities';
-import { LocalStorageDataKeys } from '../../local-storage-data-keys';
-import { ILocalStorageData } from '../../storage-data';
-
-import { FeatureFlags, getDefaultFeatureFlagValues, getForceDefaultFlags } from '../../../common/feature-flags';
-import { StoreNames } from '../../../common/stores/store-names';
-import { FeatureFlagStoreData } from '../../../common/types/store-data/feature-flag-store-data';
+import { StorageAdapter } from 'common/browser-adapters/storage-adapter';
+import { FeatureFlagDefaultsHelper } from 'common/feature-flag-defaults-helper';
+import { StoreNames } from 'common/stores/store-names';
+import { FeatureFlagStoreData } from 'common/types/store-data/feature-flag-store-data';
 import { FeatureFlagActions, FeatureFlagPayload } from '../../actions/feature-flag-actions';
-import { BaseStore } from '../base-store';
-import { BrowserAdapter } from './../../browser-adapter';
+import { LocalStorageDataKeys } from '../../local-storage-data-keys';
+import { LocalStorageData } from '../../storage-data';
+import { BaseStoreImpl } from '../base-store-impl';
 
-export class FeatureFlagStore extends BaseStore<FeatureFlagStoreData> {
-    private featureFlagActions: FeatureFlagActions;
-    private browserAdapter: BrowserAdapter;
-    private userData: ILocalStorageData;
-
-    constructor(featureFlagActions: FeatureFlagActions, browserAdapter: BrowserAdapter, userData: ILocalStorageData) {
+export class FeatureFlagStore extends BaseStoreImpl<FeatureFlagStoreData> {
+    constructor(
+        private readonly featureFlagActions: FeatureFlagActions,
+        private readonly storageAdapter: StorageAdapter,
+        private readonly userData: LocalStorageData,
+        private readonly featureFlagDefaultsHelper: FeatureFlagDefaultsHelper,
+    ) {
         super(StoreNames.FeatureFlagStore);
-
-        this.featureFlagActions = featureFlagActions;
-        this.browserAdapter = browserAdapter;
-        this.userData = userData;
     }
 
     public initialize(): void {
@@ -30,11 +25,11 @@ export class FeatureFlagStore extends BaseStore<FeatureFlagStoreData> {
     }
 
     public getDefaultState(): FeatureFlagStoreData {
-        return getDefaultFeatureFlagValues();
+        return this.featureFlagDefaultsHelper.getDefaultFeatureFlagValues();
     }
 
-    public getForceDefaultFlags(): FeatureFlags[] {
-        return getForceDefaultFlags();
+    public getForceDefaultFlags(): string[] {
+        return this.featureFlagDefaultsHelper.getForceDefaultFlags();
     }
 
     protected addActionListeners(): void {
@@ -61,16 +56,16 @@ export class FeatureFlagStore extends BaseStore<FeatureFlagStoreData> {
         return initialState;
     }
 
-    @autobind
-    private onSetFeatureFlags(payload: FeatureFlagPayload): void {
+    private onSetFeatureFlags = (payload: FeatureFlagPayload): void => {
         this.state[payload.feature] = payload.enabled;
-        this.browserAdapter.setUserData({ [LocalStorageDataKeys.featureFlags]: this.state });
+        this.storageAdapter
+            .setUserData({ [LocalStorageDataKeys.featureFlags]: this.state })
+            .catch(console.error);
         this.emitChanged();
-    }
+    };
 
-    @autobind
-    private onResetFeatureFlags(): void {
+    private onResetFeatureFlags = (): void => {
         this.state = this.getDefaultState();
         this.emitChanged();
-    }
+    };
 }

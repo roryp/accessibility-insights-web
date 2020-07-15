@@ -1,6 +1,8 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
-import { IHtmlElementAxeResults } from '../scanner-utils';
+import { assign } from 'lodash';
+import { DialogRenderer } from '../dialog-renderer';
+import { HtmlElementAxeResults } from '../scanner-utils';
 import { IPartialSVGDrawerConfiguration } from './drawer-provider';
 import { Formatter, SVGDrawerConfiguration } from './formatter';
 
@@ -13,7 +15,10 @@ export class TabStopsFormatter implements Formatter {
         this.givenConfiguration = givenConfiguration;
     }
 
-    public getDrawerConfiguration(element: HTMLElement, data: IHtmlElementAxeResults): SVGDrawerConfiguration {
+    public getDrawerConfiguration(
+        element: HTMLElement,
+        data: HtmlElementAxeResults,
+    ): SVGDrawerConfiguration {
         let ellipseRx: number = 16;
         const tabindex = element.getAttribute('tabindex');
         if (tabindex && parseInt(tabindex, 10) > 0) {
@@ -59,22 +64,24 @@ export class TabStopsFormatter implements Formatter {
             return config;
         }
 
-        Object.keys(this.givenConfiguration).forEach((svgPartConfigKey: keyof SVGDrawerConfiguration) => {
-            const configAdditions = this.givenConfiguration[svgPartConfigKey];
-            config[svgPartConfigKey] = {
-                ...config[svgPartConfigKey],
-                ...configAdditions,
-            };
-        });
+        Object.keys(this.givenConfiguration).forEach(
+            (svgPartConfigKey: keyof SVGDrawerConfiguration) => {
+                const configAdditions = this.givenConfiguration[svgPartConfigKey];
+                assign(config[svgPartConfigKey], configAdditions);
+            },
+        );
 
         return config;
     }
 
     private calculateEllipseRx(value: number): number {
-        return TabStopsFormatter.ELLIPSE_RX_CALCULATOR_OFFSET + TabStopsFormatter.ELLIPSE_RX_CALCULATOR_SLOPE * value;
+        return (
+            TabStopsFormatter.ELLIPSE_RX_CALCULATOR_OFFSET +
+            TabStopsFormatter.ELLIPSE_RX_CALCULATOR_SLOPE * value
+        );
     }
 
-    public getDialogRenderer() {
+    public getDialogRenderer(): DialogRenderer {
         return null;
     }
 }

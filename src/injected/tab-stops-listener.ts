@@ -1,18 +1,15 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
-import { autobind } from '@uifabric/utilities';
-
+import { DateProvider } from '../common/date-provider';
 import { HTMLElementUtils } from '../common/html-element-utils';
-import { DateProvider } from './../common/date-provider';
-import { WindowUtils } from './../common/window-utils';
+import { WindowUtils } from '../common/window-utils';
 import { VisualizationWindowMessage } from './drawing-controller';
-import { FrameCommunicator, IMessageRequest } from './frameCommunicators/frame-communicator';
+import { ErrorMessageContent } from './frameCommunicators/error-message-content';
+import { FrameCommunicator, MessageRequest } from './frameCommunicators/frame-communicator';
 import { FrameMessageResponseCallback } from './frameCommunicators/window-message-handler';
-import { IErrorMessageContent } from './frameCommunicators/window-message-marshaller';
 import { ScannerUtils } from './scanner-utils';
 
-// tslint:disable-next-line:interface-name
-export interface ITabStopEvent {
+export interface TabStopEvent {
     timestamp: number;
     target: string[];
     html: string;
@@ -28,7 +25,7 @@ export class TabStopsListener {
     public static readonly stopListeningCommand = 'insights.stopListenToTabstops';
     public static readonly getTabbedElementsCommand = 'insights.getTabbedElements';
 
-    private tabEventListener: (tabbedItems: ITabStopEvent) => void;
+    private tabEventListener: (tabbedItems: TabStopEvent) => void;
 
     constructor(
         frameCommunicator: FrameCommunicator,
@@ -45,12 +42,21 @@ export class TabStopsListener {
     }
 
     public initialize(): void {
-        this.frameCommunicator.subscribe(TabStopsListener.startListeningCommand, this.onStartListenToTabStops);
-        this.frameCommunicator.subscribe(TabStopsListener.getTabbedElementsCommand, this.onGetTabbedElements);
-        this.frameCommunicator.subscribe(TabStopsListener.stopListeningCommand, this.onStopListenToTabStops);
+        this.frameCommunicator.subscribe(
+            TabStopsListener.startListeningCommand,
+            this.onStartListenToTabStops,
+        );
+        this.frameCommunicator.subscribe(
+            TabStopsListener.getTabbedElementsCommand,
+            this.onGetTabbedElements,
+        );
+        this.frameCommunicator.subscribe(
+            TabStopsListener.stopListeningCommand,
+            this.onStopListenToTabStops,
+        );
     }
 
-    public setTabEventListenerOnMainWindow(callback: (tabbedItems: ITabStopEvent) => void): void {
+    public setTabEventListenerOnMainWindow(callback: (tabbedItems: TabStopEvent) => void): void {
         if (this.windowUtils.isTopWindow()) {
             this.tabEventListener = callback;
         } else {
@@ -66,13 +72,12 @@ export class TabStopsListener {
         this.onStopListenToTabStops();
     }
 
-    @autobind
-    private onGetTabbedElements(
-        tabStopEvent: ITabStopEvent,
-        error: IErrorMessageContent,
+    private onGetTabbedElements = (
+        tabStopEvent: TabStopEvent,
+        error: ErrorMessageContent,
         messageSourceWin: Window,
         responder?: FrameMessageResponseCallback,
-    ): void {
+    ): void => {
         const messageSourceFrame = this.getFrameElementForWindow(messageSourceWin);
 
         if (messageSourceFrame != null) {
@@ -83,10 +88,9 @@ export class TabStopsListener {
         } else {
             throw new Error('unable to get frame element for the tabbed element');
         }
-    }
+    };
 
-    @autobind
-    private sendTabbedElements(tabStopEvent: ITabStopEvent) {
+    private sendTabbedElements = (tabStopEvent: TabStopEvent): void => {
         if (this.windowUtils.isTopWindow()) {
             if (this.tabEventListener) {
                 this.tabEventListener(tabStopEvent);
@@ -96,17 +100,16 @@ export class TabStopsListener {
         } else {
             this.sendTabbedElementsToParent(tabStopEvent);
         }
-    }
+    };
 
-    @autobind
-    private sendTabbedElementsToParent(tabStopEvent: ITabStopEvent): void {
-        const messageRequest: IMessageRequest<ITabStopEvent> = {
+    private sendTabbedElementsToParent = (tabStopEvent: TabStopEvent): void => {
+        const messageRequest: MessageRequest<TabStopEvent> = {
             win: this.windowUtils.getParentWindow(),
             command: TabStopsListener.getTabbedElementsCommand,
             message: tabStopEvent,
         };
         this.frameCommunicator.sendMessage(messageRequest);
-    }
+    };
 
     private getFrameElementForWindow(win: Window): HTMLIFrameElement {
         const frames = this.getAllFrames();
@@ -120,40 +123,37 @@ export class TabStopsListener {
         return null;
     }
 
-    @autobind
-    private onStartListenToTabStops(): void {
+    private onStartListenToTabStops = (): void => {
         this.addListeners();
-        const iframes: NodeListOf<HTMLIFrameElement> = this.getAllFrames();
+        const iframes = this.getAllFrames();
         for (let pos = 0; pos < iframes.length; pos++) {
             this.startListenToTabStopsInFrame(iframes[pos]);
         }
-    }
+    };
 
-    @autobind
-    private onStopListenToTabStops(): void {
+    private onStopListenToTabStops = (): void => {
         this.removeListeners();
-        const iframes: NodeListOf<HTMLIFrameElement> = this.getAllFrames();
+        const iframes = this.getAllFrames();
         for (let pos = 0; pos < iframes.length; pos++) {
             this.stopListenToTabStopsInFrame(iframes[pos]);
         }
-    }
+    };
 
     private startListenToTabStopsInFrame(frame: HTMLIFrameElement): void {
-        const message: IMessageRequest<VisualizationWindowMessage> = {
+        const message: MessageRequest<VisualizationWindowMessage> = {
             command: TabStopsListener.startListeningCommand,
             frame: frame,
         };
         this.frameCommunicator.sendMessage(message);
     }
 
-    @autobind
-    private stopListenToTabStopsInFrame(frame: HTMLIFrameElement): void {
-        const message: IMessageRequest<VisualizationWindowMessage> = {
+    private stopListenToTabStopsInFrame = (frame: HTMLIFrameElement): void => {
+        const message: MessageRequest<VisualizationWindowMessage> = {
             command: TabStopsListener.stopListeningCommand,
             frame: frame,
         };
         this.frameCommunicator.sendMessage(message);
-    }
+    };
 
     private addListeners(): void {
         this.dom.addEventListener('focusin', this.onFocusIn);
@@ -163,22 +163,23 @@ export class TabStopsListener {
         this.dom.removeEventListener('focusin', this.onFocusIn);
     }
 
-    @autobind
-    private onFocusIn(event: Event): void {
+    private onFocusIn = (event: Event): void => {
         const target: HTMLElement = event.target as HTMLElement;
 
-        const timestamp: Date = DateProvider.getDate();
+        const timestamp: Date = DateProvider.getCurrentDate();
 
-        const tabStopEvent: ITabStopEvent = {
+        const tabStopEvent: TabStopEvent = {
             timestamp: timestamp.getTime(),
             target: [this.scannerUtils.getUniqueSelector(target)],
             html: target.outerHTML,
         };
 
         this.sendTabbedElements(tabStopEvent);
-    }
+    };
 
-    private getAllFrames(): NodeListOf<HTMLIFrameElement> {
-        return this.htmlElementUtils.getAllElementsByTagName('iframe') as NodeListOf<HTMLIFrameElement>;
+    private getAllFrames(): HTMLCollectionOf<HTMLIFrameElement> {
+        return this.htmlElementUtils.getAllElementsByTagName('iframe') as HTMLCollectionOf<
+            HTMLIFrameElement
+        >;
     }
 }

@@ -1,21 +1,25 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
+import { ScopingStore } from 'background/stores/global/scoping-store';
+import { ScanIncompleteWarningDetector } from 'injected/scan-incomplete-warning-detector';
 import { IMock, Mock } from 'typemoq';
 
-import { ScopingStore } from '../../../../../background/stores/global/scoping-store';
 import { VisualizationConfigurationFactory } from '../../../../../common/configs/visualization-configuration-factory';
 import { TelemetryDataFactory } from '../../../../../common/telemetry-data-factory';
 import { VisualizationType } from '../../../../../common/types/visualization-type';
 import { WindowUtils } from '../../../../../common/window-utils';
+import {
+    AnalyzerConfiguration,
+    FocusAnalyzerConfiguration,
+    RuleAnalyzerConfiguration,
+} from '../../../../../injected/analyzers/analyzer';
 import { AnalyzerProvider } from '../../../../../injected/analyzers/analyzer-provider';
 import { BaseAnalyzer } from '../../../../../injected/analyzers/base-analyzer';
-import { BatchedRuleAnalyzer, IResultRuleFilter } from '../../../../../injected/analyzers/batched-rule-analyzer';
 import {
-    IAnalyzerConfiguration,
-    IFocusAnalyzerConfiguration,
-    RuleAnalyzerConfiguration,
-} from '../../../../../injected/analyzers/ianalyzer';
-import { RuleAnalyzer } from '../../../../../injected/analyzers/rule-analyzer';
+    BatchedRuleAnalyzer,
+    IResultRuleFilter,
+} from '../../../../../injected/analyzers/batched-rule-analyzer';
+import { PostResolveCallback, RuleAnalyzer } from '../../../../../injected/analyzers/rule-analyzer';
 import { ScannerUtils } from '../../../../../injected/scanner-utils';
 import { TabStopsListener } from '../../../../../injected/tab-stops-listener';
 
@@ -32,6 +36,9 @@ describe('AnalyzerProviderTests', () => {
     let keyStub: string;
     let analyzerMessageTypeStub: string;
     let filterResultsByRulesMock: IMock<IResultRuleFilter>;
+    let sendConvertedResultsMock: IMock<PostResolveCallback>;
+    let sendNeedsReviewResultsMock: IMock<PostResolveCallback>;
+    let scanIncompleteWarningDetectorMock: IMock<ScanIncompleteWarningDetector>;
 
     beforeEach(() => {
         typeStub = -1;
@@ -46,6 +53,10 @@ describe('AnalyzerProviderTests', () => {
         scannerMock = Mock.ofType(ScannerUtils);
         visualizationConfigurationFactoryMock = Mock.ofType(VisualizationConfigurationFactory);
         filterResultsByRulesMock = Mock.ofInstance(() => null);
+        sendConvertedResultsMock = Mock.ofInstance(() => null);
+        sendNeedsReviewResultsMock = Mock.ofInstance(() => null);
+        scanIncompleteWarningDetectorMock = Mock.ofType<ScanIncompleteWarningDetector>();
+
         testObject = new AnalyzerProvider(
             tabStopsListener.object,
             scopingStoreMock.object,
@@ -55,6 +66,9 @@ describe('AnalyzerProviderTests', () => {
             dateGetterMock.object,
             visualizationConfigurationFactoryMock.object,
             filterResultsByRulesMock.object,
+            sendConvertedResultsMock.object,
+            sendNeedsReviewResultsMock.object,
+            scanIncompleteWarningDetectorMock.object,
         );
     });
 
@@ -70,6 +84,37 @@ describe('AnalyzerProviderTests', () => {
         const analyzer = testObject.createRuleAnalyzer(config);
         expect(analyzer).toBeInstanceOf(RuleAnalyzer);
         validateRuleAnalyzer(analyzer, config);
+        expect((analyzer as any).postOnResolve).toEqual(null);
+    });
+
+    test('createRuleAnalyzerUnifiedScan', () => {
+        const config: RuleAnalyzerConfiguration = {
+            testType: typeStub,
+            analyzerMessageType: analyzerMessageTypeStub,
+            key: keyStub,
+            rules: ['test rule'],
+            resultProcessor: null,
+            telemetryProcessor: null,
+        };
+        const analyzer = testObject.createRuleAnalyzerUnifiedScan(config);
+        expect(analyzer).toBeInstanceOf(RuleAnalyzer);
+        validateRuleAnalyzer(analyzer, config);
+        expect((analyzer as any).postOnResolve).toEqual(sendConvertedResultsMock.object);
+    });
+
+    test('createRuleAnalyzerUnifiedScanForNeedsReview', () => {
+        const config: RuleAnalyzerConfiguration = {
+            testType: typeStub,
+            analyzerMessageType: analyzerMessageTypeStub,
+            key: keyStub,
+            rules: ['test rule'],
+            resultProcessor: null,
+            telemetryProcessor: null,
+        };
+        const analyzer = testObject.createRuleAnalyzerUnifiedScanForNeedsReview(config);
+        expect(analyzer).toBeInstanceOf(RuleAnalyzer);
+        validateRuleAnalyzer(analyzer, config);
+        expect((analyzer as any).postOnResolve).toEqual(sendNeedsReviewResultsMock.object);
     });
 
     test('createBatchedRuleAnalyzer', () => {
@@ -89,7 +134,7 @@ describe('AnalyzerProviderTests', () => {
     });
 
     test('createFocusTrackingAnalyzer', () => {
-        const config: IFocusAnalyzerConfiguration = {
+        const config: FocusAnalyzerConfiguration = {
             testType: typeStub,
             analyzerMessageType: analyzerMessageTypeStub,
             key: keyStub,
@@ -100,14 +145,14 @@ describe('AnalyzerProviderTests', () => {
         const analyzer = testObject.createFocusTrackingAnalyzer(config);
         const openAnalyzer = analyzer as any;
         expect(analyzer).toBeInstanceOf(BaseAnalyzer);
-        expect(openAnalyzer._windowUtils).toBeInstanceOf(WindowUtils);
+        expect(openAnalyzer.windowUtils).toBeInstanceOf(WindowUtils);
         expect(openAnalyzer.tabStopsListener).toEqual(tabStopsListener.object);
         expect(openAnalyzer.config).toEqual(config);
         expect(openAnalyzer.sendMessage).toEqual(sendMessageMock.object);
     });
 
     test('createBaseAnalyzer', () => {
-        const config: IAnalyzerConfiguration = {
+        const config: AnalyzerConfiguration = {
             testType: typeStub,
             analyzerMessageType: analyzerMessageTypeStub,
             key: keyStub,

@@ -1,0 +1,155 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`InteractiveHeader render: isNavCollapsed equals false 1`] = `
+<Header
+  deps={null}
+  farItems={
+    <GearOptionsButtonComponent
+      deps={null}
+      featureFlagData={null}
+    />
+  }
+  items={
+    <FlaggedComponent
+      disableJSXElement={
+        <Switcher
+          deps={null}
+          pivotKey={2}
+          styles={
+            Object {
+              "dropdownClassName": "headerSwitcherDropdown",
+              "dropdownOptionClassName": "switcherDropdownOption",
+              "switcherClassName": "headerSwitcher",
+            }
+          }
+        />
+      }
+      enableJSXElement={null}
+      featureFlag="reflowUI"
+      featureFlagStoreData={null}
+    />
+  }
+  narrowModeStatus={
+    Object {
+      "isHeaderAndNavCollapsed": false,
+    }
+  }
+  navMenu={null}
+/>
+`;
+
+exports[`InteractiveHeader render: isNavCollapsed equals true 1`] = `
+<Header
+  deps={null}
+  farItems={
+    <GearOptionsButtonComponent
+      deps={null}
+      featureFlagData={null}
+    />
+  }
+  items={
+    <FlaggedComponent
+      disableJSXElement={
+        <Switcher
+          deps={null}
+          pivotKey={2}
+          styles={
+            Object {
+              "dropdownClassName": "headerSwitcherDropdown",
+              "dropdownOptionClassName": "switcherDropdownOption",
+              "switcherClassName": "headerSwitcher",
+            }
+          }
+        />
+      }
+      enableJSXElement={null}
+      featureFlag="reflowUI"
+      featureFlagStoreData={null}
+    />
+  }
+  narrowModeStatus={
+    Object {
+      "isHeaderAndNavCollapsed": true,
+    }
+  }
+  navMenu={
+    <test-nav-menu
+      isSideNavOpen={false}
+      setSideNavOpen={null}
+    />
+  }
+/>
+`;
+
+exports[`InteractiveHeader render: tabClosed equals false 1`] = `
+<Header
+  deps={
+    Object {
+      "dropdownClickHandler": Object {},
+    }
+  }
+  farItems={
+    <GearOptionsButtonComponent
+      deps={
+        Object {
+          "dropdownClickHandler": Object {},
+        }
+      }
+      featureFlagData={
+        Object {
+          "test-flag": true,
+        }
+      }
+    />
+  }
+  items={
+    <FlaggedComponent
+      disableJSXElement={
+        <Switcher
+          deps={
+            Object {
+              "dropdownClickHandler": Object {},
+            }
+          }
+          pivotKey={2}
+          styles={
+            Object {
+              "dropdownClassName": "headerSwitcherDropdown",
+              "dropdownOptionClassName": "switcherDropdownOption",
+              "switcherClassName": "headerSwitcher",
+            }
+          }
+        />
+      }
+      enableJSXElement={null}
+      featureFlag="reflowUI"
+      featureFlagStoreData={
+        Object {
+          "test-flag": true,
+        }
+      }
+    />
+  }
+  narrowModeStatus={
+    Object {
+      "isHeaderAndNavCollapsed": false,
+    }
+  }
+  navMenu={null}
+/>
+`;
+
+exports[`InteractiveHeader render: tabClosed equals true 1`] = `
+<Header
+  deps={
+    Object {
+      "dropdownClickHandler": Object {},
+    }
+  }
+  narrowModeStatus={
+    Object {
+      "isHeaderAndNavCollapsed": false,
+    }
+  }
+/>
+`;

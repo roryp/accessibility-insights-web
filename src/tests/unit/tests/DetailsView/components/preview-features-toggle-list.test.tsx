@@ -1,24 +1,18 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
-import * as React from 'react';
-import { Mock } from 'typemoq';
-
-import { IDisplayableFeatureFlag } from '../../../../../common/types/store-data/idisplayable-feature-flag';
-import { DetailsViewActionMessageCreator } from '../../../../../DetailsView/actions/details-view-action-message-creator';
-import { GenericToggle } from '../../../../../DetailsView/components/generic-toggle';
+import { DisplayableFeatureFlag } from 'common/types/store-data/displayable-feature-flag';
+import { DetailsViewActionMessageCreator } from 'DetailsView/actions/details-view-action-message-creator';
 import {
     PreviewFeaturesToggleList,
     PreviewFeaturesToggleListProps,
-} from '../../../../../DetailsView/components/preview-features-toggle-list';
+} from 'DetailsView/components/preview-features-toggle-list';
+import { shallow } from 'enzyme';
+import * as React from 'react';
+import { Mock } from 'typemoq';
 
 describe('PreviewFeaturesToggleListTest', () => {
-    test('constructor', () => {
-        const testSubject = new PreviewFeaturesToggleList({} as PreviewFeaturesToggleListProps);
-        expect(testSubject).toBeDefined();
-    });
-
     test('render', () => {
-        const displayableFeatureFlagsStub: IDisplayableFeatureFlag[] = [
+        const displayableFeatureFlagsStub: DisplayableFeatureFlag[] = [
             {
                 id: 'test-id-1',
                 displayableName: 'test name 1',
@@ -32,37 +26,19 @@ describe('PreviewFeaturesToggleListTest', () => {
                 enabled: false,
             },
         ];
-        const setFeatureFlagStub = () => {};
-        const actionMessageCreatorMock = Mock.ofType(DetailsViewActionMessageCreator);
+        const detailsViewActionMessageCreatorMock = Mock.ofType(DetailsViewActionMessageCreator);
         const props: PreviewFeaturesToggleListProps = {
+            deps: {
+                detailsViewActionMessageCreator: detailsViewActionMessageCreatorMock.object,
+            },
             displayedFeatureFlags: displayableFeatureFlagsStub,
-            actionMessageCreator: actionMessageCreatorMock.object,
         };
-        const testSubject = new PreviewFeaturesToggleList(props);
 
-        actionMessageCreatorMock.setup(acm => acm.setFeatureFlag).returns(() => setFeatureFlagStub);
+        const testSubject = shallow(<PreviewFeaturesToggleList {...props} />);
+        expect(testSubject.debug()).toMatchSnapshot();
 
-        const expectedComponent = (
-            <div className="preview-feature-toggle-list">
-                <GenericToggle
-                    name={props.displayedFeatureFlags[0].displayableName}
-                    description={props.displayedFeatureFlags[0].displayableDescription}
-                    enabled={props.displayedFeatureFlags[0].enabled}
-                    onClick={setFeatureFlagStub}
-                    id={props.displayedFeatureFlags[0].id}
-                    key={`preview_feature_toggle${props.displayedFeatureFlags[0].id}`}
-                />
-                <GenericToggle
-                    name={props.displayedFeatureFlags[1].displayableName}
-                    description={props.displayedFeatureFlags[1].displayableDescription}
-                    enabled={props.displayedFeatureFlags[1].enabled}
-                    onClick={setFeatureFlagStub}
-                    id={props.displayedFeatureFlags[1].id}
-                    key={`preview_feature_toggle${props.displayedFeatureFlags[1].id}`}
-                />
-            </div>
+        expect(testSubject.find({ id: 'test-id-1' }).props().onClick).toBe(
+            detailsViewActionMessageCreatorMock.object.setFeatureFlag,
         );
-
-        expect(testSubject.render()).toEqual(expectedComponent);
     });
 });

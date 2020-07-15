@@ -2,9 +2,16 @@
 // Licensed under the MIT License.
 import { FeatureFlagStoreData } from '../common/types/store-data/feature-flag-store-data';
 import { VisualizationType } from '../common/types/visualization-type';
+import { DictionaryStringTo } from '../types/common-types';
 import { DrawingController, VisualizationWindowMessage } from './drawing-controller';
-import { AxeResultsWithFrameLevel, IAssessmentVisualizationInstance } from './frameCommunicators/html-element-axe-results-helper';
-import { IPropertyBags, IVisualizationInstanceProcessorCallback } from './visualization-instance-processor';
+import {
+    AssessmentVisualizationInstance,
+    AxeResultsWithFrameLevel,
+} from './frameCommunicators/html-element-axe-results-helper';
+import {
+    PropertyBags,
+    VisualizationInstanceProcessorCallback,
+} from './visualization-instance-processor';
 
 export class DrawingInitiator {
     private drawingController: DrawingController;
@@ -16,15 +23,17 @@ export class DrawingInitiator {
     public enableVisualization(
         visualizationType: VisualizationType,
         featureFlagStoreData: FeatureFlagStoreData,
-        selectorMap: DictionaryStringTo<IAssessmentVisualizationInstance>,
+        selectorMap: DictionaryStringTo<AssessmentVisualizationInstance>,
         configId: string,
-        processor: IVisualizationInstanceProcessorCallback<IPropertyBags, IPropertyBags>,
+        processor: VisualizationInstanceProcessorCallback<PropertyBags, PropertyBags>,
     ): void {
         if (selectorMap == null) {
             return;
         }
 
-        const elementResults: IAssessmentVisualizationInstance[] = processor(this.getElementResults(selectorMap));
+        const elementResults: AssessmentVisualizationInstance[] = processor(
+            this.getElementResults(selectorMap),
+        );
 
         this.initializeTargetIndex(elementResults);
 
@@ -39,7 +48,7 @@ export class DrawingInitiator {
         this.drawingController.processRequest(visualizationMessage);
     }
 
-    private initializeTargetIndex(elementResults: AxeResultsWithFrameLevel[]) {
+    private initializeTargetIndex(elementResults: AxeResultsWithFrameLevel[]): void {
         if (elementResults != null) {
             elementResults.forEach(result => {
                 result.targetIndex = 0;
@@ -47,7 +56,11 @@ export class DrawingInitiator {
         }
     }
 
-    public disableVisualization(visualizationType: VisualizationType, featureFlagStoreData: FeatureFlagStoreData, configId: string): void {
+    public disableVisualization(
+        visualizationType: VisualizationType,
+        featureFlagStoreData: FeatureFlagStoreData,
+        configId: string,
+    ): void {
         const visualizationMessage: VisualizationWindowMessage = {
             visualizationType: visualizationType,
             isEnabled: false,
@@ -58,7 +71,9 @@ export class DrawingInitiator {
         this.drawingController.processRequest(visualizationMessage);
     }
 
-    private getElementResults(selectorMap: DictionaryStringTo<IAssessmentVisualizationInstance>) {
+    private getElementResults(
+        selectorMap: DictionaryStringTo<AssessmentVisualizationInstance>,
+    ): AssessmentVisualizationInstance[] {
         return Object.keys(selectorMap).map(key => selectorMap[key]);
     }
 }

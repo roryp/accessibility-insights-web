@@ -1,18 +1,19 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
-import { autobind } from '@uifabric/utilities';
-import { DefaultButton } from 'office-ui-fabric-react/lib/Button';
+import { IssueDetailsTextGenerator } from 'background/issue-details-text-generator';
+import { NavigatorUtils } from 'common/navigator-utils';
+import { DefaultButton } from 'office-ui-fabric-react';
 import * as React from 'react';
-import * as CopyToClipboard from 'react-copy-to-clipboard';
-import { IssueDetailsTextGenerator } from '../../background/issue-details-text-generator';
-import { DecoratedAxeNodeResult } from '../../injected/scanner-utils';
-import { CreateIssueDetailsTextData } from '../types/create-issue-details-text-data';
-import { WindowUtils } from '../window-utils';
-import { Toast } from './toast';
 
-export type CopyIssueDetailsButtonDeps = {
-    windowUtils: WindowUtils;
+import { ToolData } from 'common/types/store-data/unified-data-interface';
+import { CopyIcon } from '../../common/icons/copy-icon';
+import { CreateIssueDetailsTextData } from '../types/create-issue-details-text-data';
+import { Toast, ToastDeps } from './toast';
+
+export type CopyIssueDetailsButtonDeps = ToastDeps & {
+    navigatorUtils: NavigatorUtils;
     issueDetailsTextGenerator: IssueDetailsTextGenerator;
+    toolData: ToolData;
 };
 
 export type CopyIssueDetailsButtonProps = {
@@ -21,50 +22,47 @@ export type CopyIssueDetailsButtonProps = {
     onClick: (clickEvent: React.MouseEvent<any>) => void;
 };
 
-export type CopyIssueDetailsButtonState = {
-    showingCopyToast: boolean;
-};
-
-export class CopyIssueDetailsButton extends React.Component<CopyIssueDetailsButtonProps, CopyIssueDetailsButtonState> {
+export class CopyIssueDetailsButton extends React.Component<CopyIssueDetailsButtonProps> {
+    private toastRef: React.RefObject<Toast>;
     constructor(props: CopyIssueDetailsButtonProps) {
         super(props);
-        this.state = { showingCopyToast: false };
+        this.toastRef = React.createRef();
     }
 
-    private getIssueDetailsText(result: DecoratedAxeNodeResult): string {
-        const data: CreateIssueDetailsTextData = {
-            pageTitle: this.props.issueDetailsData.pageTitle,
-            pageUrl: this.props.issueDetailsData.pageUrl,
-            ruleResult: result,
-        };
-        return this.props.deps.issueDetailsTextGenerator.buildText(data);
+    private getIssueDetailsText(issueData: CreateIssueDetailsTextData): string {
+        return this.props.deps.issueDetailsTextGenerator.buildText(
+            issueData,
+            this.props.deps.toolData,
+        );
     }
 
-    @autobind
-    private copyButtonClicked(event: React.MouseEvent<any>): void {
+    private copyButtonClicked = async (event: React.MouseEvent<any>): Promise<void> => {
+        this.toastRef.current.show('Failure details copied.');
         if (this.props.onClick) {
             this.props.onClick(event);
         }
-        this.setState({ showingCopyToast: true });
-    }
+        try {
+            await this.props.deps.navigatorUtils.copyToClipboard(
+                this.getIssueDetailsText(this.props.issueDetailsData),
+            );
+        } catch (error) {
+            this.toastRef.current.show('Failed to copy failure details. Please try again.');
+            return;
+        }
+        this.toastRef.current.show('Failure details copied.');
+    };
 
     public render(): JSX.Element {
         return (
             <>
-                {this.state.showingCopyToast ? (
-                    <Toast onTimeout={() => this.setState({ showingCopyToast: false })} deps={this.props.deps}>
-                        Failure details copied.
-                    </Toast>
-                ) : null}
-                <CopyToClipboard text={this.getIssueDetailsText(this.props.issueDetailsData.ruleResult)}>
-                    <DefaultButton
-                        iconProps={{ iconName: 'Copy' }}
-                        className={'copy-issue-details-button'}
-                        onClick={this.copyButtonClicked}
-                    >
-                        Copy failure details
-                    </DefaultButton>
-                </CopyToClipboard>
+                <Toast ref={this.toastRef} deps={this.props.deps} />
+                <DefaultButton
+                    className={'copy-issue-details-button'}
+                    onClick={this.copyButtonClicked}
+                >
+                    <CopyIcon />
+                    <div className="ms-Button-label">Copy failure details</div>
+                </DefaultButton>
             </>
         );
     }

@@ -2,8 +2,8 @@
 // Licensed under the MIT License.
 import * as React from 'react';
 
-import { VisualizationType } from '../../common/types/visualization-type';
-import { test as content } from '../../content/test';
+import { VisualizationType } from 'common/types/visualization-type';
+import { test as content } from 'content/test';
 import { AssessmentBuilder } from '../assessment-builder';
 import { BypassBlocks } from './test-steps/bypass-blocks';
 import { ConsistentIdentification } from './test-steps/consistent-identification';
@@ -16,21 +16,21 @@ const { guidance } = content.repetitiveContent;
 const gettingStartedText: JSX.Element = (
     <React.Fragment>
         <p>
-            When interacting with a website or web app, keyboard users need a way to skip repetitive content and navigate directly to the
-            page's primary content.
+            When interacting with a website or web app, keyboard users need a way to skip repetitive
+            content and navigate directly to the page's primary content.
         </p>
         <p>
-            Content that appears repeatedly within a website or web app must be presented consistently to allow users to locate specific
-            information efficiently.
+            Content that appears repeatedly within a website or web app must be presented
+            consistently to allow users to locate specific information efficiently.
         </p>
     </React.Fragment>
 );
 
 export const RepetitiveContentAssessment = AssessmentBuilder.Manual({
-    type: VisualizationType.RepetitiveContentAssessment,
+    visualizationType: VisualizationType.RepetitiveContentAssessment,
     key,
     gettingStarted: gettingStartedText,
     title,
     guidance,
-    steps: [BypassBlocks, ConsistentNavigation, ConsistentIdentification],
+    requirements: [BypassBlocks, ConsistentNavigation, ConsistentIdentification],
 });

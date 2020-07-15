@@ -2,8 +2,11 @@
 // Licensed under the MIT License.
 const path = require('path');
 const webpack = require('webpack');
+const nodeExternals = require('webpack-node-externals');
 const ForkTsCheckerWebpackPlugin = require('fork-ts-checker-webpack-plugin');
-const UglifyJsPlugin = require('uglifyjs-webpack-plugin');
+const TerserWebpackPlugin = require('terser-webpack-plugin');
+const CaseSensitivePathsPlugin = require('case-sensitive-paths-webpack-plugin');
+const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 
 const commonPlugins = [
     new webpack.optimize.LimitChunkCountPlugin({
@@ -15,38 +18,72 @@ const commonPlugins = [
     // debug build failures. We aren't quite sure why this is yet, but until it's root caused, keep
     // tslint separate from webpack.
     new ForkTsCheckerWebpackPlugin(),
+    new CaseSensitivePathsPlugin(),
+    new MiniCssExtractPlugin({
+        // Options similar to the same options in webpackOptions.output
+        // both options are optional
+        filename: '[name].css',
+        chunkFilename: '[id].css',
+    }),
 ];
 
 const commonEntryFiles = {
-    injected: [path.resolve(__dirname, 'src/injected/stylesheet-init.ts'), path.resolve(__dirname, 'src/injected/client-init.ts')],
-    popup: path.resolve(__dirname, 'src/popup/scripts/popup-init.ts'),
+    injected: [
+        path.resolve(__dirname, 'src/injected/stylesheet-init.ts'),
+        path.resolve(__dirname, 'src/injected/client-init.ts'),
+    ],
+    popup: [path.resolve(__dirname, 'src/popup/popup-init.ts')],
     insights: [path.resolve(__dirname, 'src/views/insights/initializer.ts')],
     detailsView: [path.resolve(__dirname, 'src/DetailsView/details-view-initializer.ts')],
-    devtools: [path.resolve(__dirname, 'src/devtools/dev-tool-init.ts')],
+    devtools: [path.resolve(__dirname, 'src/Devtools/dev-tool-init.ts')],
     background: [path.resolve(__dirname, 'src/background/background-init.ts')],
+    debugTools: path.resolve(__dirname, 'src/debug-tools/initializer/debug-tools-init.tsx'),
 };
+
+const electronEntryFiles = {
+    renderer: [path.resolve(__dirname, 'src/electron/views/renderer-initializer.ts')],
+    main: [path.resolve(__dirname, 'src/electron/main/main.ts')],
+};
+
+const tsRule = {
+    test: /\.tsx?$/,
+    use: [
+        {
+            loader: 'ts-loader',
+            options: {
+                transpileOnly: true,
+                experimentalWatchApi: true,
+            },
+        },
+    ],
+    exclude: ['/node_modules/'],
+};
+
+const scssRule = (useHash = true) => ({
+    test: /\.scss$/,
+    use: [
+        MiniCssExtractPlugin.loader,
+        {
+            loader: 'css-loader',
+            options: {
+                modules: {
+                    localIdentName: '[local]' + (useHash ? '--[hash:base64:5]' : ''),
+                },
+                localsConvention: 'camelCaseOnly',
+            },
+        },
+        'sass-loader',
+    ],
+});
 
 const commonConfig = {
     entry: commonEntryFiles,
     module: {
-        rules: [
-            {
-                test: /\.tsx?$/,
-                use: [
-                    {
-                        loader: 'ts-loader',
-                        options: {
-                            transpileOnly: true,
-                            experimentalWatchApi: true,
-                        },
-                    },
-                ],
-                exclude: ['/node_modules/'],
-            },
-        ],
+        rules: [tsRule, scssRule(true)],
     },
     resolve: {
-        modules: [path.resolve(__dirname, 'node_modules')],
+        // It is important that src is absolute but node_modules is relative. See #2520
+        modules: [path.resolve(__dirname, './src'), 'node_modules'],
         extensions: ['.tsx', '.ts', '.js'],
     },
     plugins: commonPlugins,
@@ -58,13 +95,43 @@ const commonConfig = {
         maxEntrypointSize: 10 * 1024 * 1024,
         maxAssetSize: 10 * 1024 * 1024,
     },
+    stats: {
+        // This is to suppress noise from mini-css-extract-plugin
+        children: false,
+    },
+};
+
+const unifiedConfig = {
+    ...commonConfig,
+    entry: electronEntryFiles,
+    name: 'unified',
+    mode: 'development',
+    devtool: 'source-map',
+    output: {
+        path: path.join(__dirname, 'extension/unifiedBundle'),
+        filename: '[name].bundle.js',
+    },
+    node: {
+        ...commonConfig.node,
+        __dirname: false,
+        __filename: false,
+    },
+    optimization: {
+        splitChunks: false,
+    },
+    target: 'electron-main',
 };
 
 const devConfig = {
     ...commonConfig,
+    entry: {
+        ...commonEntryFiles,
+        detailsView: ['react-devtools', ...commonEntryFiles.detailsView],
+        popup: ['react-devtools', ...commonEntryFiles.popup],
+    },
     name: 'dev',
     mode: 'development',
-    devtool: 'source-map',
+    devtool: 'eval-source-map',
     output: {
         path: path.join(__dirname, 'extension/devBundle'),
         filename: '[name].bundle.js',
@@ -87,11 +154,11 @@ const prodConfig = {
     optimization: {
         splitChunks: false,
         minimizer: [
-            new UglifyJsPlugin({
+            new TerserWebpackPlugin({
                 sourceMap: false,
-                uglifyOptions: {
+                terserOptions: {
                     compress: false,
-                    mangle: false,
+                    mangle: true,
                     output: {
                         ascii_only: true,
                         comments: /^\**!|@preserve|@license|@cc_on/i,
@@ -103,5 +170,47 @@ const prodConfig = {
     },
 };
 
-// Use "webpack --config-name dev" or "webpack --config-name prod" to use just one or the other
-module.exports = [devConfig, prodConfig];
+const packageReportConfig = {
+    entry: {
+        report: [path.resolve(__dirname, 'src/reports/package/reporter-factory.ts')],
+    },
+    module: commonConfig.module,
+    externals: [nodeExternals()],
+    plugins: commonPlugins,
+    resolve: commonConfig.resolve,
+    name: 'package-report',
+    mode: 'development',
+    devtool: false,
+    output: {
+        path: path.join(__dirname, 'package/report/bundle'),
+        filename: '[name].bundle.js',
+        pathinfo: false,
+        library: '[name]',
+        libraryTarget: 'umd',
+    },
+    target: 'node',
+};
+
+const packageUIConfig = {
+    entry: {
+        ui: [path.resolve(__dirname, 'src/packages/accessibility-insights-ui/index.ts')],
+    },
+    module: { rules: [tsRule, scssRule(false)] },
+    externals: [nodeExternals()],
+    plugins: commonPlugins,
+    resolve: commonConfig.resolve,
+    name: 'package-ui',
+    mode: 'development',
+    devtool: false,
+    output: {
+        path: path.join(__dirname, 'package/ui/bundle'),
+        filename: '[name].bundle.js',
+        pathinfo: false,
+        library: '[name]',
+        libraryTarget: 'umd',
+    },
+    target: 'node',
+};
+
+// For just one config, use "webpack --config-name dev", "webpack --config-name prod", etc
+module.exports = [devConfig, prodConfig, unifiedConfig, packageReportConfig, packageUIConfig];

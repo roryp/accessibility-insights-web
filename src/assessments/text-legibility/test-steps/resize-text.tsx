@@ -1,33 +1,42 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
+import { TextLegibilityTestStep } from 'assessments/text-legibility/test-steps/test-step';
+import { Requirement } from 'assessments/types/requirement';
+import { link } from 'content/link';
+import * as content from 'content/test/text-legibility/resize-text';
 import * as React from 'react';
-import { TextLegibilityTestStep } from '../../../assessments/text-legibility/test-steps/test-step';
-import { TestStep } from '../../../assessments/types/test-step';
-import { link } from '../../../content/link';
-import * as content from '../../../content/test/text-legibility/resize-text';
-import ManualTestRecordYourResults from '../../common/manual-test-record-your-results';
+import { ManualTestRecordYourResults } from '../../common/manual-test-record-your-results';
 import * as Markup from '../../markup';
 import { Emphasis } from '../../markup';
 
 const resizeTextDescription: JSX.Element = (
-    <span>Users must be able to resize text, without using assistive technology, up to 200% with no loss of content or functionality.</span>
+    <span>
+        Users must be able to resize text, without using assistive technology, up to 200% with no
+        loss of content or functionality.
+    </span>
 );
 
 const resizeTextHowToTest: JSX.Element = (
     <div>
-        <Emphasis>Note: An automated check will fail if text scaling and zooming is disabled because the</Emphasis>&nbsp;
-        <Markup.CodeTerm>user-scalable=no</Markup.CodeTerm> <Emphasis>parameter is used in a</Emphasis>&nbsp;
-        <Markup.CodeTerm>{`<meta name="viewport">`}</Markup.CodeTerm> <Emphasis> element.</Emphasis>&nbsp;
+        <Emphasis>
+            Note: An automated check will fail if text scaling and zooming is disabled because the
+        </Emphasis>
+        &nbsp;
+        <Markup.CodeTerm>user-scalable=no</Markup.CodeTerm>{' '}
+        <Emphasis>parameter is used in a</Emphasis>&nbsp;
+        <Markup.CodeTerm>{`<meta name="viewport">`}</Markup.CodeTerm> <Emphasis> element.</Emphasis>
+        &nbsp;
         <ol>
             <li>
-                Use <Markup.Term>Windows Settings</Markup.Term> > <Markup.Term>System</Markup.Term> > <Markup.Term>Display</Markup.Term> >{' '}
+                Use <Markup.Term>Windows Settings</Markup.Term> {'>'}{' '}
+                <Markup.Term>System</Markup.Term> {'>'} <Markup.Term>Display</Markup.Term> {'>'}{' '}
                 <Markup.Term>Scale and layout</Markup.Term> to
                 <ol>
                     <li>Set the resolution to 1920x1080, and</li>
                     <li>Set scaling to 100%.</li>
                 </ol>
             </li>
-            <li>Use Chrome's settings to set the target page's zoom to 200%.</li>
+            <li>Use the browser's settings to set the target page's zoom to 200%.</li>
             <li>
                 Examine the target page to verify that:
                 <ol>
@@ -43,7 +52,7 @@ const resizeTextHowToTest: JSX.Element = (
     </div>
 );
 
-export const ResizeText: TestStep = {
+export const ResizeText: Requirement = {
     key: TextLegibilityTestStep.resizeText,
     name: 'Resize text',
     description: resizeTextDescription,

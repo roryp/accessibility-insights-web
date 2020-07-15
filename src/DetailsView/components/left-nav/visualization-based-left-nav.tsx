@@ -1,13 +1,17 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
+import { INav } from 'office-ui-fabric-react';
 import * as React from 'react';
 
 import { VisualizationConfigurationFactory } from '../../../common/configs/visualization-configuration-factory';
-import { NamedSFC } from '../../../common/react/named-sfc';
+import { NamedFC } from '../../../common/react/named-fc';
 import { VisualizationType } from '../../../common/types/visualization-type';
 import { BaseLeftNav, onBaseLeftNavItemClick } from '../base-left-nav';
-import { LeftNavIndexIcon } from './left-nav-icon';
-import { AssessmentLinkBuilderDeps, LeftNavLinkBuilder, OverviewLinkBuilderDeps } from './left-nav-link-builder';
+import {
+    AssessmentLinkBuilderDeps,
+    LeftNavLinkBuilder,
+    OverviewLinkBuilderDeps,
+} from './left-nav-link-builder';
 
 export type VisualizationBasedLeftNavDeps = {
     leftNavLinkBuilder: LeftNavLinkBuilder;
@@ -20,18 +24,45 @@ export type VisualizationBasedLeftNavProps = {
     selectedKey: string;
     onLinkClick: onBaseLeftNavItemClick;
     visualizations: VisualizationType[];
+    onRightPanelContentSwitch: () => void;
+    setNavComponentRef: (nav: INav) => void;
 };
 
-export const VisualizationBasedLeftNav = NamedSFC<VisualizationBasedLeftNavProps>('VisualizationBasedLeftNav', props => {
-    const { deps, selectedKey, onLinkClick, visualizations } = props;
+export const VisualizationBasedLeftNav = NamedFC<VisualizationBasedLeftNavProps>(
+    'VisualizationBasedLeftNav',
+    props => {
+        const {
+            deps,
+            selectedKey,
+            onLinkClick,
+            visualizations,
+            onRightPanelContentSwitch,
+            setNavComponentRef,
+        } = props;
 
-    const { leftNavLinkBuilder, visualizationConfigurationFactory } = deps;
+        const { leftNavLinkBuilder, visualizationConfigurationFactory } = deps;
 
-    const links = [];
-    visualizations.forEach((type, index) => {
-        const config = visualizationConfigurationFactory.getConfiguration(type);
-        links.push(leftNavLinkBuilder.buildVisualizationConfigurationLink(config, onLinkClick, type, index + 1));
-    });
+        const links = [];
+        visualizations.forEach((visualizationType, index) => {
+            const config = visualizationConfigurationFactory.getConfiguration(visualizationType);
+            links.push(
+                leftNavLinkBuilder.buildVisualizationConfigurationLink(
+                    deps,
+                    config,
+                    onLinkClick,
+                    visualizationType,
+                    index + 1,
+                    onRightPanelContentSwitch,
+                ),
+            );
+        });
 
-    return <BaseLeftNav renderIcon={link => <LeftNavIndexIcon item={link} />} selectedKey={selectedKey} links={links} />;
-});
+        return (
+            <BaseLeftNav
+                selectedKey={selectedKey}
+                links={links}
+                setNavComponentRef={setNavComponentRef}
+            />
+        );
+    },
+);

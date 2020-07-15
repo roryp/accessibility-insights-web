@@ -1,15 +1,16 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
-import { autobind } from '@uifabric/utilities';
-
+import {
+    ModifiedCommandsTelemetryData,
+    SHORTCUT_MODIFIED,
+} from '../../../common/extension-telemetry-events';
 import { StoreNames } from '../../../common/stores/store-names';
-import { ModifiedCommandsTelemetryData, SHORTCUT_MODIFIED } from '../../../common/telemetry-events';
-import { ICommandStoreData } from '../../../common/types/store-data/icommand-store-data';
-import { CommandActions, IGetCommandsPayload } from '../../actions/command-actions';
+import { CommandStoreData } from '../../../common/types/store-data/command-store-data';
+import { CommandActions, GetCommandsPayload } from '../../actions/command-actions';
 import { TelemetryEventHandler } from '../../telemetry/telemetry-event-handler';
-import { BaseStore } from '../base-store';
+import { BaseStoreImpl } from '../base-store-impl';
 
-export class CommandStore extends BaseStore<ICommandStoreData> {
+export class CommandStore extends BaseStoreImpl<CommandStoreData> {
     private commandActions: CommandActions;
     private telemetryEventHandler: TelemetryEventHandler;
 
@@ -20,8 +21,8 @@ export class CommandStore extends BaseStore<ICommandStoreData> {
         this.telemetryEventHandler = telemetryEventHandler;
     }
 
-    public getDefaultState(): ICommandStoreData {
-        const defaultValues: ICommandStoreData = {
+    public getDefaultState(): CommandStoreData {
+        const defaultValues: CommandStoreData = {
             commands: [],
         };
 
@@ -32,9 +33,10 @@ export class CommandStore extends BaseStore<ICommandStoreData> {
         this.commandActions.getCommands.addListener(this.onGetCommands);
     }
 
-    @autobind
-    private onGetCommands(payload: IGetCommandsPayload): void {
-        const modifiedCommands: chrome.commands.Command[] = this.getModifiedCommands(payload.commands);
+    private onGetCommands = (payload: GetCommandsPayload): void => {
+        const modifiedCommands: chrome.commands.Command[] = this.getModifiedCommands(
+            payload.commands,
+        );
         if (modifiedCommands.length > 0) {
             const telemetry: ModifiedCommandsTelemetryData = {
                 modifiedCommands: JSON.stringify(modifiedCommands),
@@ -47,16 +49,20 @@ export class CommandStore extends BaseStore<ICommandStoreData> {
 
         this.state.commands = payload.commands;
         this.emitChanged();
-    }
+    };
 
-    private getModifiedCommands(currentCommands: chrome.commands.Command[]): chrome.commands.Command[] {
+    private getModifiedCommands(
+        currentCommands: chrome.commands.Command[],
+    ): chrome.commands.Command[] {
         if (currentCommands.length !== this.state.commands.length) {
             return [];
         }
 
-        const modifiedCommands: chrome.commands.Command[] = currentCommands.filter((command: chrome.commands.Command, index: number) => {
-            return command.shortcut !== this.state.commands[index].shortcut;
-        });
+        const modifiedCommands: chrome.commands.Command[] = currentCommands.filter(
+            (command: chrome.commands.Command, index: number) => {
+                return command.shortcut !== this.state.commands[index].shortcut;
+            },
+        );
 
         return modifiedCommands;
     }

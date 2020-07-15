@@ -1,12 +1,12 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
-import { Dropdown, IDropdownOption } from 'office-ui-fabric-react/lib/Dropdown';
-import { Icon } from 'office-ui-fabric-react/lib/Icon';
-import { ResponsiveMode } from 'office-ui-fabric-react/lib/utilities/decorators/withResponsiveMode';
+import { Dropdown, IDropdownOption } from 'office-ui-fabric-react';
+import { Icon } from 'office-ui-fabric-react';
+import { ResponsiveMode } from 'office-ui-fabric-react';
 import * as React from 'react';
+import { SwitcherStyleNames } from './switcher-style-names';
 
-import { DetailsViewPivotType } from '../../../src/common/types/details-view-pivot-type';
-import { NamedSFC } from '../../common/react/named-sfc';
+import { DetailsViewPivotType } from 'common/types/details-view-pivot-type';
 import { DetailsViewActionMessageCreator } from '../actions/details-view-action-message-creator';
 
 export type SwitcherDeps = {
@@ -16,62 +16,80 @@ export type SwitcherDeps = {
 export interface SwitcherProps {
     deps: SwitcherDeps;
     pivotKey: DetailsViewPivotType;
+    styles: SwitcherStyleNames;
 }
 
-export const Switcher = NamedSFC<SwitcherProps>('Switcher', props => {
-    const onRenderOption = (option: IDropdownOption): JSX.Element => {
+export interface SwitcherState {
+    selectedKey: DetailsViewPivotType;
+}
+
+export class Switcher extends React.Component<SwitcherProps, SwitcherState> {
+    constructor(props: SwitcherProps) {
+        super(props);
+        this.state = { selectedKey: props.pivotKey };
+    }
+
+    public componentDidUpdate(prevProps: Readonly<SwitcherProps>): void {
+        if (prevProps.pivotKey !== this.props.pivotKey) {
+            this.setState(() => ({ selectedKey: this.props.pivotKey }));
+        }
+    }
+
+    private onRenderOption = (option: IDropdownOption): JSX.Element => {
         return (
-            <div className="switcher-dropdown-option" aria-hidden="true">
+            <span className={this.props.styles.dropdownOptionClassName}>
                 {option.data && option.data.icon && <Icon iconName={option.data.icon} />}
                 <span>{option.text}</span>
-            </div>
+            </span>
         );
     };
 
-    const onRenderTitle = (options: IDropdownOption[]): JSX.Element => {
+    private onRenderTitle = (options: IDropdownOption[]): JSX.Element => {
         const option = options[0];
 
-        return (
-            <div className="switcher-dropdown-option" aria-hidden="true">
-                {option.data && option.data.icon && <Icon iconName={option.data.icon} />}
-                <span>{option.text}</span>
-            </div>
+        return this.onRenderOption(option);
+    };
+
+    private onOptionChange = (event, option?: IDropdownOption): void => {
+        this.setState({ selectedKey: option.key as any });
+        this.props.deps.detailsViewActionMessageCreator.sendPivotItemClicked(
+            DetailsViewPivotType[option.key],
         );
     };
 
-    const { deps, pivotKey } = props;
-    const { detailsViewActionMessageCreator } = deps;
-
-    const onOptionClick = (event, option?: IDropdownOption): void => {
-        detailsViewActionMessageCreator.sendPivotItemClicked(DetailsViewPivotType[option.data.key]);
+    private getOptions = (): IDropdownOption[] => {
+        return [
+            {
+                key: DetailsViewPivotType.fastPass,
+                text: 'FastPass',
+                data: {
+                    icon: 'Rocket',
+                },
+            },
+            {
+                key: DetailsViewPivotType.assessment,
+                text: 'Assessment',
+                data: {
+                    icon: 'testBeakerSolid',
+                },
+            },
+        ];
     };
 
-    return (
-        <Dropdown
-            ariaLabel="select workflow"
-            responsiveMode={ResponsiveMode.large}
-            selectedKey={pivotKey}
-            onRenderOption={onRenderOption}
-            onRenderTitle={onRenderTitle}
-            onChange={onOptionClick}
-            options={[
-                {
-                    key: DetailsViewPivotType.fastPass,
-                    text: 'FastPass',
-                    data: {
-                        icon: 'Rocket',
-                        key: DetailsViewPivotType.fastPass,
-                    },
-                },
-                {
-                    key: DetailsViewPivotType.assessment,
-                    text: 'Assessment',
-                    data: {
-                        icon: 'testBeaker',
-                        key: DetailsViewPivotType.assessment,
-                    },
-                },
-            ]}
-        />
-    );
-});
+    public render(): JSX.Element {
+        return (
+            <div className={this.props.styles.switcherClassName}>
+                <Dropdown
+                    className={this.props.styles.dropdownClassName}
+                    ariaLabel="select activity"
+                    responsiveMode={ResponsiveMode.large}
+                    selectedKey={this.state.selectedKey}
+                    onRenderOption={this.onRenderOption}
+                    onRenderTitle={this.onRenderTitle}
+                    onChange={this.onOptionChange}
+                    options={this.getOptions()}
+                />
+            </div>
+        );
+    }
+}

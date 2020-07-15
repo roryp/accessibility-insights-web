@@ -1,37 +1,42 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
-import { autobind } from '@uifabric/utilities';
+import { ScopingInputTypes } from 'background/scoping-input-types';
+import { ScanIncompleteWarningDetector } from 'injected/scan-incomplete-warning-detector';
 import * as Q from 'q';
 
-import { ScopingInputTypes } from '../../background/scoping-input-types';
+import { BaseStore } from '../../common/base-store';
 import { VisualizationConfigurationFactory } from '../../common/configs/visualization-configuration-factory';
-import { IBaseStore } from '../../common/istore';
 import { TelemetryDataFactory } from '../../common/telemetry-data-factory';
 import { ForRuleAnalyzerScanCallback } from '../../common/types/analyzer-telemetry-callbacks';
-import { IScopingStoreData } from '../../common/types/store-data/scoping-store-data';
-import { ScanOptions } from '../../scanner/exposed-apis';
+import { ScopingStoreData } from '../../common/types/store-data/scoping-store-data';
 import { ScanResults } from '../../scanner/iruleresults';
-import { IHtmlElementAxeResults, ScannerUtils } from '../scanner-utils';
+import { ScanOptions } from '../../scanner/scan-options';
+import { ScannerUtils } from '../scanner-utils';
+import { AxeAnalyzerResult, RuleAnalyzerConfiguration } from './analyzer';
 import { BaseAnalyzer } from './base-analyzer';
-import { AxeAnalyzerResult, IAnalyzer, RuleAnalyzerConfiguration } from './ianalyzer';
 
-export class RuleAnalyzer extends BaseAnalyzer implements IAnalyzer<IHtmlElementAxeResults> {
+export type MessageDelegate = (message: any) => void;
+export type PostResolveCallback = (results: AxeAnalyzerResult) => void;
+
+export class RuleAnalyzer extends BaseAnalyzer {
     private startTime: number;
     private elementsScanned: number = 0; // Not implemented
 
     constructor(
         protected config: RuleAnalyzerConfiguration,
         protected scanner: ScannerUtils,
-        protected scopingStore: IBaseStore<IScopingStoreData>,
+        protected scopingStore: BaseStore<ScopingStoreData>,
         protected sendMessageDelegate: (message) => void,
         protected dateGetter: () => Date,
         protected telemetryFactory: TelemetryDataFactory,
         protected readonly visualizationConfigFactory: VisualizationConfigurationFactory,
+        private postOnResolve: PostResolveCallback,
+        scanIncompleteWarningDetector: ScanIncompleteWarningDetector,
     ) {
-        super(config, sendMessageDelegate);
+        super(config, sendMessageDelegate, scanIncompleteWarningDetector);
     }
 
-    protected getResults(): Q.Promise<AxeAnalyzerResult> {
+    protected getResults = (): Q.Promise<AxeAnalyzerResult> => {
         const deferred = Q.defer<AxeAnalyzerResult>();
         const scopingState = this.scopingStore.getState().selectors;
         const include = scopingState[ScopingInputTypes.include];
@@ -59,24 +64,36 @@ export class RuleAnalyzer extends BaseAnalyzer implements IAnalyzer<IHtmlElement
         this.scanner.scan(scanOptions, scanCallback);
 
         return deferred.promise;
-    }
+    };
 
     protected getRulesToRun(): string[] {
         return this.config.rules;
     }
 
-    @autobind
-    protected onResolve(analyzerResult: AxeAnalyzerResult): void {
+    protected onResolve = (analyzerResult: AxeAnalyzerResult): void => {
         this.sendScanCompleteResolveMessage(analyzerResult, this.config);
-    }
+        this.postOnResolve(analyzerResult);
+    };
 
-    protected sendScanCompleteResolveMessage(analyzerResult: AxeAnalyzerResult, config: RuleAnalyzerConfiguration): void {
+    protected sendScanCompleteResolveMessage(
+        analyzerResult: AxeAnalyzerResult,
+        config: RuleAnalyzerConfiguration,
+    ): void {
         const endTime = this.dateGetter().getTime();
         const elapsedTime = endTime - this.startTime;
         const baseMessage = this.createBaseMessage(analyzerResult, config);
-        const telemetryGetter: ForRuleAnalyzerScanCallback = config.telemetryProcessor(this.telemetryFactory);
-        const testName = this.visualizationConfigFactory.getConfiguration(config.testType).displayableData.title;
-        const telemetry = telemetryGetter(analyzerResult, elapsedTime, this.elementsScanned, testName, config.key);
+        const telemetryGetter: ForRuleAnalyzerScanCallback = config.telemetryProcessor(
+            this.telemetryFactory,
+        );
+        const testName = this.visualizationConfigFactory.getConfiguration(config.testType)
+            .displayableData.title;
+        const telemetry = telemetryGetter(
+            analyzerResult,
+            elapsedTime,
+            this.elementsScanned,
+            testName,
+            config.key,
+        );
 
         const message = {
             ...baseMessage,

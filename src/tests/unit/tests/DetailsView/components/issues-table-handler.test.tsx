@@ -1,8 +1,10 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
-import * as React from 'react';
-
-import { DetailsGroup, IssuesTableHandler, ListProps } from '../../../../../DetailsView/components/issues-table-handler';
+import {
+    DetailsGroup,
+    IssuesTableHandler,
+    ListProps,
+} from '../../../../../DetailsView/components/issues-table-handler';
 import { RuleResult } from '../../../../../scanner/iruleresults';
 
 describe('IssuesTableHandlerTests', () => {
@@ -14,7 +16,7 @@ describe('IssuesTableHandlerTests', () => {
         testGetListProps(false);
     });
 
-    function testGetListProps(showBugFiling: boolean) {
+    function testGetListProps(showIssueFiling: boolean): void {
         const node1: AxeNodeResult = {
             any: [],
             none: [],

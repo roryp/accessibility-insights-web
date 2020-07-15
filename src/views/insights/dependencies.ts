@@ -1,42 +1,58 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
+import { DocumentManipulator } from 'common/document-manipulator';
+import { Logger } from 'common/logging/logger';
+import { textContent } from 'content/strings/text-content';
 import { loadTheme } from 'office-ui-fabric-react';
-import * as React from 'react';
 import * as ReactDOM from 'react-dom';
-
-import { ChromeAdapter } from '../../background/browser-adapter';
+import { BrowserAdapter } from '../../common/browser-adapters/browser-adapter';
+import { TelemetryEventSource } from '../../common/extension-telemetry-events';
 import { initializeFabricIcons } from '../../common/fabric-icons';
 import { ContentActionMessageCreator } from '../../common/message-creators/content-action-message-creator';
+import { RemoteActionMessageDispatcher } from '../../common/message-creators/remote-action-message-dispatcher';
 import { StoreActionMessageCreatorFactory } from '../../common/message-creators/store-action-message-creator-factory';
 import { StoreProxy } from '../../common/store-proxy';
 import { BaseClientStoresHub } from '../../common/stores/base-client-stores-hub';
 import { StoreNames } from '../../common/stores/store-names';
 import { TelemetryDataFactory } from '../../common/telemetry-data-factory';
-import { TelemetryEventSource } from '../../common/telemetry-events';
 import { UserConfigurationStoreData } from '../../common/types/store-data/user-configuration-store';
 import { contentPages } from '../../content';
 import { RendererDeps } from './renderer';
 
-export const rendererDependencies: () => RendererDeps = () => {
-    const chromeAdapter = new ChromeAdapter();
+export const rendererDependencies: (
+    browserAdapter: BrowserAdapter,
+    logger: Logger,
+) => RendererDeps = (browserAdapter, logger) => {
     const url = new URL(window.location.href);
     const tabId = parseInt(url.searchParams.get('tabId'), 10);
+    const actionMessageDispatcher = new RemoteActionMessageDispatcher(
+        browserAdapter.sendMessageToFrames,
+        tabId,
+        logger,
+    );
 
     const telemetryFactory = new TelemetryDataFactory();
 
     const contentActionMessageCreator = new ContentActionMessageCreator(
-        chromeAdapter.sendMessageToFrames,
-        tabId,
         telemetryFactory,
         TelemetryEventSource.ContentPage,
+        actionMessageDispatcher,
     );
 
-    const store = new StoreProxy<UserConfigurationStoreData>(StoreNames[StoreNames.UserConfigurationStore], chromeAdapter);
+    const store = new StoreProxy<UserConfigurationStoreData>(
+        StoreNames[StoreNames.UserConfigurationStore],
+        browserAdapter,
+    );
     const storesHub = new BaseClientStoresHub<any>([store]);
-    const storeActionMessageCreatorFactory = new StoreActionMessageCreatorFactory(chromeAdapter.sendMessageToFrames, tabId);
-    const storeActionMessageCreator = storeActionMessageCreatorFactory.forContent();
+    const storeActionMessageCreatorFactory = new StoreActionMessageCreatorFactory(
+        actionMessageDispatcher,
+    );
+    const storeActionMessageCreator = storeActionMessageCreatorFactory.fromStores(storesHub.stores);
+
+    const documentManipulator = new DocumentManipulator(document);
 
     return {
+        textContent,
         dom: document,
         render: ReactDOM.render,
         initializeFabricIcons,
@@ -45,5 +61,6 @@ export const rendererDependencies: () => RendererDeps = () => {
         contentActionMessageCreator,
         storesHub,
         storeActionMessageCreator,
+        documentManipulator,
     };
 };

@@ -1,8 +1,7 @@
 {
     "tslint.configFile": "tslint.json",
     "typescript.reportStyleChecksAsWarnings": true,
-    "typescript.preferences.importModuleSpecifier": "relative",
-
+    "typescript.preferences.importModuleSpecifier": "non-relative",
     "psi-header.changes-tracking": {
         "autoHeader": "autoSave",
         "isActive": true
@@ -27,12 +26,18 @@
     "psi-header.templates": [
         {
             "language": "*",
-            "template": ["Copyright (c) Microsoft Corporation. All rights reserved.", "Licensed under the MIT License."]
+            "template": [
+                "Copyright (c) Microsoft Corporation. All rights reserved.",
+                "Licensed under the MIT License."
+            ]
         }
     ],
     "editor.tabSize": 4,
     "html.format.endWithNewline": true,
+    "files.eol": "\n",
     "files.insertFinalNewline": true,
     "prettier.requireConfig": true,
-    "editor.formatOnSave": true
+    "editor.formatOnSave": true,
+    "editor.rulers": [100, 140],
+    "typescript.tsdk": "node_modules/typescript/lib"
 }

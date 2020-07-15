@@ -1,36 +1,41 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
-import { autobind } from '@uifabric/utilities';
+import { ScanIncompleteWarningDetector } from 'injected/scan-incomplete-warning-detector';
 import * as Q from 'q';
 
-import { WindowUtils } from './../../common/window-utils';
-import { ITabStopEvent, TabStopsListener } from './../tab-stops-listener';
+import { WindowUtils } from '../../common/window-utils';
+import { TabStopEvent, TabStopsListener } from '../tab-stops-listener';
+import {
+    AxeAnalyzerResult,
+    FocusAnalyzerConfiguration,
+    ScanBasePayload,
+    ScanUpdatePayload,
+} from './analyzer';
 import { BaseAnalyzer } from './base-analyzer';
-import { AxeAnalyzerResult, IAnalyzer, IFocusAnalyzerConfiguration, IScanBasePayload, IScanUpdatePayload } from './ianalyzer';
 
-// tslint:disable-next-line:interface-name
-export interface IProgressResult<T> {
+export interface ProgressResult<T> {
     result: T;
 }
 
-export class TabStopsAnalyzer extends BaseAnalyzer implements IAnalyzer<any> {
+export class TabStopsAnalyzer extends BaseAnalyzer {
     private tabStopsListener: TabStopsListener;
     private deferred: Q.Deferred<AxeAnalyzerResult>;
-    private _windowUtils: WindowUtils;
+    private windowUtils: WindowUtils;
 
-    private _pendingTabbedElements: ITabStopEvent[] = [];
-    private _onTabbedTimeoutId: number;
-    protected config: IFocusAnalyzerConfiguration;
+    private pendingTabbedElements: TabStopEvent[] = [];
+    private onTabbedTimeoutId: number;
+    protected config: FocusAnalyzerConfiguration;
 
     constructor(
-        config: IFocusAnalyzerConfiguration,
+        config: FocusAnalyzerConfiguration,
         tabStopsListener: TabStopsListener,
         windowUtils: WindowUtils,
         sendMessageDelegate: (message) => void,
+        scanIncompleteWarningDetector: ScanIncompleteWarningDetector,
     ) {
-        super(config, sendMessageDelegate);
+        super(config, sendMessageDelegate, scanIncompleteWarningDetector);
         this.tabStopsListener = tabStopsListener;
-        this._windowUtils = windowUtils;
+        this.windowUtils = windowUtils;
     }
 
     public analyze(): void {
@@ -42,37 +47,36 @@ export class TabStopsAnalyzer extends BaseAnalyzer implements IAnalyzer<any> {
         this.getResults().progress(this.onProgress);
     }
 
-    protected getResults(): Q.Promise<AxeAnalyzerResult> {
+    protected getResults = (): Q.Promise<AxeAnalyzerResult> => {
         this.deferred = Q.defer<AxeAnalyzerResult>();
-        this.tabStopsListener.setTabEventListenerOnMainWindow((tabEvent: ITabStopEvent) => {
-            if (this._onTabbedTimeoutId != null) {
-                this._windowUtils.clearTimeout(this._onTabbedTimeoutId);
-                this._onTabbedTimeoutId = null;
+        this.tabStopsListener.setTabEventListenerOnMainWindow((tabEvent: TabStopEvent) => {
+            if (this.onTabbedTimeoutId != null) {
+                this.windowUtils.clearTimeout(this.onTabbedTimeoutId);
+                this.onTabbedTimeoutId = null;
             }
 
-            this._pendingTabbedElements.push(tabEvent);
+            this.pendingTabbedElements.push(tabEvent);
 
-            this._onTabbedTimeoutId = this._windowUtils.setTimeout(() => {
+            this.onTabbedTimeoutId = this.windowUtils.setTimeout(() => {
                 this.deferred.notify({
-                    result: this._pendingTabbedElements,
+                    result: this.pendingTabbedElements,
                 });
-                this._onTabbedTimeoutId = null;
-                this._pendingTabbedElements = [];
+                this.onTabbedTimeoutId = null;
+                this.pendingTabbedElements = [];
             }, 50);
         });
 
         this.tabStopsListener.startListenToTabStops();
         this.analyzerSetupComplete();
         return this.deferred.promise;
-    }
+    };
 
     private analyzerSetupComplete(): void {
         this.onResolve(this.emptyResults);
     }
 
-    @autobind
-    protected onProgress(progressResult: IProgressResult<ITabStopEvent[]>): void {
-        const payload: IScanUpdatePayload = {
+    protected onProgress = (progressResult: ProgressResult<TabStopEvent[]>): void => {
+        const payload: ScanUpdatePayload = {
             key: this.config.key,
             testType: this.config.testType,
             tabbedElements: progressResult.result,
@@ -80,21 +84,21 @@ export class TabStopsAnalyzer extends BaseAnalyzer implements IAnalyzer<any> {
         };
 
         const message = {
-            type: this.config.analyzerProgressMessageType,
+            messageType: this.config.analyzerProgressMessageType,
             payload,
         };
         this.sendMessage(message);
-    }
+    };
 
     public teardown(): void {
         this.tabStopsListener.stopListenToTabStops();
-        const payload: IScanBasePayload = {
+        const payload: ScanBasePayload = {
             key: this.config.key,
             testType: this.config.testType,
         };
 
         this.sendMessage({
-            type: this.config.analyzerTerminatedMessageType,
+            messageType: this.config.analyzerTerminatedMessageType,
             payload,
         });
     }

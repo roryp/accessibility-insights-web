@@ -1,6 +1,6 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
-import { DefaultButton } from 'office-ui-fabric-react/lib/Button';
+import { shallow } from 'enzyme';
 import * as React from 'react';
 
 import {
@@ -10,10 +10,12 @@ import {
 
 describe('ActionAndCancelButtonsComponent', () => {
     test('constructor', () => {
-        expect(new ActionAndCancelButtonsComponent({} as ActionAndCancelButtonsComponentProps)).toBeDefined();
+        expect(
+            new ActionAndCancelButtonsComponent({} as ActionAndCancelButtonsComponentProps),
+        ).toBeDefined();
     });
 
-    test('render', () => {
+    test.each(['sample href', null])('render with primary button href == %s', href => {
         const primaryButtonOnClickStub = () => {};
         const cancelButtonOnClickStub = () => {};
         const props: ActionAndCancelButtonsComponentProps = {
@@ -22,25 +24,10 @@ describe('ActionAndCancelButtonsComponent', () => {
             primaryButtonText: 'Test',
             primaryButtonOnClick: primaryButtonOnClickStub,
             cancelButtonOnClick: cancelButtonOnClickStub,
+            primaryButtonHref: href,
         };
-        const testSubject = new ActionAndCancelButtonsComponent(props);
+        const wrapper = shallow(<ActionAndCancelButtonsComponent {...props} />);
 
-        const expected = (
-            <div className="action-and-cancel-buttons-component" hidden={props.isHidden}>
-                <div className="button ms-Grid-col ms-sm2 action-cancel-button-col">
-                    <DefaultButton
-                        primary={true}
-                        text={props.primaryButtonText}
-                        onClick={props.primaryButtonOnClick}
-                        disabled={props.primaryButtonDisabled}
-                    />
-                </div>
-                <div className="button ms-Grid-col ms-sm2 action-cancel-button-col">
-                    <DefaultButton text="Cancel" onClick={props.cancelButtonOnClick} />
-                </div>
-            </div>
-        );
-
-        expect(testSubject.render()).toEqual(expected);
+        expect(wrapper.getElement()).toMatchSnapshot();
     });
 });

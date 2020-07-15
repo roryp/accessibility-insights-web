@@ -1,17 +1,25 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
-import { IAssessmentVisualizationInstance } from '../../../../injected/frameCommunicators/html-element-axe-results-helper';
-import { IPartialTabOrderPropertyBag, ITabOrderPropertyBag } from '../../../../injected/tab-order-property-bag';
-import { IVisualizationPropertyBag, VisualizationInstanceProcessor } from '../../../../injected/visualization-instance-processor';
+import { AssessmentVisualizationInstance } from '../../../../injected/frameCommunicators/html-element-axe-results-helper';
+import {
+    PartialTabOrderPropertyBag,
+    TabOrderPropertyBag,
+} from '../../../../injected/tab-order-property-bag';
+import {
+    VisualizationInstanceProcessor,
+    VisualizationPropertyBag,
+} from '../../../../injected/visualization-instance-processor';
 
 describe('VisualizationInstanceProcessorTest', () => {
     test('nullProcessor', () => {
-        const instancesStub = [{} as IAssessmentVisualizationInstance];
-        expect(VisualizationInstanceProcessor.nullProcessor(instancesStub)).toMatchObject(instancesStub);
+        const instancesStub = [{} as AssessmentVisualizationInstance];
+        expect(VisualizationInstanceProcessor.nullProcessor(instancesStub)).toMatchObject(
+            instancesStub,
+        );
     });
 
     test('addOrder', () => {
-        const initialInstances: IVisualizationPropertyBag<IPartialTabOrderPropertyBag>[] = [
+        const initialInstances: VisualizationPropertyBag<PartialTabOrderPropertyBag>[] = [
             {
                 ...createNullifiedAssessmenVisualizationInstance(),
                 propertyBag: {
@@ -25,7 +33,7 @@ describe('VisualizationInstanceProcessorTest', () => {
                 },
             },
         ];
-        const expectedInstances: IVisualizationPropertyBag<ITabOrderPropertyBag>[] = [
+        const expectedInstances: VisualizationPropertyBag<TabOrderPropertyBag>[] = [
             {
                 ...createNullifiedAssessmenVisualizationInstance(),
                 propertyBag: {
@@ -47,15 +55,12 @@ describe('VisualizationInstanceProcessorTest', () => {
         expect(actual).toEqual(expectedInstances);
     });
 
-    function createNullifiedAssessmenVisualizationInstance(): IAssessmentVisualizationInstance {
+    function createNullifiedAssessmenVisualizationInstance(): AssessmentVisualizationInstance {
         return {
             isFailure: false,
             isVisualizationEnabled: false,
-            html: null,
             ruleResults: null,
-            isVisible: false,
             target: null,
-            identifier: 'some id',
         };
     }
 });

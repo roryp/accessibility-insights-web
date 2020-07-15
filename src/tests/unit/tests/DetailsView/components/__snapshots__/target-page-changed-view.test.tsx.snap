@@ -1,0 +1,51 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`TargetPageChangedView renders with subtitle=test subtitle content and feature flag= false 1`] = `
+<div
+  className="staticContentInDetailsView"
+>
+  <h1>
+    test title
+  </h1>
+  <div
+    className="targetPageChangedSubtitle"
+  >
+    test subtitle content
+  </div>
+  <p>
+    The target page has changed. Use the start over button to scan the new target page.
+  </p>
+</div>
+`;
+
+exports[`TargetPageChangedView renders with subtitle=undefined and feature flag= false 1`] = `
+<div
+  className="staticContentInDetailsView"
+>
+  <h1>
+    test title
+  </h1>
+  <div
+    className="targetPageChangedSubtitle"
+  />
+  <p>
+    The target page has changed. Use the start over button to scan the new target page.
+  </p>
+</div>
+`;
+
+exports[`TargetPageChangedView renders with subtitle=undefined and feature flag= true 1`] = `
+<div
+  className="staticContentInDetailsView"
+>
+  <h1>
+    test title
+  </h1>
+  <div
+    className="targetPageChangedSubtitle"
+  />
+  <p>
+    The target page has changed. Use the start over button to scan the new target page.
+  </p>
+</div>
+`;

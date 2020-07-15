@@ -1,11 +1,8 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
-import { autobind } from '@uifabric/utilities';
-
 import { ScannerUtils } from '../injected/scanner-utils';
 import { ScanResults } from '../scanner/iruleresults';
 import { HTMLElementUtils } from './html-element-utils';
-import { createDefaultLogger } from './logging/default-logger';
 import { Logger } from './logging/logger';
 
 export interface LoggedRule {
@@ -18,19 +15,23 @@ export interface LoggedNode {
     target: string[];
     domElement: HTMLElement;
     all: FormattedCheckResult[];
+    // tslint:disable-next-line: no-reserved-keywords
     any: FormattedCheckResult[];
     none: FormattedCheckResult[];
 }
 
 export class A11YSelfValidator {
-    constructor(private scannerUtils: ScannerUtils, private docUtils: HTMLElementUtils, private logger: Logger = createDefaultLogger()) {}
+    constructor(
+        private scannerUtils: ScannerUtils,
+        private docUtils: HTMLElementUtils,
+        private logger: Logger,
+    ) {}
 
     public validate(): void {
         this.scannerUtils.scan(null, this.logAxeResults);
     }
 
-    @autobind
-    private logAxeResults(axeResults: ScanResults): void {
+    private logAxeResults = (axeResults: ScanResults): void => {
         const violations = axeResults.violations;
         const loggedViolations: LoggedRule[] = [];
 
@@ -53,5 +54,5 @@ export class A11YSelfValidator {
         }
 
         this.logger.log(loggedViolations);
-    }
+    };
 }

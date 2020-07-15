@@ -4,6 +4,7 @@ import * as axe from 'axe-core';
 import { GlobalMock, GlobalScope, IGlobalMock, It, MockBehavior, Times } from 'typemoq';
 
 import * as AxeUtils from '../../../../scanner/axe-utils';
+import { setAxeGlobalTreeTo } from '../../common/axe-internals';
 
 describe('AxeUtils', () => {
     describe('getMatchesFromRule', () => {
@@ -27,12 +28,18 @@ describe('AxeUtils', () => {
     });
 
     describe('getAccessibleText', () => {
-        const accessibleTextMock = GlobalMock.ofInstance(axe.commons.text.accessibleText, 'accessibleText', axe.commons.text);
+        const accessibleTextMock = GlobalMock.ofInstance(
+            axe.commons.text.accessibleText,
+            'accessibleText',
+            axe.commons.text,
+        );
         it('should call mock when labelledbycontext true', () => {
             GlobalScope.using(accessibleTextMock).with(() => {
                 const elementStub = {} as HTMLElement;
                 const isLabelledByContext = true;
-                accessibleTextMock.setup(m => m(It.isValue(elementStub), isLabelledByContext)).verifiable(Times.once());
+                accessibleTextMock
+                    .setup(m => m(It.isValue(elementStub), isLabelledByContext))
+                    .verifiable(Times.once());
                 AxeUtils.getAccessibleText(elementStub, isLabelledByContext);
             });
             accessibleTextMock.verifyAll();
@@ -42,7 +49,9 @@ describe('AxeUtils', () => {
             GlobalScope.using(accessibleTextMock).with(() => {
                 const elementStub = {} as HTMLElement;
                 const isLabelledByContext = false;
-                accessibleTextMock.setup(m => m(It.isValue(elementStub), isLabelledByContext)).verifiable(Times.once());
+                accessibleTextMock
+                    .setup(m => m(It.isValue(elementStub), isLabelledByContext))
+                    .verifiable(Times.once());
                 AxeUtils.getAccessibleText(elementStub, isLabelledByContext);
             });
             accessibleTextMock.verifyAll();
@@ -51,11 +60,9 @@ describe('AxeUtils', () => {
 
     describe('getAccessibleDescription', () => {
         let fixture: HTMLElement;
-        let _axe;
 
         beforeEach(() => {
             fixture = createTestFixture('test-fixture', '');
-            _axe = axe as any;
         });
 
         afterEach(() => {
@@ -67,7 +74,7 @@ describe('AxeUtils', () => {
                 <img id="el1" />
             `;
             const element1 = fixture.querySelector('#el1');
-            _axe._tree = _axe.utils.getFlattenedTree(document.documentElement);
+            setAxeGlobalTreeTo(document.documentElement);
 
             const result = AxeUtils.getAccessibleDescription(element1 as HTMLElement);
             expect(result).toEqual('');
@@ -80,7 +87,7 @@ describe('AxeUtils', () => {
                 <div id="el3"> hello </div>
             `;
             const element1 = fixture.querySelector('#el1');
-            _axe._tree = _axe.utils.getFlattenedTree(document.documentElement);
+            setAxeGlobalTreeTo(document.documentElement);
 
             const result = AxeUtils.getAccessibleDescription(element1 as HTMLElement);
             expect(result).toEqual('hello');
@@ -93,7 +100,7 @@ describe('AxeUtils', () => {
                 <div id="el3">world</div>
             `;
             const element1 = fixture.querySelector('#el1');
-            _axe._tree = _axe.utils.getFlattenedTree(document.documentElement);
+            setAxeGlobalTreeTo(document.documentElement);
 
             const result = AxeUtils.getAccessibleDescription(element1 as HTMLElement);
             expect(result).toEqual('hello world');
@@ -102,45 +109,76 @@ describe('AxeUtils', () => {
 
     describe('getImageCodedAs', () => {
         let fixture: HTMLElement;
-        let _axe;
 
         beforeEach(() => {
             fixture = createTestFixture('test-fixture', '');
-            _axe = axe as any;
         });
 
         afterEach(() => {
             document.body.querySelector('#test-fixture').remove();
         });
 
-        it('decorative because empty alt', () => {
+        it('Decorative because empty alt', () => {
             fixture.innerHTML = `
                 <img id="el1" alt="" />
             `;
             const element1 = fixture.querySelector('#el1');
-            _axe._tree = _axe.utils.getFlattenedTree(document.documentElement);
+            setAxeGlobalTreeTo(document.documentElement);
 
             const result = AxeUtils.getImageCodedAs(element1 as HTMLElement);
             expect(result).toEqual('Decorative');
         });
 
-        it('decorative because empty alt, even with aira label', () => {
+        it('Decorative because empty alt, even with aria label', () => {
             fixture.innerHTML = `
                 <img id="el1" alt="" aria-label="some"/>
             `;
             const element1 = fixture.querySelector('#el1');
-            _axe._tree = _axe.utils.getFlattenedTree(document.documentElement);
+            setAxeGlobalTreeTo(document.documentElement);
 
             const result = AxeUtils.getImageCodedAs(element1 as HTMLElement);
             expect(result).toEqual('Decorative');
         });
 
-        it('decorative because alt not value, even with aira label', () => {
+        it('Decorative because alt not value, even with aria label', () => {
             fixture.innerHTML = `
                 <img id="el1" alt aria-label="some"/>
             `;
             const element1 = fixture.querySelector('#el1');
-            _axe._tree = _axe.utils.getFlattenedTree(document.documentElement);
+            setAxeGlobalTreeTo(document.documentElement);
+
+            const result = AxeUtils.getImageCodedAs(element1 as HTMLElement);
+            expect(result).toEqual('Decorative');
+        });
+
+        it('Decorative because svg without role=img, despite aria-label', () => {
+            fixture.innerHTML = `
+                <svg id="el1" aria-label="some"/>
+            `;
+            const element1 = fixture.querySelector('#el1');
+            setAxeGlobalTreeTo(document.documentElement);
+
+            const result = AxeUtils.getImageCodedAs(element1 as HTMLElement);
+            expect(result).toEqual('Decorative');
+        });
+
+        it('Decorative because icon font without role=img, despite aria-label', () => {
+            fixture.innerHTML = `
+                <i id="el1" aria-label="some"/>
+            `;
+            const element1 = fixture.querySelector('#el1');
+            setAxeGlobalTreeTo(document.documentElement);
+
+            const result = AxeUtils.getImageCodedAs(element1 as HTMLElement);
+            expect(result).toEqual('Decorative');
+        });
+
+        it('decorative because CSS bg image without role=img, despite aria-label', () => {
+            fixture.innerHTML = `
+                <div id="el1" aria-label="some"/>
+            `;
+            const element1 = fixture.querySelector('#el1');
+            setAxeGlobalTreeTo(document.documentElement);
 
             const result = AxeUtils.getImageCodedAs(element1 as HTMLElement);
             expect(result).toEqual('Decorative');
@@ -151,7 +189,7 @@ describe('AxeUtils', () => {
                 <img id="el1" alt="some value"/>
             `;
             const element1 = fixture.querySelector('#el1');
-            _axe._tree = _axe.utils.getFlattenedTree(document.documentElement);
+            setAxeGlobalTreeTo(document.documentElement);
 
             const result = AxeUtils.getImageCodedAs(element1 as HTMLElement);
             expect(result).toEqual('Meaningful');
@@ -162,7 +200,7 @@ describe('AxeUtils', () => {
                 <img id="el1" aria-label="some"/>
             `;
             const element1 = fixture.querySelector('#el1');
-            _axe._tree = _axe.utils.getFlattenedTree(document.documentElement);
+            setAxeGlobalTreeTo(document.documentElement);
 
             const result = AxeUtils.getImageCodedAs(element1 as HTMLElement);
             expect(result).toEqual('Meaningful');
@@ -174,7 +212,7 @@ describe('AxeUtils', () => {
                 <div id="some"> hello </div>
             `;
             const element1 = fixture.querySelector('#el1');
-            _axe._tree = _axe.utils.getFlattenedTree(document.documentElement);
+            setAxeGlobalTreeTo(document.documentElement);
 
             const result = AxeUtils.getImageCodedAs(element1 as HTMLElement);
             expect(result).toEqual('Meaningful');
@@ -185,7 +223,7 @@ describe('AxeUtils', () => {
                 <img id="el1" title="some"/>
             `;
             const element1 = fixture.querySelector('#el1');
-            _axe._tree = _axe.utils.getFlattenedTree(document.documentElement);
+            setAxeGlobalTreeTo(document.documentElement);
 
             const result = AxeUtils.getImageCodedAs(element1 as HTMLElement);
             expect(result).toEqual('Meaningful');
@@ -196,30 +234,64 @@ describe('AxeUtils', () => {
                 <img id="el1" alt="   "/>
             `;
             const element1 = fixture.querySelector('#el1');
-            _axe._tree = _axe.utils.getFlattenedTree(document.documentElement);
+            setAxeGlobalTreeTo(document.documentElement);
 
             const result = AxeUtils.getImageCodedAs(element1 as HTMLElement);
             expect(result).toEqual('Meaningful');
         });
 
-        it('cannot tell', () => {
+        it('Meaningful because svg with role=img and accessible text', () => {
+            fixture.innerHTML = `
+                <svg id="el1" role="img" aria-label="some"/>
+            `;
+            const element1 = fixture.querySelector('#el1');
+            setAxeGlobalTreeTo(document.documentElement);
+
+            const result = AxeUtils.getImageCodedAs(element1 as HTMLElement);
+            expect(result).toEqual('Meaningful');
+        });
+
+        it('Meaningful because svg with role=img and accessible text', () => {
+            fixture.innerHTML = `
+                <i id="el1" role="img" title="some"/>
+            `;
+            const element1 = fixture.querySelector('#el1');
+            setAxeGlobalTreeTo(document.documentElement);
+
+            const result = AxeUtils.getImageCodedAs(element1 as HTMLElement);
+            expect(result).toEqual('Meaningful');
+        });
+
+        it('Meaningful because CSS background image with role=img and accessible text', () => {
+            fixture.innerHTML = `
+                <div id="el1" role="img" aria-labelledby="el2" />
+                <p id="el2">some</p>
+            `;
+            const element1 = fixture.querySelector('#el1');
+            setAxeGlobalTreeTo(document.documentElement);
+
+            const result = AxeUtils.getImageCodedAs(element1 as HTMLElement);
+            expect(result).toEqual('Meaningful');
+        });
+
+        it('Indeterminate because img with no alt tag', () => {
             fixture.innerHTML = `
                 <img id="el1"/>
             `;
             const element1 = fixture.querySelector('#el1');
-            _axe._tree = _axe.utils.getFlattenedTree(document.documentElement);
+            setAxeGlobalTreeTo(document.documentElement);
 
             const result = AxeUtils.getImageCodedAs(element1 as HTMLElement);
             expect(result).toBeNull();
         });
 
-        it('cannot tell', () => {
+        it('Indeterminate because img with no alt tag, despite aria-describedby', () => {
             fixture.innerHTML = `
                 <img id="el1" aria-describedby="some-id"/>
                 <div id="some-id"> hello </div>
             `;
             const element1 = fixture.querySelector('#el1');
-            _axe._tree = _axe.utils.getFlattenedTree(document.documentElement);
+            setAxeGlobalTreeTo(document.documentElement);
 
             const result = AxeUtils.getImageCodedAs(element1 as HTMLElement);
             expect(result).toBeNull();
@@ -228,13 +300,16 @@ describe('AxeUtils', () => {
 
     describe('hasBackgoundImage', () => {
         let fixture: HTMLElement;
-        let _axe;
         let windowMock: IGlobalMock<typeof window.getComputedStyle>;
 
         beforeEach(() => {
             fixture = createTestFixture('test-fixture', '');
-            _axe = axe as any;
-            windowMock = GlobalMock.ofInstance(window.getComputedStyle, 'getComputedStyle', window, MockBehavior.Strict);
+            windowMock = GlobalMock.ofInstance(
+                window.getComputedStyle,
+                'getComputedStyle',
+                window,
+                MockBehavior.Strict,
+            );
         });
 
         afterEach(() => {
@@ -246,7 +321,11 @@ describe('AxeUtils', () => {
                 <img id="el1" alt="" />
             `;
             const element1 = fixture.querySelector('#el1');
-            windowMock.setup(m => m(It.isAny())).returns(node => ({ getPropertyValue: property => 'some-value' } as CSSStyleDeclaration));
+            windowMock
+                .setup(m => m(It.isAny()))
+                .returns(
+                    node => ({ getPropertyValue: property => 'some-value' } as CSSStyleDeclaration),
+                );
             let result;
             GlobalScope.using(windowMock).with(() => {
                 result = AxeUtils.hasBackgoundImage(element1 as HTMLElement);
@@ -259,7 +338,9 @@ describe('AxeUtils', () => {
                 <img id="el1" alt="" />
             `;
             const element1 = fixture.querySelector('#el1');
-            windowMock.setup(m => m(It.isAny())).returns(node => ({ getPropertyValue: property => 'none' } as CSSStyleDeclaration));
+            windowMock
+                .setup(m => m(It.isAny()))
+                .returns(node => ({ getPropertyValue: property => 'none' } as CSSStyleDeclaration));
             let result;
             GlobalScope.using(windowMock).with(() => {
                 result = AxeUtils.hasBackgoundImage(element1 as HTMLElement);
@@ -270,13 +351,16 @@ describe('AxeUtils', () => {
 
     describe('getImageType', () => {
         let fixture: HTMLElement;
-        let _axe;
         let windowMock: IGlobalMock<typeof window.getComputedStyle>;
 
         beforeEach(() => {
             fixture = createTestFixture('test-fixture', '');
-            _axe = axe as any;
-            windowMock = GlobalMock.ofInstance(window.getComputedStyle, 'getComputedStyle', window, MockBehavior.Strict);
+            windowMock = GlobalMock.ofInstance(
+                window.getComputedStyle,
+                'getComputedStyle',
+                window,
+                MockBehavior.Strict,
+            );
         });
 
         afterEach(() => {
@@ -288,7 +372,9 @@ describe('AxeUtils', () => {
                 <img id="el1"/>
             `;
             const element1 = fixture.querySelector('#el1');
-            windowMock.setup(m => m(It.isAny())).returns(node => ({ getPropertyValue: property => 'none' } as CSSStyleDeclaration));
+            windowMock
+                .setup(m => m(It.isAny()))
+                .returns(node => ({ getPropertyValue: property => 'none' } as CSSStyleDeclaration));
             let result;
             GlobalScope.using(windowMock).with(() => {
                 result = AxeUtils.getImageType(element1 as HTMLElement);
@@ -301,7 +387,9 @@ describe('AxeUtils', () => {
                 <i id="el1" />
             `;
             const element1 = fixture.querySelector('#el1');
-            windowMock.setup(m => m(It.isAny())).returns(node => ({ getPropertyValue: property => 'none' } as CSSStyleDeclaration));
+            windowMock
+                .setup(m => m(It.isAny()))
+                .returns(node => ({ getPropertyValue: property => 'none' } as CSSStyleDeclaration));
             let result;
             GlobalScope.using(windowMock).with(() => {
                 result = AxeUtils.getImageType(element1 as HTMLElement);
@@ -314,7 +402,9 @@ describe('AxeUtils', () => {
                 <div id="el1" role='img'/> <div>
             `;
             const element1 = fixture.querySelector('#el1');
-            windowMock.setup(m => m(It.isAny())).returns(node => ({ getPropertyValue: property => 'none' } as CSSStyleDeclaration));
+            windowMock
+                .setup(m => m(It.isAny()))
+                .returns(node => ({ getPropertyValue: property => 'none' } as CSSStyleDeclaration));
             let result;
             GlobalScope.using(windowMock).with(() => {
                 result = AxeUtils.getImageType(element1 as HTMLElement);
@@ -327,7 +417,11 @@ describe('AxeUtils', () => {
                 <div id="el1"/> <div>
             `;
             const element1 = fixture.querySelector('#el1');
-            windowMock.setup(m => m(It.isAny())).returns(node => ({ getPropertyValue: property => 'imgUrl' } as CSSStyleDeclaration));
+            windowMock
+                .setup(m => m(It.isAny()))
+                .returns(
+                    node => ({ getPropertyValue: property => 'imgUrl' } as CSSStyleDeclaration),
+                );
             let result;
             GlobalScope.using(windowMock).with(() => {
                 result = AxeUtils.getImageType(element1 as HTMLElement);

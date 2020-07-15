@@ -1,31 +1,24 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
+import { formatPageElementForSnapshot } from 'tests/common/element-snapshot-formatter';
 import { Browser } from '../../common/browser';
 import { launchBrowser } from '../../common/browser-factory';
 import { popupPageElementIdentifiers } from '../../common/element-identifiers/popup-page-element-identifiers';
-import { Page } from '../../common/page';
+import { PopupPage } from '../../common/page-controllers/popup-page';
+import { TargetPage } from '../../common/page-controllers/target-page';
 import { scanForAccessibilityIssues } from '../../common/scan-for-accessibility-issues';
 
-describe('Launch Pad', () => {
+describe('Popup -> Launch Pad', () => {
     let browser: Browser;
-    let targetPage: Page;
-    let targetPageTabId: number;
-    let popupPage: Page;
+    let targetPage: TargetPage;
+    let popupPage: PopupPage;
 
     beforeAll(async () => {
         browser = await launchBrowser({ suppressFirstTimeDialog: true });
-    });
-
-    beforeEach(async () => {
-        await setupNewTargetPage();
-        popupPage = await browser.newExtensionPopupPage(targetPageTabId);
+        targetPage = await browser.newTargetPage();
+        popupPage = await browser.newPopupPage(targetPage);
         await popupPage.bringToFront();
-    });
-
-    afterEach(async () => {
-        if (browser) {
-            await browser.closeAllPages();
-        }
+        await popupPage.waitForSelector(popupPageElementIdentifiers.launchPad);
     });
 
     afterAll(async () => {
@@ -35,24 +28,22 @@ describe('Launch Pad', () => {
         }
     });
 
-    async function setupNewTargetPage(): Promise<void> {
-        targetPage = await browser.newTestResourcePage('all.html');
-
-        await targetPage.bringToFront();
-        targetPageTabId = await browser.getActivePageTabId();
-    }
-
     it('content should match snapshot', async () => {
-        await popupPage.waitForSelector(popupPageElementIdentifiers.launchPad);
-
-        const element = await popupPage.getPrintableHtmlElement(popupPageElementIdentifiers.launchPad);
+        const element = await formatPageElementForSnapshot(
+            popupPage,
+            popupPageElementIdentifiers.launchPad,
+        );
         expect(element).toMatchSnapshot();
     });
 
-    it('should pass accessibility validation', async () => {
-        await popupPage.waitForSelector(popupPageElementIdentifiers.launchPad);
+    it.each([true, false])(
+        'should pass accessibility validation with highContrastMode=%s',
+        async highContrastMode => {
+            await browser.setHighContrastMode(highContrastMode);
+            await popupPage.waitForHighContrastMode(highContrastMode);
 
-        const results = await scanForAccessibilityIssues(popupPage, '*');
-        expect(results).toHaveLength(0);
-    });
+            const results = await scanForAccessibilityIssues(popupPage, '*');
+            expect(results).toHaveLength(0);
+        },
+    );
 });

@@ -1,7 +1,5 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
-import { HyperlinkDefinition } from '../views/content/content-page';
-
 export interface AxeRule {
     id: string;
     nodes: AxeNodeResult[];
@@ -89,6 +87,6 @@ export interface ScanResults {
 }
 
 export interface RuleDecorations {
-    guidanceLinks?: HyperlinkDefinition[];
+    guidanceLinks?: GuidanceLink[];
     helpUrl?: string;
 }

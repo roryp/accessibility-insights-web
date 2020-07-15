@@ -1,24 +1,27 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 import {
-    SetBugServicePayload,
-    SetBugServicePropertyPayload,
+    SaveIssueFilingSettingsPayload,
+    SetAdbLocationPayload,
     SetHighContrastModePayload,
-    SetIssueTrackerPathPayload,
+    SetIssueFilingServicePayload,
+    SetIssueFilingServicePropertyPayload,
+    SetNativeHighContrastModePayload,
     SetTelemetryStatePayload,
-} from '../../background/actions/action-payloads';
-import { Messages } from '../messages';
-import { BaseActionMessageCreator } from './base-action-message-creator';
+} from 'background/actions/action-payloads';
+import { ActionMessageDispatcher } from 'common/message-creators/types/dispatcher';
 
-export class UserConfigMessageCreator extends BaseActionMessageCreator {
+import { Messages } from '../messages';
+
+export class UserConfigMessageCreator {
+    constructor(private readonly dispatcher: ActionMessageDispatcher) {}
     public setTelemetryState(enableTelemetry: boolean): void {
         const payload: SetTelemetryStatePayload = {
             enableTelemetry,
         };
 
-        this.dispatchMessage({
-            type: Messages.UserConfig.SetTelemetryConfig,
-            tabId: this._tabId,
+        this.dispatcher.dispatchMessage({
+            messageType: Messages.UserConfig.SetTelemetryConfig,
             payload,
         });
     }
@@ -28,47 +31,51 @@ export class UserConfigMessageCreator extends BaseActionMessageCreator {
             enableHighContrast,
         };
 
-        this.dispatchMessage({
-            type: Messages.UserConfig.SetHighContrastConfig,
-            tabId: this._tabId,
+        this.dispatcher.dispatchMessage({
+            messageType: Messages.UserConfig.SetHighContrastConfig,
             payload,
         });
     }
 
-    public setBugService(bugServiceName: string): void {
-        const payload: SetBugServicePayload = {
-            bugServiceName,
+    public setNativeHighContrastMode(enableHighContrast: boolean): void {
+        const payload: SetNativeHighContrastModePayload = {
+            enableHighContrast,
         };
 
-        this.dispatchMessage({
-            type: Messages.UserConfig.SetBugService,
-            tabId: this._tabId,
+        this.dispatcher.dispatchMessage({
+            messageType: Messages.UserConfig.SetNativeHighContrastConfig,
             payload,
         });
     }
 
-    public setBugServiceProperty(bugServiceName: string, propertyName: string, propertyValue: string): void {
-        const payload: SetBugServicePropertyPayload = {
-            bugServiceName,
-            propertyName,
-            propertyValue,
-        };
-
-        this.dispatchMessage({
-            type: Messages.UserConfig.SetBugServiceProperty,
-            tabId: this._tabId,
+    public setIssueFilingService = (payload: SetIssueFilingServicePayload) => {
+        this.dispatcher.dispatchMessage({
+            messageType: Messages.UserConfig.SetIssueFilingService,
             payload,
         });
-    }
+    };
 
-    public setIssueTrackerPath(issueTrackerPath: string): void {
-        const payload: SetIssueTrackerPathPayload = {
-            issueTrackerPath,
+    public setIssueFilingServiceProperty = (payload: SetIssueFilingServicePropertyPayload) => {
+        this.dispatcher.dispatchMessage({
+            messageType: Messages.UserConfig.SetIssueFilingServiceProperty,
+            payload,
+        });
+    };
+
+    public saveIssueFilingSettings = (payload: SaveIssueFilingSettingsPayload) => {
+        this.dispatcher.dispatchMessage({
+            messageType: Messages.UserConfig.SaveIssueFilingSettings,
+            payload,
+        });
+    };
+
+    public setAdbLocation(adbLocation: string): void {
+        const payload: SetAdbLocationPayload = {
+            adbLocation,
         };
 
-        this.dispatchMessage({
-            type: Messages.UserConfig.SetIssueTrackerPath,
-            tabId: this._tabId,
+        this.dispatcher.dispatchMessage({
+            messageType: Messages.UserConfig.SetAdbLocationConfig,
             payload,
         });
     }

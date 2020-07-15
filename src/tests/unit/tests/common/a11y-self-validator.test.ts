@@ -7,6 +7,7 @@ import { HTMLElementUtils } from '../../../../common/html-element-utils';
 import { Logger } from '../../../../common/logging/logger';
 import { ScannerUtils } from '../../../../injected/scanner-utils';
 import { ScanResults } from '../../../../scanner/iruleresults';
+import { DictionaryStringTo } from '../../../../types/common-types';
 
 describe('A11YAutoCheckTest', () => {
     let scannerUtilsMock: IMock<ScannerUtils>;
@@ -25,14 +26,23 @@ describe('A11YAutoCheckTest', () => {
         htmlElementUtilsMock = Mock.ofType(HTMLElementUtils, MockBehavior.Strict);
         loggerMock = Mock.ofType<Logger>();
 
-        testObject = new A11YSelfValidator(scannerUtilsMock.object, htmlElementUtilsMock.object, loggerMock.object);
+        testObject = new A11YSelfValidator(
+            scannerUtilsMock.object,
+            htmlElementUtilsMock.object,
+            loggerMock.object,
+        );
     });
 
     test('scan', () => {
         const scannerResultStub = getAxeScanResult();
 
         scannerUtilsMock
-            .setup(ksu => ksu.scan(null, It.is(param => typeof param === 'function')))
+            .setup(ksu =>
+                ksu.scan(
+                    null,
+                    It.is(param => typeof param === 'function'),
+                ),
+            )
             .callback((rules, handleAxeResult) => {
                 handleAxeResult(scannerResultStub);
             })
@@ -45,7 +55,9 @@ describe('A11YAutoCheckTest', () => {
                 .verifiable(Times.once());
         });
 
-        loggerMock.setup(logger => logger.log(It.isValue(getLoggedViolationScanResult()))).verifiable(Times.once());
+        loggerMock
+            .setup(logger => logger.log(It.isValue(getLoggedViolationScanResult())))
+            .verifiable(Times.once());
 
         testObject.validate();
 

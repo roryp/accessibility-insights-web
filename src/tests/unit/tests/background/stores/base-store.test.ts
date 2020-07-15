@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 import { It, Mock, MockBehavior, Times } from 'typemoq';
 
-import { BaseStore } from '../../../../../background/stores/base-store';
+import { BaseStoreImpl } from 'background/stores/base-store-impl';
 import { StoreNames } from '../../../../../common/stores/store-names';
 import { IsSameObject } from '../../../common/typemoq-helper';
 
@@ -46,16 +46,19 @@ describe('BaseStoreTest', () => {
     });
 
     test('onGetCurrentState', () => {
-        const changedListener = Mock.ofInstance((_testObject: TestStore, _args: any) => {}, MockBehavior.Strict);
+        const changedListener = Mock.ofInstance((testStore: TestStore, args: any) => {},
+        MockBehavior.Strict);
 
-        const listenerAdder = function() {
+        const listenerAdder = function (): void {
             // hack to access onGetCurrentState from the BaseStore class
             // tslint:disable-next-line:no-invalid-this
             this.onGetCurrentState();
         };
 
         const testObject = new TestStore(listenerAdder);
-        changedListener.setup(listener => listener(IsSameObject(testObject), It.isValue(undefined))).verifiable(Times.once());
+        changedListener
+            .setup(listener => listener(IsSameObject(testObject), It.isValue(undefined)))
+            .verifiable(Times.once());
 
         testObject.addChangedListener(changedListener.object);
         testObject.initialize();
@@ -67,7 +70,7 @@ describe('BaseStoreTest', () => {
         value: string;
     }
 
-    class TestStore extends BaseStore<TestData> {
+    class TestStore extends BaseStoreImpl<TestData> {
         private listener: () => void;
 
         constructor(listener: () => void) {

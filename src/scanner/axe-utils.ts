@@ -2,15 +2,19 @@
 // Licensed under the MIT License.
 import * as axe from 'axe-core';
 
-import { IDictionaryStringTo } from './dictionary-types';
+import { DictionaryStringTo } from '../types/common-types';
 
 export type ImageCodedAs = 'Decorative' | 'Meaningful';
 
-export function getMatchesFromRule(ruleId: string): (node: any, virtualNode: any) => boolean {
+export function getMatchesFromRule(
+    ruleId: string,
+): ((node: any, virtualNode: any) => boolean) | undefined {
     return axe._audit.defaultConfig.rules.filter(rule => rule.id === ruleId)[0].matches;
 }
 
-export function getEvaluateFromCheck(checkId: string): (node: any, options: any, virtualNode: any, context: any) => boolean {
+export function getEvaluateFromCheck(
+    checkId: string,
+): (node: any, options: any, virtualNode: any, context: any) => boolean {
     return axe._audit.defaultConfig.checks.filter(check => check.id === checkId)[0].evaluate;
 }
 
@@ -26,26 +30,32 @@ export function getAccessibleDescription(node: HTMLElement): string {
         .join(' ');
 }
 
-export function getPropertyValuesMatching(node: HTMLElement, regex: RegExp): IDictionaryStringTo<string> {
-    const dictionary: IDictionaryStringTo<string> = {};
+export function getPropertyValuesMatching(
+    node: HTMLElement,
+    regex: RegExp,
+): DictionaryStringTo<string> {
+    const dictionary: DictionaryStringTo<string> = {};
     if (node.hasAttributes()) {
         const attrs = node.attributes;
         for (let i = 0; i < attrs.length; i++) {
             const name = attrs[i].name;
             if (regex.test(name)) {
-                dictionary[name] = node.getAttribute(name);
+                dictionary[name] = node.getAttribute(name)!;
             }
         }
     }
     return dictionary;
 }
 
-export function getAttributes(node: HTMLElement, attributes: string[]): IDictionaryStringTo<string> {
-    const retDict: IDictionaryStringTo<string> = {};
+export function getAttributes(
+    node: HTMLElement,
+    attributes: string[],
+): DictionaryStringTo<string | null> {
+    const retDict: DictionaryStringTo<string | null> = {};
     attributes
-        .filter(atributeName => node.hasAttribute(atributeName))
+        .filter(attributeName => node.hasAttribute(attributeName))
         .forEach(attributeName => {
-            const attributeValue = node.getAttribute(attributeName);
+            const attributeValue = node.getAttribute(attributeName)!;
             retDict[attributeName] = attributeValue.length > 0 ? attributeValue : null;
         });
 
@@ -60,10 +70,16 @@ export function hasCustomWidgetMarkup(node: HTMLElement): boolean {
     return tabIndex === '-1' || Object.keys(ariaValues).length > 0 || hasRole;
 }
 
-export function getImageCodedAs(node: HTMLElement): ImageCodedAs {
+export function getImageCodedAs(node: HTMLElement): ImageCodedAs | null {
     const role = node.getAttribute('role');
     const alt = node.getAttribute('alt');
+
     if (role === 'none' || role === 'presentation' || alt === '') {
+        return 'Decorative';
+    }
+
+    if (node.tagName.toLowerCase() !== 'img' && role !== 'img') {
+        // This covers implicitly decorative <svg>, <i>, and CSS background image cases
         return 'Decorative';
     }
 
@@ -74,17 +90,19 @@ export function getImageCodedAs(node: HTMLElement): ImageCodedAs {
     return null;
 }
 
-export function isWhiteSpace(text: string): boolean {
-    return text && text.length > 0 && text.trim() === '';
+export function isWhiteSpace(text: string | null): boolean {
+    return text != null && text.length > 0 && text.trim() === '';
 }
 
 export function hasBackgoundImage(node: HTMLElement): boolean {
-    const computedBackgroundImage: string = window.getComputedStyle(node).getPropertyValue('background-image');
+    const computedBackgroundImage: string = window
+        .getComputedStyle(node)
+        .getPropertyValue('background-image');
     return computedBackgroundImage !== 'none';
 }
 
-export function getImageType(node: HTMLElement): string {
-    let imageType: string;
+export function getImageType(node: HTMLElement): string | null {
+    let imageType: string | null = null;
     if (node.tagName.toLowerCase() === 'img') {
         imageType = '<img>';
     } else if (node.tagName.toLowerCase() === 'i') {

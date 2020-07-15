@@ -1,34 +1,34 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
+import { StoreHub } from 'background/stores/store-hub';
+import { Logger } from 'common/logging/logger';
+import { tick } from 'tests/unit/common/tick';
 import { IMock, It, Mock, MockBehavior, Times } from 'typemoq';
-
-import { IStoreHub } from '../../../../background/stores/istore-hub';
+import { BaseStore } from '../../../../common/base-store';
 import { GenericStoreMessageTypes } from '../../../../common/constants/generic-store-messages-types';
-import { IBaseStore } from '../../../../common/istore';
 import { StateDispatcher } from '../../../../common/state-dispatcher';
 import { StoreType } from '../../../../common/types/store-type';
 import { StoreUpdateMessage } from '../../../../common/types/store-update-message';
-import { StoreStub } from '../../common/store-stub';
 
 describe('StateDispatcherTest', () => {
     test('fire changed event on initialize', () => {
         const newstoreData: StoreStubData = { value: 'testValue' };
         const expectedMessage: StoreUpdateMessage<StoreStubData> = {
             isStoreUpdateMessage: true,
-            type: GenericStoreMessageTypes.storeStateChanged,
+            messageType: GenericStoreMessageTypes.storeStateChanged,
             storeId: 'testStoreId',
             storeType: StoreType.TabContextStore,
             payload: newstoreData,
         };
 
-        const storeMock: IMock<IBaseStore<StoreStubData>> = Mock.ofType<IBaseStore<StoreStubData>>();
+        const storeMock: IMock<BaseStore<StoreStubData>> = Mock.ofType<BaseStore<StoreStubData>>();
         const storeHubStrictMock = Mock.ofType<StoreHubStub>(null, MockBehavior.Strict);
         storeHubStrictMock
-            .setup(x => x.getAllStores())
+            .setup(hub => hub.getAllStores())
             .returns(() => [storeMock.object])
             .verifiable(Times.once());
         storeHubStrictMock
-            .setup(x => x.getStoreType())
+            .setup(hub => hub.getStoreType())
             .returns(() => StoreType.TabContextStore)
             .verifiable(Times.once());
 
@@ -41,11 +41,18 @@ describe('StateDispatcherTest', () => {
             .returns(() => newstoreData)
             .verifiable();
 
-        const defaultBoardcastMessage = (message: Object) => {};
-        const broadcastMock = Mock.ofInstance<(message: Object) => void>(defaultBoardcastMessage);
-        broadcastMock.setup(bc => bc(It.isValue(expectedMessage))).verifiable();
+        const broadcastMock = Mock.ofType<(message: Object) => Promise<void>>();
+        broadcastMock
+            .setup(bc => bc(It.isValue(expectedMessage)))
+            .returns(() => Promise.resolve())
+            .verifiable();
 
-        const stateDispatcher = new StateDispatcher(broadcastMock.object, storeHubStrictMock.object);
+        const loggerMock = Mock.ofType<Logger>();
+        const stateDispatcher = new StateDispatcher(
+            broadcastMock.object,
+            storeHubStrictMock.object,
+            loggerMock.object,
+        );
         stateDispatcher.initialize();
 
         storeMock.verifyAll();
@@ -56,18 +63,18 @@ describe('StateDispatcherTest', () => {
         const newstoreData: StoreStubData = { value: 'testValue' };
         const expectedMessage: StoreUpdateMessage<StoreStubData> = {
             isStoreUpdateMessage: true,
-            type: GenericStoreMessageTypes.storeStateChanged,
+            messageType: GenericStoreMessageTypes.storeStateChanged,
             storeId: 'testStoreId',
             storeType: StoreType.TabContextStore,
             payload: newstoreData,
         };
 
         let privateDispatcher: Function;
-        const storeMock: IMock<IBaseStore<StoreStubData>> = Mock.ofType<IBaseStore<StoreStubData>>(StoreStub);
+        const storeMock: IMock<BaseStore<StoreStubData>> = Mock.ofType<BaseStore<StoreStubData>>();
         const storeHubMock = Mock.ofType<StoreHubStub>(null, MockBehavior.Strict);
 
-        storeHubMock.setup(x => x.getAllStores()).returns(() => [storeMock.object]);
-        storeHubMock.setup(x => x.getStoreType()).returns(() => StoreType.TabContextStore);
+        storeHubMock.setup(hub => hub.getAllStores()).returns(() => [storeMock.object]);
+        storeHubMock.setup(hub => hub.getStoreType()).returns(() => StoreType.TabContextStore);
         storeMock.setup(sm => sm.getId()).returns(() => expectedMessage.storeId);
         storeMock.setup(sm => sm.getState()).returns(() => newstoreData);
         storeMock
@@ -82,21 +89,83 @@ describe('StateDispatcherTest', () => {
                 privateDispatcher = action;
             });
 
-        const defaultBoardcastMessage = (message: Object) => {};
-        const broadcastMock = Mock.ofInstance<(message: Object) => void>(defaultBoardcastMessage);
+        const broadcastMock = Mock.ofType<(message: Object) => Promise<void>>();
+        broadcastMock.setup(m => m(It.isAny())).returns(() => Promise.resolve());
 
-        const stateDispatcher = new StateDispatcher(broadcastMock.object, storeHubMock.object);
+        const loggerMock = Mock.ofType<Logger>();
+        const stateDispatcher = new StateDispatcher(
+            broadcastMock.object,
+            storeHubMock.object,
+            loggerMock.object,
+        );
         stateDispatcher.initialize();
+
         broadcastMock.reset();
+        broadcastMock
+            .setup(m => m(expectedMessage))
+            .returns(() => Promise.resolve())
+            .verifiable(Times.once());
 
         privateDispatcher.call(stateDispatcher);
 
-        broadcastMock.verify(bc => bc(It.isValue(expectedMessage)), Times.once());
+        broadcastMock.verifyAll();
+    });
+
+    test('propagate exceptions in broadcasting changes to logger.error', async () => {
+        const newstoreData: StoreStubData = { value: 'testValue' };
+        const expectedMessage: StoreUpdateMessage<StoreStubData> = {
+            isStoreUpdateMessage: true,
+            messageType: GenericStoreMessageTypes.storeStateChanged,
+            storeId: 'testStoreId',
+            storeType: StoreType.TabContextStore,
+            payload: newstoreData,
+        };
+
+        let privateDispatcher: Function;
+        const storeMock: IMock<BaseStore<StoreStubData>> = Mock.ofType<BaseStore<StoreStubData>>();
+        const storeHubMock = Mock.ofType<StoreHubStub>(null, MockBehavior.Strict);
+
+        storeHubMock.setup(hub => hub.getAllStores()).returns(() => [storeMock.object]);
+        storeHubMock.setup(hub => hub.getStoreType()).returns(() => StoreType.TabContextStore);
+        storeMock.setup(sm => sm.getId()).returns(() => expectedMessage.storeId);
+        storeMock.setup(sm => sm.getState()).returns(() => newstoreData);
+        storeMock
+            .setup(sm =>
+                sm.addChangedListener(
+                    It.is<Function>(handler => {
+                        return handler !== null;
+                    }),
+                ),
+            )
+            .callback(action => {
+                privateDispatcher = action;
+            });
+
+        const expectedError = 'expected broadcastMessage error';
+        const broadcastMock = Mock.ofType<(message: Object) => Promise<void>>();
+        broadcastMock.setup(m => m(It.isAny())).returns(() => Promise.resolve());
+
+        const loggerMock = Mock.ofType<Logger>();
+        loggerMock.setup(m => m.error(expectedError)).verifiable(Times.once());
+        const stateDispatcher = new StateDispatcher(
+            broadcastMock.object,
+            storeHubMock.object,
+            loggerMock.object,
+        );
+        stateDispatcher.initialize();
+
+        broadcastMock.reset();
+        broadcastMock.setup(m => m(It.isAny())).returns(() => Promise.reject(expectedError));
+
+        privateDispatcher.call(stateDispatcher);
+        await tick();
+
+        loggerMock.verifyAll();
     });
 });
 
-class StoreHubStub implements IStoreHub {
-    public getAllStores(): IBaseStore<any>[] {
+class StoreHubStub implements StoreHub {
+    public getAllStores(): BaseStore<any>[] {
         throw new Error('Method not implemented.');
     }
     public getStoreType(): StoreType {

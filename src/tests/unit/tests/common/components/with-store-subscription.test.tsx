@@ -1,20 +1,22 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
+import { shallow } from 'enzyme';
 import * as React from 'react';
-import * as renderer from 'react-test-renderer';
 import { IMock, Mock, Times } from 'typemoq';
-
-import { withStoreSubscription, WithStoreSubscriptionProps } from '../../../../../common/components/with-store-subscription';
-import { StoreActionMessageCreator } from '../../../../../common/message-creators/store-action-message-creator';
-import { IClientStoresHub } from '../../../../../common/stores/iclient-stores-hub';
+import {
+    withStoreSubscription,
+    WithStoreSubscriptionProps,
+} from '../../../../../common/components/with-store-subscription';
+import { StoreActionMessageCreatorImpl } from '../../../../../common/message-creators/store-action-message-creator-impl';
+import { ClientStoresHub } from '../../../../../common/stores/client-stores-hub';
 
 describe('withStoreSubscription', () => {
     type testProps = WithStoreSubscriptionProps<{ message: string }>;
-    const testComp: React.SFC<testProps> = props => <h1>{props.storeState.message}</h1>;
-    let storeActionCreatorMock: IMock<StoreActionMessageCreator>;
+    const testComp: React.FC<testProps> = props => <h1>{props.storeState.message}</h1>;
+    let storeActionCreatorMock: IMock<StoreActionMessageCreatorImpl>;
 
     beforeEach(() => {
-        storeActionCreatorMock = Mock.ofType(StoreActionMessageCreator);
+        storeActionCreatorMock = Mock.ofType(StoreActionMessageCreatorImpl);
     });
 
     test('constructor: storesHub is null', () => {
@@ -23,6 +25,7 @@ describe('withStoreSubscription', () => {
                 storeActionMessageCreator: storeActionCreatorMock.object,
                 storesHub: null,
             },
+            storeState: null,
         };
         const WrappedComp = withStoreSubscription<testProps, any>(testComp);
         const rendered = new WrappedComp(props);
@@ -33,7 +36,7 @@ describe('withStoreSubscription', () => {
         const hasStoresMock = jest.fn();
         hasStoresMock.mockReturnValue(true);
         const storeData = { message: 'This is the store data' };
-        const storesHubStub: IClientStoresHub<any> = {} as IClientStoresHub<any>;
+        const storesHubStub: ClientStoresHub<any> = {} as ClientStoresHub<any>;
         storesHubStub.getAllStoreData = () => storeData;
         storesHubStub.hasStores = hasStoresMock;
 
@@ -42,6 +45,7 @@ describe('withStoreSubscription', () => {
                 storeActionMessageCreator: storeActionCreatorMock.object,
                 storesHub: storesHubStub,
             },
+            storeState: null,
         };
         const WrappedComp = withStoreSubscription<testProps, any>(testComp);
         const rendered = new WrappedComp(props);
@@ -52,6 +56,7 @@ describe('withStoreSubscription', () => {
         storeActionCreatorMock.setup(d => d.getAllStates()).verifiable(Times.never());
         const props: testProps = {
             deps: null,
+            storeState: null,
         };
         const WrappedComp = withStoreSubscription<testProps, any>(testComp);
         const rendered = new WrappedComp(props);
@@ -68,6 +73,7 @@ describe('withStoreSubscription', () => {
                 storeActionMessageCreator: storeActionCreatorMock.object,
                 storesHub: null,
             },
+            storeState: null,
         };
         const WrappedComp = withStoreSubscription<testProps, any>(testComp);
         const rendered = new WrappedComp(props);
@@ -80,7 +86,7 @@ describe('withStoreSubscription', () => {
     test('componentDidMount: not all store are loaded', () => {
         const hasStoresMock = jest.fn();
         hasStoresMock.mockReturnValue(false);
-        const storesHubStub: IClientStoresHub<any> = {} as IClientStoresHub<any>;
+        const storesHubStub: ClientStoresHub<any> = {} as ClientStoresHub<any>;
         storesHubStub.getAllStoreData = () => null;
         storesHubStub.addChangedListenerToAllStores = jest.fn();
         storesHubStub.hasStores = hasStoresMock;
@@ -90,6 +96,7 @@ describe('withStoreSubscription', () => {
                 storeActionMessageCreator: storeActionCreatorMock.object,
                 storesHub: storesHubStub,
             },
+            storeState: null,
         };
         const WrappedComp = withStoreSubscription<testProps, any>(testComp);
         const rendered = new WrappedComp(props);
@@ -104,7 +111,7 @@ describe('withStoreSubscription', () => {
     test('componentDidMount: all store are loaded', () => {
         const hasStoresMock = jest.fn();
         hasStoresMock.mockReturnValue(true);
-        const storesHubStub: IClientStoresHub<any> = {} as IClientStoresHub<any>;
+        const storesHubStub: ClientStoresHub<any> = {} as ClientStoresHub<any>;
         storesHubStub.getAllStoreData = () => null;
         storesHubStub.addChangedListenerToAllStores = jest.fn();
         storesHubStub.hasStores = hasStoresMock;
@@ -114,6 +121,7 @@ describe('withStoreSubscription', () => {
                 storeActionMessageCreator: storeActionCreatorMock.object,
                 storesHub: storesHubStub,
             },
+            storeState: null,
         };
         const WrappedComp = withStoreSubscription<testProps, any>(testComp);
         const rendered = new WrappedComp(props);
@@ -126,7 +134,7 @@ describe('withStoreSubscription', () => {
     });
 
     test('componentWillUnmount: storesHub is null', () => {
-        const storesHubStub: IClientStoresHub<any> = {} as IClientStoresHub<any>;
+        const storesHubStub: ClientStoresHub<any> = {} as ClientStoresHub<any>;
         storesHubStub.getAllStoreData = () => null;
         storesHubStub.removeChangedListenerFromAllStores = jest.fn();
         const props: testProps = {
@@ -134,6 +142,7 @@ describe('withStoreSubscription', () => {
                 storeActionMessageCreator: storeActionCreatorMock.object,
                 storesHub: null,
             },
+            storeState: null,
         };
         const WrappedComp = withStoreSubscription<testProps, any>(testComp);
         const rendered = new WrappedComp(props);
@@ -146,7 +155,7 @@ describe('withStoreSubscription', () => {
     test('componentWillUnmount', () => {
         const hasStoresMock = jest.fn();
         hasStoresMock.mockReturnValue(true);
-        const storesHubStub: IClientStoresHub<any> = {} as IClientStoresHub<any>;
+        const storesHubStub: ClientStoresHub<any> = {} as ClientStoresHub<any>;
         storesHubStub.getAllStoreData = () => null;
         storesHubStub.hasStores = hasStoresMock;
         storesHubStub.removeChangedListenerFromAllStores = jest.fn();
@@ -155,6 +164,7 @@ describe('withStoreSubscription', () => {
                 storeActionMessageCreator: storeActionCreatorMock.object,
                 storesHub: storesHubStub,
             },
+            storeState: null,
         };
         const WrappedComp = withStoreSubscription<testProps, any>(testComp);
         const rendered = new WrappedComp(props);
@@ -170,7 +180,7 @@ describe('withStoreSubscription', () => {
         const removeListenerMock = jest.fn();
         let listenerAdded;
         let listenerRemoved;
-        const storesHubStub: IClientStoresHub<any> = {} as IClientStoresHub<any>;
+        const storesHubStub: ClientStoresHub<any> = {} as ClientStoresHub<any>;
         hasStoresMock.mockReturnValue(true);
         storesHubStub.getAllStoreData = () => null;
         addListenerMock.mockImplementation(cb => (listenerAdded = cb));
@@ -184,6 +194,7 @@ describe('withStoreSubscription', () => {
                 storeActionMessageCreator: storeActionCreatorMock.object,
                 storesHub: storesHubStub,
             },
+            storeState: null,
         };
         const WrappedComp = withStoreSubscription<testProps, any>(testComp);
         const rendered = new WrappedComp(props);
@@ -204,10 +215,12 @@ describe('withStoreSubscription', () => {
         addChangedListenerToAllStoresMock.mockImplementation(cb => {
             onStoreChange = cb;
         });
-        getStoreDataMock.mockReturnValueOnce({ message: 'before change' }).mockReturnValueOnce({ message: 'after change' });
+        getStoreDataMock
+            .mockReturnValueOnce({ message: 'before change' })
+            .mockReturnValueOnce({ message: 'after change' });
 
         hasStoresMock.mockReturnValue(true);
-        const storesHubStub: IClientStoresHub<any> = {} as IClientStoresHub<any>;
+        const storesHubStub: ClientStoresHub<any> = {} as ClientStoresHub<any>;
         storesHubStub.getAllStoreData = getStoreDataMock;
         storesHubStub.addChangedListenerToAllStores = addChangedListenerToAllStoresMock;
         storesHubStub.hasStores = hasStoresMock;
@@ -216,14 +229,15 @@ describe('withStoreSubscription', () => {
                 storeActionMessageCreator: storeActionCreatorMock.object,
                 storesHub: storesHubStub,
             },
+            storeState: null,
         };
         const WrappedComp = withStoreSubscription<WithStoreSubscriptionProps<any>, any>(testComp);
-        const rendered = renderer.create(<WrappedComp {...props} />);
+        const rendered = shallow(<WrappedComp {...props} />);
 
-        expect(rendered.toJSON()).toMatchSnapshot('before store change');
+        expect(rendered.dive().getElement()).toMatchSnapshot('before store change');
 
         onStoreChange();
 
-        expect(rendered.toJSON()).toMatchSnapshot('after store change');
+        expect(rendered.dive().getElement()).toMatchSnapshot('after store change');
     });
 });

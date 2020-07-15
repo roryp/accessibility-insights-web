@@ -1,22 +1,23 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
-import * as _ from 'lodash';
-
-import { HeadingsTestStep } from '../../../../../assessments/headings/test-steps/test-steps';
-import { LandmarkTestStep } from '../../../../../assessments/landmarks/test-steps/test-steps';
+import { HeadingsTestStep } from 'assessments/headings/test-steps/test-steps';
+import { LandmarkTestStep } from 'assessments/landmarks/test-steps/test-steps';
 import {
     AssessmentToggleActionPayload,
     ToggleActionPayload,
     UpdateSelectedDetailsViewPayload,
     UpdateSelectedPivot,
-} from '../../../../../background/actions/action-payloads';
-import { TabActions } from '../../../../../background/actions/tab-actions';
-import { VisualizationActions } from '../../../../../background/actions/visualization-actions';
-import { VisualizationStore } from '../../../../../background/stores/visualization-store';
+} from 'background/actions/action-payloads';
+import { InjectionActions } from 'background/actions/injection-actions';
+import { TabActions } from 'background/actions/tab-actions';
+import { VisualizationActions } from 'background/actions/visualization-actions';
+import { VisualizationStore } from 'background/stores/visualization-store';
+import { cloneDeep } from 'lodash';
 import { AdHocTestkeys } from '../../../../../common/configs/adhoc-test-keys';
 import { VisualizationConfigurationFactory } from '../../../../../common/configs/visualization-configuration-factory';
 import { StoreNames } from '../../../../../common/stores/store-names';
 import { DetailsViewPivotType } from '../../../../../common/types/details-view-pivot-type';
+import { VisualizationStoreData } from '../../../../../common/types/store-data/visualization-store-data';
 import { VisualizationType } from '../../../../../common/types/visualization-type';
 import { createStoreWithNullParams, StoreTester } from '../../../common/store-tester';
 import { VisualizationStoreDataBuilder } from '../../../common/visualization-store-data-builder';
@@ -32,79 +33,161 @@ describe('VisualizationStoreTest ', () => {
         expect(StoreNames[StoreNames.VisualizationStore]).toEqual(testObject.getId());
     });
 
-    test('onUpdateSelectedPivotChild when pivot is different', () => {
+    describe('onUpdateSelectedPivotChild', () => {
         const actionName = 'updateSelectedPivotChild';
-        const viewType = VisualizationType.TabStops;
-        const initialPivot = DetailsViewPivotType.allTest;
-        const finalPivot = DetailsViewPivotType.fastPass;
 
-        const initialState = new VisualizationStoreDataBuilder()
-            .with('selectedAdhocDetailsView', viewType)
-            .with('selectedDetailsViewPivot', initialPivot)
-            .build();
-
-        const expectedState = new VisualizationStoreDataBuilder()
-            .with('selectedAdhocDetailsView', viewType)
-            .with('selectedFastPassDetailsView', viewType)
-            .with('selectedDetailsViewPivot', finalPivot)
-            .build();
-
-        const payload: UpdateSelectedDetailsViewPayload = {
-            detailsViewType: viewType,
-            pivotType: finalPivot,
-        };
-
-        createStoreTesterForVisualizationActions(actionName)
-            .withActionParam(payload)
-            .testListenerToBeCalledOnce(initialState, expectedState);
-    });
-
-    test('onUpdateSelectedPivotChild when old pivot doesnt have current visualization', () => {
-        const actionName = 'updateSelectedPivotChild';
-        const viewType = VisualizationType.Landmarks;
-        const finalPivot = DetailsViewPivotType.allTest;
-
-        const initialState = new VisualizationStoreDataBuilder()
-            .with('selectedAdhocDetailsView', viewType)
-            .with('selectedDetailsViewPivot', DetailsViewPivotType.fastPass)
-            .build();
-
-        const expectedState = new VisualizationStoreDataBuilder()
-            .with('selectedAdhocDetailsView', viewType)
-            .with('selectedDetailsViewPivot', finalPivot)
-            .build();
-
-        const payload: UpdateSelectedDetailsViewPayload = {
-            detailsViewType: viewType,
-            pivotType: finalPivot,
-        };
-
-        createStoreTesterForVisualizationActions(actionName)
-            .withActionParam(payload)
-            .testListenerToBeCalledOnce(initialState, expectedState);
-    });
-
-    [DetailsViewPivotType.allTest, DetailsViewPivotType.fastPass].forEach(pivotType => {
-        test('onUpdateSelectedPivotChild when view & pivot are the same', () => {
-            const actionName = 'updateSelectedPivotChild';
-            const viewType = VisualizationType.Issues;
-
-            const expectedState = new VisualizationStoreDataBuilder()
-                .with('selectedAdhocDetailsView', viewType)
-                .with('selectedDetailsViewPivot', pivotType)
-                .build();
+        test('when pivot is different', () => {
+            const viewType = VisualizationType.TabStops;
+            const initialPivot = DetailsViewPivotType.assessment;
+            const finalPivot = DetailsViewPivotType.fastPass;
 
             const initialState = new VisualizationStoreDataBuilder()
                 .with('selectedAdhocDetailsView', viewType)
-                .with('selectedDetailsViewPivot', pivotType)
+                .with('selectedDetailsViewPivot', initialPivot)
                 .build();
 
-            initialState.tests.adhoc[AdHocTestkeys.Issues] = { enabled: true };
-            expectedState.tests.adhoc[AdHocTestkeys.Issues] = { enabled: true };
+            const expectedState = new VisualizationStoreDataBuilder()
+                .with('selectedAdhocDetailsView', viewType)
+                .with('selectedFastPassDetailsView', viewType)
+                .with('selectedDetailsViewPivot', finalPivot)
+                .build();
 
             const payload: UpdateSelectedDetailsViewPayload = {
                 detailsViewType: viewType,
-                pivotType: pivotType,
+                pivotType: finalPivot,
+            };
+
+            createStoreTesterForVisualizationActions(actionName)
+                .withActionParam(payload)
+                .testListenerToBeCalledOnce(initialState, expectedState);
+        });
+
+        test('when old pivot does not have current visualization', () => {
+            const viewType = VisualizationType.Landmarks;
+            const finalPivot = DetailsViewPivotType.assessment;
+
+            const initialState = new VisualizationStoreDataBuilder()
+                .with('selectedAdhocDetailsView', viewType)
+                .with('selectedDetailsViewPivot', DetailsViewPivotType.fastPass)
+                .build();
+
+            const expectedState = new VisualizationStoreDataBuilder()
+                .with('selectedAdhocDetailsView', viewType)
+                .with('selectedDetailsViewPivot', finalPivot)
+                .build();
+
+            const payload: UpdateSelectedDetailsViewPayload = {
+                detailsViewType: viewType,
+                pivotType: finalPivot,
+            };
+
+            createStoreTesterForVisualizationActions(actionName)
+                .withActionParam(payload)
+                .testListenerToBeCalledOnce(initialState, expectedState);
+        });
+
+        it.each([DetailsViewPivotType.assessment, DetailsViewPivotType.fastPass])(
+            'when view & pivot are the same',
+            pivotType => {
+                const viewType = VisualizationType.Issues;
+
+                const expectedState = new VisualizationStoreDataBuilder()
+                    .with('selectedAdhocDetailsView', viewType)
+                    .with('selectedDetailsViewPivot', pivotType)
+                    .build();
+
+                const initialState = new VisualizationStoreDataBuilder()
+                    .with('selectedAdhocDetailsView', viewType)
+                    .with('selectedDetailsViewPivot', pivotType)
+                    .build();
+
+                initialState.tests.adhoc[AdHocTestkeys.Issues] = { enabled: true };
+                expectedState.tests.adhoc[AdHocTestkeys.Issues] = { enabled: true };
+
+                const payload: UpdateSelectedDetailsViewPayload = {
+                    detailsViewType: viewType,
+                    pivotType: pivotType,
+                };
+
+                createStoreTesterForVisualizationActions(actionName)
+                    .withActionParam(payload)
+                    .testListenerToNeverBeCalled(initialState, expectedState);
+            },
+        );
+
+        test('when view changes to null', () => {
+            const expectedState = new VisualizationStoreDataBuilder()
+                .with('selectedAdhocDetailsView', VisualizationType.Landmarks)
+                .build();
+            const initialState = new VisualizationStoreDataBuilder()
+                .with('selectedAdhocDetailsView', VisualizationType.Landmarks)
+                .build();
+
+            const payload: UpdateSelectedDetailsViewPayload = {
+                detailsViewType: VisualizationType.Issues,
+                pivotType: null,
+            };
+
+            createStoreTesterForVisualizationActions(actionName)
+                .withActionParam(payload)
+                .testListenerToNeverBeCalled(initialState, expectedState);
+        });
+
+        test('same pivot different view', () => {
+            const selectedPivot = DetailsViewPivotType.fastPass;
+
+            const oldView = VisualizationType.Issues;
+            const newView = VisualizationType.Landmarks;
+
+            const initialState = new VisualizationStoreDataBuilder()
+                .with('selectedDetailsViewPivot', selectedPivot)
+                .with('selectedFastPassDetailsView', oldView)
+                .build();
+
+            initialState.tests.adhoc[AdHocTestkeys.Issues] = { enabled: true };
+            initialState.tests.adhoc[AdHocTestkeys.Color] = { enabled: true };
+
+            const expectedState = new VisualizationStoreDataBuilder()
+                .with('selectedDetailsViewPivot', selectedPivot)
+                .with('selectedFastPassDetailsView', newView)
+                .build();
+
+            const payload: UpdateSelectedDetailsViewPayload = {
+                detailsViewType: newView,
+                pivotType: selectedPivot,
+            };
+
+            createStoreTesterForVisualizationActions(actionName)
+                .withActionParam(payload)
+                .testListenerToBeCalledOnce(initialState, expectedState);
+        });
+
+        test('when view is different', () => {
+            const initialState = new VisualizationStoreDataBuilder().build();
+
+            const expectedState = new VisualizationStoreDataBuilder()
+                .with('selectedAdhocDetailsView', VisualizationType.Issues)
+                .build();
+
+            const payload: UpdateSelectedDetailsViewPayload = {
+                detailsViewType: VisualizationType.Headings,
+                pivotType: null,
+            };
+
+            createStoreTesterForVisualizationActions(actionName)
+                .withActionParam(payload)
+                .testListenerToNeverBeCalled(initialState, expectedState);
+        });
+
+        test('when view is null', () => {
+            const initialState = new VisualizationStoreDataBuilder()
+                .with('selectedAdhocDetailsView', VisualizationType.Issues)
+                .build();
+            const expectedState = cloneDeep(initialState);
+
+            const payload: UpdateSelectedDetailsViewPayload = {
+                detailsViewType: null,
+                pivotType: null,
             };
 
             createStoreTesterForVisualizationActions(actionName)
@@ -113,88 +196,16 @@ describe('VisualizationStoreTest ', () => {
         });
     });
 
-    test('onUpdateSelectedPivotChild when view changes to null', () => {
-        const actionName = 'updateSelectedPivotChild';
-        const expectedState = new VisualizationStoreDataBuilder().with('selectedAdhocDetailsView', VisualizationType.Landmarks).build();
-        const initialState = new VisualizationStoreDataBuilder().with('selectedAdhocDetailsView', VisualizationType.Landmarks).build();
-
-        const payload: UpdateSelectedDetailsViewPayload = {
-            detailsViewType: VisualizationType.Issues,
-            pivotType: null,
-        };
-
-        createStoreTesterForVisualizationActions(actionName)
-            .withActionParam(payload)
-            .testListenerToNeverBeCalled(initialState, expectedState);
-    });
-
-    test('onUpdateSelectedPivotChild same pivot different view', () => {
-        const actionName = 'updateSelectedPivotChild';
-        const selectedPivot = DetailsViewPivotType.fastPass;
-
-        const oldView = VisualizationType.Issues;
-        const newView = VisualizationType.Landmarks;
-
-        const initialState = new VisualizationStoreDataBuilder()
-            .with('selectedDetailsViewPivot', selectedPivot)
-            .with('selectedFastPassDetailsView', oldView)
-            .build();
-
-        initialState.tests.adhoc[AdHocTestkeys.Issues] = { enabled: true };
-        initialState.tests.adhoc[AdHocTestkeys.Color] = { enabled: true };
-
-        const expectedState = new VisualizationStoreDataBuilder()
-            .with('selectedDetailsViewPivot', selectedPivot)
-            .with('selectedFastPassDetailsView', newView)
-            .build();
-
-        const payload: UpdateSelectedDetailsViewPayload = {
-            detailsViewType: newView,
-            pivotType: selectedPivot,
-        };
-
-        createStoreTesterForVisualizationActions(actionName)
-            .withActionParam(payload)
-            .testListenerToBeCalledOnce(initialState, expectedState);
-    });
-
-    test('onUpdateSelectedPivotChild when view is different', () => {
-        const actionName = 'updateSelectedPivotChild';
-        const initialState = new VisualizationStoreDataBuilder().build();
-
-        const expectedState = new VisualizationStoreDataBuilder().with('selectedAdhocDetailsView', VisualizationType.Issues).build();
-
-        const payload: UpdateSelectedDetailsViewPayload = {
-            detailsViewType: VisualizationType.Headings,
-            pivotType: null,
-        };
-
-        createStoreTesterForVisualizationActions(actionName)
-            .withActionParam(payload)
-            .testListenerToNeverBeCalled(initialState, expectedState);
-    });
-
-    test('onUpdateSelectedDetailsView when view is null', () => {
-        const actionName = 'updateSelectedPivotChild';
-        const initialState = new VisualizationStoreDataBuilder().with('selectedAdhocDetailsView', VisualizationType.Issues).build();
-        const expectedState = _.cloneDeep(initialState);
-
-        const payload: UpdateSelectedDetailsViewPayload = {
-            detailsViewType: null,
-            pivotType: null,
-        };
-
-        createStoreTesterForVisualizationActions(actionName)
-            .withActionParam(payload)
-            .testListenerToNeverBeCalled(initialState, expectedState);
-    });
-
     test('onUpdateSelectedPivot when pivot value is same as before', () => {
         const actionName = 'updateSelectedPivot';
         const oldPivotValue = DetailsViewPivotType.fastPass;
-        const initialState = new VisualizationStoreDataBuilder().with('selectedDetailsViewPivot', oldPivotValue).build();
+        const initialState = new VisualizationStoreDataBuilder()
+            .with('selectedDetailsViewPivot', oldPivotValue)
+            .build();
 
-        const expectedState = new VisualizationStoreDataBuilder().with('selectedDetailsViewPivot', oldPivotValue).build();
+        const expectedState = new VisualizationStoreDataBuilder()
+            .with('selectedDetailsViewPivot', oldPivotValue)
+            .build();
 
         const payload: UpdateSelectedPivot = {
             pivotKey: oldPivotValue,
@@ -208,7 +219,7 @@ describe('VisualizationStoreTest ', () => {
     test('onUpdateSelectedPivot when pivot value is different', () => {
         const actionName = 'updateSelectedPivot';
         const oldPivotValue = DetailsViewPivotType.fastPass;
-        const finalPivotValue = DetailsViewPivotType.allTest;
+        const finalPivotValue = DetailsViewPivotType.assessment;
         const fakeStep = 'fake step';
         const initialState = new VisualizationStoreDataBuilder()
             .withHeadingsAssessment(true, fakeStep)
@@ -259,12 +270,12 @@ describe('VisualizationStoreTest ', () => {
         const dataBuilder = new VisualizationStoreDataBuilder();
         const payload: AssessmentToggleActionPayload = {
             test: VisualizationType.HeadingsAssessment,
-            step: HeadingsTestStep.missingHeadings,
+            requirement: HeadingsTestStep.missingHeadings,
         };
 
         const initialState = dataBuilder.build();
         const expectedState = dataBuilder
-            .withHeadingsAssessment(true, payload.step)
+            .withHeadingsAssessment(true, payload.requirement)
             .with('selectedAdhocDetailsView', VisualizationType.Issues)
             .with('injectingInProgress', true)
             .build();
@@ -295,7 +306,9 @@ describe('VisualizationStoreTest ', () => {
             test: VisualizationType.Headings,
         };
 
-        const initialState = new VisualizationStoreDataBuilder().withHeadingsAssessment(true, HeadingsTestStep.missingHeadings).build();
+        const initialState = new VisualizationStoreDataBuilder()
+            .withHeadingsAssessment(true, HeadingsTestStep.missingHeadings)
+            .build();
 
         const expectedState = new VisualizationStoreDataBuilder()
             .withHeadingsEnable()
@@ -313,13 +326,13 @@ describe('VisualizationStoreTest ', () => {
         const actionName = 'enableVisualization';
         const payload: AssessmentToggleActionPayload = {
             test: VisualizationType.HeadingsAssessment,
-            step: HeadingsTestStep.missingHeadings,
+            requirement: HeadingsTestStep.missingHeadings,
         };
 
         const initialState = new VisualizationStoreDataBuilder().withHeadingsEnable().build();
 
         const expectedState = new VisualizationStoreDataBuilder()
-            .withHeadingsAssessment(true, payload.step)
+            .withHeadingsAssessment(true, payload.requirement)
             .withHeadingsEnable()
             .with('injectingInProgress', true)
             .with('scanning', HeadingsTestStep.missingHeadings)
@@ -334,14 +347,16 @@ describe('VisualizationStoreTest ', () => {
         const actionName = 'enableVisualization';
         const payload: AssessmentToggleActionPayload = {
             test: VisualizationType.HeadingsAssessment,
-            step: HeadingsTestStep.missingHeadings,
+            requirement: HeadingsTestStep.missingHeadings,
         };
 
-        const initialState = new VisualizationStoreDataBuilder().withLandmarksAssessment(true, LandmarkTestStep.landmarkRoles).build();
+        const initialState = new VisualizationStoreDataBuilder()
+            .withLandmarksAssessment(true, LandmarkTestStep.landmarkRoles)
+            .build();
 
         const expectedState = new VisualizationStoreDataBuilder()
             .withLandmarksAssessment(false, LandmarkTestStep.landmarkRoles)
-            .withHeadingsAssessment(true, payload.step)
+            .withHeadingsAssessment(true, payload.requirement)
             .with('injectingInProgress', true)
             .with('scanning', HeadingsTestStep.missingHeadings)
             .build();
@@ -355,14 +370,16 @@ describe('VisualizationStoreTest ', () => {
         const actionName = 'enableVisualization';
         const payload: AssessmentToggleActionPayload = {
             test: VisualizationType.HeadingsAssessment,
-            step: HeadingsTestStep.missingHeadings,
+            requirement: HeadingsTestStep.missingHeadings,
         };
 
-        const initialState = new VisualizationStoreDataBuilder().withHeadingsAssessment(true, HeadingsTestStep.headingFunction).build();
+        const initialState = new VisualizationStoreDataBuilder()
+            .withHeadingsAssessment(true, HeadingsTestStep.headingFunction)
+            .build();
 
         const expectedState = new VisualizationStoreDataBuilder()
             .withHeadingsAssessment(false, HeadingsTestStep.headingFunction)
-            .withHeadingsAssessment(true, payload.step)
+            .withHeadingsAssessment(true, payload.requirement)
             .with('injectingInProgress', true)
             .with('scanning', HeadingsTestStep.missingHeadings)
             .build();
@@ -644,7 +661,10 @@ describe('VisualizationStoreTest ', () => {
         const initialState = new VisualizationStoreDataBuilder().build();
         const expectedState = new VisualizationStoreDataBuilder().build();
 
-        createStoreTesterForVisualizationActions(actionName).testListenerToBeCalledOnce(initialState, expectedState);
+        createStoreTesterForVisualizationActions(actionName).testListenerToBeCalledOnce(
+            initialState,
+            expectedState,
+        );
     });
 
     test('enableVisualization when already scanning', () => {
@@ -652,16 +672,20 @@ describe('VisualizationStoreTest ', () => {
         const payload: ToggleActionPayload = {
             test: VisualizationType.Issues,
         };
-        const initialState = new VisualizationStoreDataBuilder().with('scanning', 'headings').build();
+        const initialState = new VisualizationStoreDataBuilder()
+            .with('scanning', 'headings')
+            .build();
 
-        const expectedState = new VisualizationStoreDataBuilder().with('scanning', 'headings').build();
+        const expectedState = new VisualizationStoreDataBuilder()
+            .with('scanning', 'headings')
+            .build();
 
         createStoreTesterForVisualizationActions(actionName)
             .withActionParam(payload)
             .testListenerToNeverBeCalled(initialState, expectedState);
     });
 
-    test('injectionCompleted', () => {
+    test('onInjectionCompleted', () => {
         const actionName = 'injectionCompleted';
 
         const initialState = new VisualizationStoreDataBuilder().build();
@@ -671,41 +695,58 @@ describe('VisualizationStoreTest ', () => {
             .with('injectingStarted', false)
             .build();
 
-        createStoreTesterForVisualizationActions(actionName).testListenerToBeCalledOnce(initialState, expectedState);
+        createStoreTesterForInjectionActions(actionName).testListenerToBeCalledOnce(
+            initialState,
+            expectedState,
+        );
     });
 
-    test('injectionStarted when injectingStarted is false', () => {
+    test('onInjectionStarted when injectingStarted is false', () => {
         const actionName = 'injectionStarted';
 
-        const initialState = new VisualizationStoreDataBuilder().with('injectingStarted', false).build();
+        const initialState = new VisualizationStoreDataBuilder()
+            .with('injectingStarted', false)
+            .build();
 
         const expectedState = new VisualizationStoreDataBuilder()
             .with('injectingInProgress', true)
             .with('injectingStarted', true)
             .build();
 
-        createStoreTesterForVisualizationActions(actionName).testListenerToBeCalledOnce(initialState, expectedState);
+        createStoreTesterForInjectionActions(actionName).testListenerToBeCalledOnce(
+            initialState,
+            expectedState,
+        );
     });
 
-    test('injectionStarted when injectingStarted is true', () => {
+    test('onInjectionStarted when injectingStarted is true', () => {
         const actionName = 'injectionStarted';
 
-        const initialState = new VisualizationStoreDataBuilder().with('injectingStarted', true).build();
+        const initialState = new VisualizationStoreDataBuilder()
+            .with('injectingStarted', true)
+            .build();
 
         const expectedState = new VisualizationStoreDataBuilder()
             .with('injectingInProgress', null)
             .with('injectingStarted', true)
             .build();
 
-        createStoreTesterForVisualizationActions(actionName).testListenerToNeverBeCalled(initialState, expectedState);
+        createStoreTesterForInjectionActions(actionName).testListenerToNeverBeCalled(
+            initialState,
+            expectedState,
+        );
     });
 
     test('onScrollRequested', () => {
         const actionName = 'scrollRequested';
 
-        const initialState = new VisualizationStoreDataBuilder().with('focusedTarget', ['target']).build();
+        const initialState = new VisualizationStoreDataBuilder()
+            .with('focusedTarget', ['target'])
+            .build();
 
-        const expectedState = new VisualizationStoreDataBuilder().with('focusedTarget', null).build();
+        const expectedState = new VisualizationStoreDataBuilder()
+            .with('focusedTarget', null)
+            .build();
 
         const payload = {};
 
@@ -743,7 +784,9 @@ describe('VisualizationStoreTest ', () => {
 
     test('onScanHeadingsCompleted', () => {
         const actionName = 'scanCompleted';
-        const initialState = new VisualizationStoreDataBuilder().with('scanning', 'headings').build();
+        const initialState = new VisualizationStoreDataBuilder()
+            .with('scanning', 'headings')
+            .build();
 
         const expectedState = new VisualizationStoreDataBuilder().with('scanning', null).build();
 
@@ -756,7 +799,9 @@ describe('VisualizationStoreTest ', () => {
 
     test('onScanLandmarksCompleted', () => {
         const actionName = 'scanCompleted';
-        const initialState = new VisualizationStoreDataBuilder().with('scanning', 'landmarks').build();
+        const initialState = new VisualizationStoreDataBuilder()
+            .with('scanning', 'landmarks')
+            .build();
 
         const expectedState = new VisualizationStoreDataBuilder().with('scanning', null).build();
 
@@ -774,42 +819,75 @@ describe('VisualizationStoreTest ', () => {
 
         const payload = ['1'];
 
-        const expectedState = new VisualizationStoreDataBuilder().withFocusedTarget(payload).build();
+        const expectedState = new VisualizationStoreDataBuilder()
+            .withFocusedTarget(payload)
+            .build();
 
         createStoreTesterForVisualizationActions(actionName)
             .withActionParam(payload)
             .testListenerToBeCalledOnce(initialState, expectedState);
     });
 
-    test('onTabChange', () => {
-        const actionName = 'tabChange';
-        const type = VisualizationType.Headings;
-        const pivot = DetailsViewPivotType.allTest;
+    test('onExistingTabUpdated', () => {
+        const actionName = 'existingTabUpdated';
+        const visualizationType = VisualizationType.Headings;
+        const pivot = DetailsViewPivotType.fastPass;
         const expectedState = new VisualizationStoreDataBuilder()
-            .with('selectedAdhocDetailsView', type)
+            .with('selectedAdhocDetailsView', visualizationType)
             .with('selectedDetailsViewPivot', pivot)
             .build();
 
         const initialState = new VisualizationStoreDataBuilder()
-            .with('selectedAdhocDetailsView', type)
+            .with('selectedAdhocDetailsView', visualizationType)
             .with('selectedDetailsViewPivot', pivot)
             .withLandmarksEnable()
             .build();
 
-        createStoreTesterForTabActions(actionName).testListenerToBeCalledOnce(initialState, expectedState);
+        createStoreTesterForTabActions(actionName).testListenerToBeCalledOnce(
+            initialState,
+            expectedState,
+        );
     });
 
-    function createStoreTesterForTabActions(actionName: keyof TabActions) {
+    function createStoreTesterForTabActions(
+        actionName: keyof TabActions,
+    ): StoreTester<VisualizationStoreData, TabActions> {
         const factory = (actions: TabActions) =>
-            new VisualizationStore(new VisualizationActions(), actions, new VisualizationConfigurationFactory());
+            new VisualizationStore(
+                new VisualizationActions(),
+                actions,
+                new InjectionActions(),
+                new VisualizationConfigurationFactory(),
+            );
 
         return new StoreTester(TabActions, actionName, factory);
     }
 
-    function createStoreTesterForVisualizationActions(actionName: keyof VisualizationActions) {
+    function createStoreTesterForVisualizationActions(
+        actionName: keyof VisualizationActions,
+    ): StoreTester<VisualizationStoreData, VisualizationActions> {
         const factory = (actions: VisualizationActions) =>
-            new VisualizationStore(actions, new TabActions(), new VisualizationConfigurationFactory());
+            new VisualizationStore(
+                actions,
+                new TabActions(),
+                new InjectionActions(),
+                new VisualizationConfigurationFactory(),
+            );
 
         return new StoreTester(VisualizationActions, actionName, factory);
+    }
+
+    function createStoreTesterForInjectionActions(
+        actionName: keyof InjectionActions,
+    ): StoreTester<VisualizationStoreData, InjectionActions> {
+        const factory = (actions: InjectionActions) =>
+            new VisualizationStore(
+                new VisualizationActions(),
+                new TabActions(),
+                actions,
+                new VisualizationConfigurationFactory(),
+            );
+
+        return new StoreTester(InjectionActions, actionName, factory);
     }
 });

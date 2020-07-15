@@ -2,15 +2,17 @@
 // Licensed under the MIT License.
 import { IMock, It, Mock, Times } from 'typemoq';
 import { IActionN } from 'typemoq/_all';
-import { getDefaultFeatureFlagValues } from '../../../../../common/feature-flags';
+import { getDefaultFeatureFlagsWeb } from '../../../../../common/feature-flags';
 import { WindowUtils } from '../../../../../common/window-utils';
 import { ClientUtils } from '../../../../../injected/client-utils';
-import { IHtmlElementAxeResults } from '../../../../../injected/scanner-utils';
+import { DialogRenderer } from '../../../../../injected/dialog-renderer';
+import { HtmlElementAxeResults } from '../../../../../injected/scanner-utils';
 import { ShadowUtils } from '../../../../../injected/shadow-utils';
-import { Drawer } from '../../../../../injected/visualization/drawer';
+import { DrawerInitData } from '../../../../../injected/visualization/drawer';
 import { DrawerUtils } from '../../../../../injected/visualization/drawer-utils';
 import { DrawerConfiguration, Formatter } from '../../../../../injected/visualization/formatter';
-import { IDrawerInitData } from '../../../../../injected/visualization/idrawer';
+import { HighlightBoxDrawer } from '../../../../../injected/visualization/highlight-box-drawer';
+import { NonTextComponentFormatter } from '../../../../../injected/visualization/non-text-component-formatter';
 import { TestDocumentCreator } from '../../../common/test-document-creator';
 
 describe('Drawer', () => {
@@ -19,19 +21,23 @@ describe('Drawer', () => {
         overflowY: null,
     } as CSSStyleDeclaration;
     const containerClass = 'drawer-test';
+    let fakeDocument: Document;
     let clientUtilsMock: IMock<ClientUtils>;
     let shadowUtilsMock: IMock<ShadowUtils>;
     let shadowContainer: HTMLElement;
     let windowStub: Window;
     let windowUtilsMock: IMock<WindowUtils>;
     beforeEach(() => {
+        fakeDocument = TestDocumentCreator.createTestDocument();
         clientUtilsMock = Mock.ofType(ClientUtils);
         windowStub = { stubWindow: true } as any;
         windowUtilsMock = Mock.ofType(WindowUtils);
-        shadowContainer = document.createElement('div');
+        shadowContainer = fakeDocument.createElement('div');
 
         shadowUtilsMock = Mock.ofType(ShadowUtils);
         shadowUtilsMock.setup(x => x.getShadowContainer()).returns(() => shadowContainer);
+
+        jest.useFakeTimers();
     });
 
     test('eraseLayout called when initialize', () => {
@@ -41,16 +47,16 @@ describe('Drawer', () => {
         const testSubject = createDrawerBuilder().build();
 
         (testSubject as any).eraseLayout = eraseLayoutMock.object;
-        testSubject.initialize({ data: [], featureFlagStoreData: getDefaultFeatureFlagValues() });
+        testSubject.initialize({ data: [], featureFlagStoreData: getDefaultFeatureFlagsWeb() });
 
         eraseLayoutMock.verifyAll();
     });
 
     test('verifyDefaultStyling', () => {
-        const dom = TestDocumentCreator.createTestDocument(`
-                <div id='id1'></div>
-                <div id='id2'></div>
-            `);
+        fakeDocument.body.innerHTML = `
+            <div id='id1'></div>
+            <div id='id2'></div>
+        `;
 
         windowUtilsMock
             .setup(it => it.getComputedStyle(It.isAny()))
@@ -62,9 +68,9 @@ describe('Drawer', () => {
         const elementResults = createElementResults(['#id1', '#id2']);
 
         const testSubject = createDrawerBuilder()
-            .setDomAndDrawerUtils(dom)
+            .setDomAndDrawerUtils(fakeDocument)
             .setWindowUtils(windowUtilsMock.object)
-            .setDrawerUtils(getDrawerUtilsMock(dom).object)
+            .setDrawerUtils(getDrawerUtilsMock(fakeDocument).object)
             .build();
 
         testSubject.initialize(createDrawerInfo(elementResults));
@@ -170,12 +176,10 @@ describe('Drawer', () => {
             .verifiable();
 
         clientUtilsMock
-            .setup(cu => cu.getOffset(elementStub))
+            .setup(cu => cu.getOffsetFromBoundingRect(elementStub.getBoundingClientRect()))
             .returns(el => {
                 return { left: 10, top: 10 };
             });
-
-        const windowUtilsMock = Mock.ofType(WindowUtils);
 
         windowUtilsMock
             .setup(it => it.getComputedStyle(bodyStub))
@@ -212,6 +216,10 @@ describe('Drawer', () => {
     });
 
     test('verifyDefaultStyling: visualizations not fully visible in client view', () => {
+        const formatterMock: IMock<NonTextComponentFormatter> = Mock.ofType(
+            NonTextComponentFormatter,
+        );
+
         const domMock: IMock<Document> = Mock.ofInstance({
             querySelectorAll: selector => {
                 return null;
@@ -259,6 +267,32 @@ describe('Drawer', () => {
                 };
             },
         } as any;
+        const boundingRect: ClientRect = {
+            left: 0,
+            right: 2003,
+            width: 2006,
+            height: 2006,
+            top: 0,
+            bottom: 2003,
+        };
+        const configStub: DrawerConfiguration = {
+            borderColor: 'rgb(255, 255, 255)',
+            textBoxConfig: {
+                fontColor: 'rgb(255, 255, 255)',
+                background: '#FFFFFF',
+                text: null,
+                boxWidth: '2em',
+            },
+            outlineStyle: 'solid',
+            showVisualization: true,
+            getBoundingRect: () => boundingRect,
+        };
+        formatterMock
+            .setup(fm => fm.getDrawerConfiguration(elementStub as HTMLElement, It.isAny()))
+            .returns(() => {
+                return configStub;
+            })
+            .verifiable(Times.once());
 
         const elementResults = createElementResults(['#id1']);
 
@@ -300,12 +334,10 @@ describe('Drawer', () => {
             .verifiable();
 
         clientUtilsMock
-            .setup(cu => cu.getOffset(elementStub))
+            .setup(cu => cu.getOffsetFromBoundingRect(boundingRect))
             .returns(_ => {
                 return { left: 0, top: 0 };
             });
-
-        const windowUtilsMock = Mock.ofType(WindowUtils);
 
         windowUtilsMock
             .setup(it => it.getComputedStyle(bodyStub))
@@ -331,12 +363,14 @@ describe('Drawer', () => {
             .setDomAndDrawerUtils(domMock.object)
             .setWindowUtils(windowUtilsMock.object)
             .setClientUtils(clientUtilsMock.object)
+            .setFormatter(formatterMock.object)
             .build();
 
         testSubject.initialize(createDrawerInfo(elementResults));
         testSubject.drawLayout();
 
         domMock.verifyAll();
+        formatterMock.verifyAll();
         shadowContainerMock.verifyAll();
         windowUtilsMock.verifyAll();
     });
@@ -416,12 +450,10 @@ describe('Drawer', () => {
         shadowContainerMock.setup(it => it.appendChild(It.isAny())).verifiable();
 
         clientUtilsMock
-            .setup(cu => cu.getOffset(elementStub))
+            .setup(cu => cu.getOffsetFromBoundingRect(elementStub.getBoundingClientRect()))
             .returns(_ => {
                 return { left: 10, top: 10 };
             });
-
-        const windowUtilsMock = Mock.ofType(WindowUtils);
 
         windowUtilsMock
             .setup(it => it.getComputedStyle(bodyStub))
@@ -547,12 +579,10 @@ describe('Drawer', () => {
             .verifiable();
 
         clientUtilsMock
-            .setup(cu => cu.getOffset(elementStub))
+            .setup(cu => cu.getOffsetFromBoundingRect(elementStub.getBoundingClientRect()))
             .returns(element => {
                 return { left: 0, top: 0 };
             });
-
-        const windowUtilsMock = Mock.ofType(WindowUtils);
 
         windowUtilsMock
             .setup(it => it.getComputedStyle(bodyStub))
@@ -677,12 +707,10 @@ describe('Drawer', () => {
             .verifiable();
 
         clientUtilsMock
-            .setup(cu => cu.getOffset(elementStub))
+            .setup(cu => cu.getOffsetFromBoundingRect(elementStub.getBoundingClientRect()))
             .returns(_ => {
                 return { left: 0, top: 0 };
             });
-
-        const windowUtilsMock = Mock.ofType(WindowUtils);
 
         windowUtilsMock
             .setup(it => it.getComputedStyle(bodyStub))
@@ -742,8 +770,6 @@ describe('Drawer', () => {
             appendChild: node => {},
         } as any);
 
-        const windowUtilsMock = Mock.ofType(WindowUtils);
-
         const testSubject = createDrawerBuilder()
             .setDomAndDrawerUtils(domMock.object)
             .setWindowUtils(windowUtilsMock.object)
@@ -758,24 +784,26 @@ describe('Drawer', () => {
     });
 
     test('verifyListenersSetupOnDraw', () => {
-        const dom = TestDocumentCreator.createTestDocument(`
-                <div id='id1'></div>
-            `);
+        fakeDocument.body.innerHTML = "<div id='id1'></div>";
 
         setupGetComputedStyleCalled();
 
         const elementResults = createElementResults(['#id1']);
 
         const testSubject = createDrawerBuilder()
-            .setDomAndDrawerUtils(dom)
+            .setDomAndDrawerUtils(fakeDocument)
             .setWindowUtils(windowUtilsMock.object)
             .build();
 
         testSubject.initialize(createDrawerInfo(elementResults));
         expect(testSubject.isOverlayEnabled).toEqual(false);
         const callbacks: any[] = [];
-        const registerHandlerFunc: typeof windowUtilsMock.object.addEventListener = (window, eventName, handler, useCapture) =>
-            callbacks.push(handler);
+        const registerHandlerFunc: typeof windowUtilsMock.object.addEventListener = (
+            window,
+            eventName,
+            handler,
+            useCapture,
+        ) => callbacks.push(handler);
 
         // draw
         windowUtilsMock.reset();
@@ -800,18 +828,15 @@ describe('Drawer', () => {
     });
 
     test('verifyListenersSetupOnErase', () => {
-        const dom = TestDocumentCreator.createTestDocument(`
-                <div id='id1'></div>
-            `);
+        fakeDocument.body.innerHTML = "<div id='id1'></div>";
 
-        const windowUtilsMock = Mock.ofType(WindowUtils);
         setupWindow();
         setupGetComputedStyleNotCalled();
 
         const elementResults = createElementResults(['#id1']);
 
         const testSubject = createDrawerBuilder()
-            .setDomAndDrawerUtils(dom)
+            .setDomAndDrawerUtils(fakeDocument)
             .setWindowUtils(windowUtilsMock.object)
             .build();
 
@@ -829,116 +854,85 @@ describe('Drawer', () => {
         windowUtilsMock.verifyAll();
     });
 
-    test('verifyResetTimerOnScrolling', () => {
-        const dom = TestDocumentCreator.createTestDocument(`
-                <div id='id1'></div>
-            `);
+    describe('verifyScrollHandlerExecution', () => {
+        [true, false].forEach(throttleTimeoutExpired => {
+            test(`throttle timeout expired: ${throttleTimeoutExpired}`, () => {
+                let drawCalledTimes = 1;
+                fakeDocument.body.innerHTML = "<div id='id1'></div>";
 
-        setupGetComputedStyleCalled();
+                setupGetComputedStyleCalled();
 
-        const elementResults = createElementResults(['#id1']);
+                const elementResults = createElementResults(['#id1']);
+                const testSubject = createDrawerBuilder()
+                    .setDomAndDrawerUtils(fakeDocument)
+                    .setWindowUtils(windowUtilsMock.object)
+                    .build();
 
-        const testSubject = createDrawerBuilder()
-            .setDomAndDrawerUtils(dom)
-            .setWindowUtils(windowUtilsMock.object)
-            .build();
+                testSubject.initialize(createDrawerInfo(elementResults));
+                expect(testSubject.isOverlayEnabled).toEqual(false);
+                let scrollCallback: Function;
+                const registerHandlerFunc: typeof windowUtilsMock.object.addEventListener = (
+                    window,
+                    eventName,
+                    handler,
+                    useCapture,
+                ) => (scrollCallback = handler);
 
-        testSubject.initialize(createDrawerInfo(elementResults));
-        expect(testSubject.isOverlayEnabled).toEqual(false);
-        let scrollCallback: Function;
-        const registerHandlerFunc: typeof windowUtilsMock.object.addEventListener = (window, eventName, handler, useCapture) =>
-            (scrollCallback = handler);
+                setupWindow();
+                setupAddEventListerCalled(registerHandlerFunc);
 
-        // draw
-        setupWindow();
-        setupAddEventListerCalled(registerHandlerFunc);
-        testSubject.drawLayout();
+                // draw
+                testSubject.drawLayout();
 
-        // invoke scroll listener
-        let timeOutCallback: Function;
-        const timeOutId = 10;
-        const registerTimeOutHandlerFunc: typeof window.setTimeout = (handler, timeout) => (timeOutCallback = handler);
+                const drawMock = Mock.ofInstance(() => {});
+                (testSubject as any).draw = drawMock.object;
 
-        windowUtilsMock.setup(x => x.clearTimeout(It.isAny())).verifiable(Times.never());
-        windowUtilsMock
-            .setup(x => x.setTimeout(It.isAny(), Drawer.recalculationTimeout))
-            .callback(registerTimeOutHandlerFunc)
-            .returns(() => timeOutId)
-            .verifiable();
+                scrollCallback();
+                if (throttleTimeoutExpired) {
+                    // Following call should not be throttled; draw is called again.
+                    jest.runAllTimers();
+                    drawCalledTimes = 2;
+                }
+                scrollCallback();
 
-        scrollCallback();
+                drawMock.setup(draw => draw()).verifiable(Times.exactly(drawCalledTimes));
 
-        windowUtilsMock.verifyAll();
-
-        // invoke scroll listener again (resets timer)
-        windowUtilsMock.reset();
-
-        windowUtilsMock.setup(x => x.clearTimeout(timeOutId)).verifiable();
-        windowUtilsMock
-            .setup(x => x.setTimeout(It.isAny(), Drawer.recalculationTimeout))
-            .callback(registerTimeOutHandlerFunc)
-            .returns(() => timeOutId)
-            .verifiable();
-        scrollCallback();
-
-        windowUtilsMock.verifyAll();
+                drawMock.verifyAll();
+                windowUtilsMock.verifyAll();
+            });
+        });
     });
 
-    test('verifyScrollHandlerExecution', () => {
-        const dom = TestDocumentCreator.createTestDocument(`
-                <div id='id1'></div>
-            `);
+    test('verifyDrawsOnlyOnceWhenEnabled', () => {
+        fakeDocument.body.innerHTML = "<div id='id1'></div>";
 
         setupGetComputedStyleCalled();
 
         const elementResults = createElementResults(['#id1']);
         const testSubject = createDrawerBuilder()
-            .setDomAndDrawerUtils(dom)
+            .setDomAndDrawerUtils(fakeDocument)
             .setWindowUtils(windowUtilsMock.object)
             .build();
 
         testSubject.initialize(createDrawerInfo(elementResults));
         expect(testSubject.isOverlayEnabled).toEqual(false);
-        let scrollCallback: Function;
-        const registerHandlerFunc: typeof windowUtilsMock.object.addEventListener = (window, eventName, handler, useCapture) =>
-            (scrollCallback = handler);
 
         setupWindow();
-        setupAddEventListerCalled(registerHandlerFunc);
 
-        // draw
+        const drawMock = Mock.ofInstance(() => {});
+        drawMock.setup(draw => draw()).verifiable(Times.once());
+        (testSubject as any).draw = drawMock.object;
+
+        testSubject.eraseLayout();
         testSubject.drawLayout();
 
-        // invoke scroll listener
-        let timeOutCallback: Function;
-        const timeOutId = 10;
-        const registerTimeOutHandlerFunc: typeof window.setTimeout = (handler, timeout) => (timeOutCallback = handler);
-
-        windowUtilsMock
-            .setup(x => x.setTimeout(It.isAny(), Drawer.recalculationTimeout))
-            .callback(registerTimeOutHandlerFunc)
-            .returns(() => timeOutId)
-            .verifiable();
-
-        scrollCallback();
-
-        // invoke timeout callback (should invoke draw)
-        const mockDraw = Mock.ofInstance(() => {});
-        mockDraw.setup(it => it()).verifiable();
-        (testSubject as any).draw = mockDraw.object;
-        timeOutCallback();
-
-        mockDraw.verifyAll();
-        windowUtilsMock.verifyAll();
+        drawMock.verifyAll();
     });
 
     test('verifyWhenElementResultsIsEmpty', () => {
-        const dom = TestDocumentCreator.createTestDocument(`
-                <div id='id1'></div>
-            `);
+        fakeDocument.body.innerHTML = "<div id='id1'></div>";
         const elementResults = [];
 
-        const windowUtilsMock = Mock.ofType(WindowUtils);
         windowUtilsMock
             .setup(it => it.getComputedStyle(It.isAny()))
             .returns(stuff => {
@@ -950,7 +944,7 @@ describe('Drawer', () => {
             .verifiable(Times.never());
 
         const testSubject = createDrawerBuilder()
-            .setDomAndDrawerUtils(dom)
+            .setDomAndDrawerUtils(fakeDocument)
             .setWindowUtils(windowUtilsMock.object)
             .build();
 
@@ -968,11 +962,8 @@ describe('Drawer', () => {
     });
 
     test('verifyWhenNoElementsFoundForSelectors', () => {
-        const dom = TestDocumentCreator.createTestDocument(`
-                <div id='id1'></div>
-            `);
+        fakeDocument.body.innerHTML = "<div id='id1'></div>";
 
-        const windowUtilsMock = Mock.ofType(WindowUtils);
         windowUtilsMock
             .setup(it => it.getComputedStyle(It.isAny()))
             .returns(stuff => {
@@ -986,7 +977,7 @@ describe('Drawer', () => {
         const elementResults = createElementResults(['#id2']);
 
         const testSubject = createDrawerBuilder()
-            .setDomAndDrawerUtils(dom)
+            .setDomAndDrawerUtils(fakeDocument)
             .setWindowUtils(windowUtilsMock.object)
             .build();
 
@@ -1003,10 +994,10 @@ describe('Drawer', () => {
     });
 
     test('verifyRemoveLayout', () => {
-        const dom = TestDocumentCreator.createTestDocument(`
-                <div id='id1'></div>
-                <div id='id2'></div>
-            `);
+        fakeDocument.body.innerHTML = `
+            <div id='id1'></div>
+            <div id='id2'></div>
+        `;
 
         setupWindow();
         setupGetComputedStyleCalled();
@@ -1014,7 +1005,7 @@ describe('Drawer', () => {
         const elementResults = createElementResults(['#id1', '#id2']);
 
         const testSubject = createDrawerBuilder()
-            .setDomAndDrawerUtils(dom)
+            .setDomAndDrawerUtils(fakeDocument)
             .setWindowUtils(windowUtilsMock.object)
             .build();
 
@@ -1022,7 +1013,7 @@ describe('Drawer', () => {
 
         const anotherDrawer = createDrawerBuilder()
             .setContainerClass('anotherDrawer')
-            .setDomAndDrawerUtils(dom)
+            .setDomAndDrawerUtils(fakeDocument)
             .setWindowUtils(windowUtilsMock.object)
             .build();
 
@@ -1045,10 +1036,11 @@ describe('Drawer', () => {
     });
 
     test('verifyRedraw', () => {
-        const dom = TestDocumentCreator.createTestDocument(`
-                <div id='id1'></div>
-                <div id='id2'></div>
-            `);
+        fakeDocument.body.innerHTML = `
+            <div id='id1'></div>
+            <div id='id2'></div>
+        `;
+
         const elementResults = createElementResults(['#id1', '#id2']);
 
         windowUtilsMock
@@ -1059,16 +1051,16 @@ describe('Drawer', () => {
             .verifiable(Times.atLeastOnce());
 
         const testSubject = createDrawerBuilder()
-            .setDomAndDrawerUtils(dom)
+            .setDomAndDrawerUtils(fakeDocument)
             .setWindowUtils(windowUtilsMock.object)
-            .setDrawerUtils(getDrawerUtilsMock(dom).object)
+            .setDrawerUtils(getDrawerUtilsMock(fakeDocument).object)
             .build();
 
         testSubject.initialize(createDrawerInfo(elementResults));
 
         const anotherDrawer = createDrawerBuilder()
             .setContainerClass('anotherDrawer')
-            .setDomAndDrawerUtils(dom)
+            .setDomAndDrawerUtils(fakeDocument)
             .setWindowUtils(windowUtilsMock.object)
             .build();
         anotherDrawer.initialize(createDrawerInfo(elementResults));
@@ -1098,12 +1090,12 @@ describe('Drawer', () => {
     });
 
     test('verifyFormatter', () => {
-        const dom = TestDocumentCreator.createTestDocument(`
-                <div id='id1'></div>
-                <div id='id2'></div>
-                <div id='id3'></div>
-                <div id='id4'></div>
-            `);
+        fakeDocument.body.innerHTML = `
+            <div id='id1'></div>
+            <div id='id2'></div>
+            <div id='id3'></div>
+            <div id='id4'></div>
+        `;
 
         const element1Config: DrawerConfiguration = {
             borderColor: 'rgb(12, 13, 14)',
@@ -1153,7 +1145,7 @@ describe('Drawer', () => {
                 throw new Error('Not implemented');
             }
 
-            public getDialogRenderer() {
+            public getDialogRenderer(): DialogRenderer {
                 return null;
             }
         }
@@ -1168,10 +1160,12 @@ describe('Drawer', () => {
 
         const elementResults = createElementResults(['#id1', '#id2', '#id3', '#id4']);
 
-        function addMockForElement(selector: string, config: DrawerConfiguration) {
+        function addMockForElement(selector: string, config: DrawerConfiguration): void {
             const elementResult = elementResults.filter(el => el.target[0] === selector)[0];
             formatterMock
-                .setup(it => it.getDrawerConfiguration(dom.querySelector(selector), elementResult))
+                .setup(it =>
+                    it.getDrawerConfiguration(fakeDocument.querySelector(selector), elementResult),
+                )
                 .returns(() => config)
                 .verifiable();
         }
@@ -1181,10 +1175,10 @@ describe('Drawer', () => {
         addMockForElement('#id4', element4Config);
 
         const testSubject = createDrawerBuilder()
-            .setDomAndDrawerUtils(dom)
+            .setDomAndDrawerUtils(fakeDocument)
             .setFormatter(formatterMock.object)
             .setWindowUtils(windowUtilsMock.object)
-            .setDrawerUtils(getDrawerUtilsMock(dom).object)
+            .setDrawerUtils(getDrawerUtilsMock(fakeDocument).object)
             .build();
         testSubject.initialize(createDrawerInfo(elementResults));
 
@@ -1203,20 +1197,19 @@ describe('Drawer', () => {
         verifyOverlayStyle(overlays[2], element4Config);
     });
 
-    function createDrawerInfo<T>(elementResults: T[]): IDrawerInitData<T> {
+    function createDrawerInfo<T>(elementResults: T[]): DrawerInitData<T> {
         return {
             data: elementResults,
-            featureFlagStoreData: getDefaultFeatureFlagValues(),
+            featureFlagStoreData: getDefaultFeatureFlagsWeb(),
         };
     }
 
-    function createElementResults(ids: string[]): IHtmlElementAxeResults[] {
+    function createElementResults(ids: string[]): HtmlElementAxeResults[] {
         return ids.map(id => {
             return {
                 ruleResults: {},
                 target: [id],
                 targetIndex: 0,
-                isVisible: true,
             };
         });
     }
@@ -1224,12 +1217,14 @@ describe('Drawer', () => {
     function getDrawerUtilsMock(dom): IMock<DrawerUtils> {
         const drawerUtilsMock = Mock.ofType(DrawerUtils);
         drawerUtilsMock
-            .setup(dm => dm.isOutsideOfDocument(It.isAny(), dom.ownerDocument, defaultStyleStub, defaultStyleStub))
+            .setup(dm =>
+                dm.isOutsideOfDocument(It.isAny(), dom, defaultStyleStub, defaultStyleStub),
+            )
             .returns(() => false)
             .verifiable(Times.atLeastOnce());
         drawerUtilsMock
             .setup(dm => dm.getDocumentElement())
-            .returns(() => dom.ownerDocument)
+            .returns(() => dom)
             .verifiable(Times.atLeastOnce());
         drawerUtilsMock
             .setup(dm => dm.getContainerTopOffset(It.isAny()))
@@ -1240,11 +1235,27 @@ describe('Drawer', () => {
             .returns(() => 5)
             .verifiable(Times.atLeastOnce());
         drawerUtilsMock
-            .setup(dm => dm.getContainerWidth(It.isAny(), dom.ownerDocument, It.isAnyNumber(), defaultStyleStub, defaultStyleStub))
+            .setup(dm =>
+                dm.getContainerWidth(
+                    It.isAny(),
+                    dom,
+                    It.isAnyNumber(),
+                    defaultStyleStub,
+                    defaultStyleStub,
+                ),
+            )
             .returns(() => 0)
             .verifiable(Times.atLeastOnce());
         drawerUtilsMock
-            .setup(dm => dm.getContainerHeight(It.isAny(), dom.ownerDocument, It.isAnyNumber(), defaultStyleStub, defaultStyleStub))
+            .setup(dm =>
+                dm.getContainerHeight(
+                    It.isAny(),
+                    dom,
+                    It.isAnyNumber(),
+                    defaultStyleStub,
+                    defaultStyleStub,
+                ),
+            )
             .returns(() => 0)
             .verifiable(Times.atLeastOnce());
         return drawerUtilsMock;
@@ -1252,7 +1263,7 @@ describe('Drawer', () => {
 
     function verifyOverlayStyle(
         overlay: { container: HTMLDivElement; label: HTMLDivElement; failureLabel: HTMLDivElement },
-        drawerConfig: DrawerConfiguration = Drawer.defaultConfiguration,
+        drawerConfig: DrawerConfiguration = HighlightBoxDrawer.defaultConfiguration,
     ): void {
         expect(overlay.container.style.outlineStyle).toEqual(drawerConfig.outlineStyle);
         expect(overlay.container.style.outlineColor).toEqual(drawerConfig.borderColor);
@@ -1278,8 +1289,16 @@ describe('Drawer', () => {
         }
     }
 
-    function findCurrentDrawerOverlays(): { container: HTMLDivElement; label: HTMLDivElement; failureLabel: HTMLDivElement }[] {
-        const overlays: { container: HTMLDivElement; label: HTMLDivElement; failureLabel: HTMLDivElement }[] = [];
+    function findCurrentDrawerOverlays(): {
+        container: HTMLDivElement;
+        label: HTMLDivElement;
+        failureLabel: HTMLDivElement;
+    }[] {
+        const overlays: {
+            container: HTMLDivElement;
+            label: HTMLDivElement;
+            failureLabel: HTMLDivElement;
+        }[] = [];
         const containers = shadowContainer.querySelectorAll(
             `.insights-container.insights-highlight-container.${containerClass} .insights-highlight-box`,
         );
@@ -1288,18 +1307,20 @@ describe('Drawer', () => {
             overlays.push({
                 container: containers[containerPos] as HTMLDivElement,
                 label: containers[containerPos].querySelector('div') as HTMLDivElement,
-                failureLabel: containers[containerPos].querySelector('.failure-label') as HTMLDivElement,
+                failureLabel: containers[containerPos].querySelector(
+                    '.failure-label',
+                ) as HTMLDivElement,
             });
         }
         return overlays;
     }
 
-    function findAllOverlayContainers() {
+    function findAllOverlayContainers(): NodeListOf<Element> {
         return shadowContainer.querySelectorAll('.insights-container');
     }
 
     class DrawerBuilder {
-        private dom: NodeSelector & Node;
+        private dom: Document;
         private containerClass: string = containerClass;
         private windowUtils: WindowUtils;
         private drawerUtils: DrawerUtils;
@@ -1325,7 +1346,7 @@ describe('Drawer', () => {
             return this;
         }
 
-        public setDomAndDrawerUtils(dom: NodeSelector & Node): DrawerBuilder {
+        public setDomAndDrawerUtils(dom: Document): DrawerBuilder {
             this.dom = dom;
             this.drawerUtils = new DrawerUtils(dom);
             return this;
@@ -1341,8 +1362,8 @@ describe('Drawer', () => {
             return this;
         }
 
-        public build(): Drawer {
-            return new Drawer(
+        public build(): HighlightBoxDrawer {
+            return new HighlightBoxDrawer(
                 this.dom,
                 this.containerClass,
                 this.windowUtils,
@@ -1358,15 +1379,15 @@ describe('Drawer', () => {
         return new DrawerBuilder(shadowUtilsMock.object);
     }
 
-    function setupWindow() {
+    function setupWindow(): void {
         windowUtilsMock.setup(w => w.getWindow()).returns(() => windowStub);
     }
 
-    function setupGetComputedStyleNotCalled() {
+    function setupGetComputedStyleNotCalled(): void {
         windowUtilsMock.setup(it => it.getComputedStyle(It.isAny())).verifiable(Times.never());
     }
 
-    function setupGetComputedStyleCalled() {
+    function setupGetComputedStyleCalled(): void {
         windowUtilsMock
             .setup(it => it.getComputedStyle(It.isAny()))
             .returns(stuff => {
@@ -1378,17 +1399,25 @@ describe('Drawer', () => {
             .verifiable(Times.atLeastOnce());
     }
 
-    function setupRemoveEventListerCalled() {
-        windowUtilsMock.setup(x => x.removeEventListener(windowStub, 'resize', It.isAny(), true)).verifiable();
-        windowUtilsMock.setup(x => x.removeEventListener(windowStub, 'scroll', It.isAny(), true)).verifiable();
+    function setupRemoveEventListerCalled(): void {
+        windowUtilsMock
+            .setup(x => x.removeEventListener(windowStub, 'resize', It.isAny(), true))
+            .verifiable();
+        windowUtilsMock
+            .setup(x => x.removeEventListener(windowStub, 'scroll', It.isAny(), true))
+            .verifiable();
     }
 
-    function setupRemoveEventListerNotCalled() {
-        windowUtilsMock.setup(x => x.removeEventListener(windowStub, 'resize', It.isAny(), true)).verifiable(Times.never());
-        windowUtilsMock.setup(x => x.removeEventListener(windowStub, 'scroll', It.isAny(), true)).verifiable(Times.never());
+    function setupRemoveEventListerNotCalled(): void {
+        windowUtilsMock
+            .setup(x => x.removeEventListener(windowStub, 'resize', It.isAny(), true))
+            .verifiable(Times.never());
+        windowUtilsMock
+            .setup(x => x.removeEventListener(windowStub, 'scroll', It.isAny(), true))
+            .verifiable(Times.never());
     }
 
-    function setupAddEventListerCalled(callback: IActionN<any>) {
+    function setupAddEventListerCalled(callback: IActionN<any>): void {
         windowUtilsMock
             .setup(x => x.addEventListener(windowStub, 'resize', It.isAny(), true))
             .callback(callback)
@@ -1399,8 +1428,12 @@ describe('Drawer', () => {
             .verifiable();
     }
 
-    function setupAddEventListerNotCalled() {
-        windowUtilsMock.setup(x => x.addEventListener(windowStub, 'resize', It.isAny(), It.isAny())).verifiable(Times.never());
-        windowUtilsMock.setup(x => x.addEventListener(windowStub, 'scroll', It.isAny(), It.isAny())).verifiable(Times.never());
+    function setupAddEventListerNotCalled(): void {
+        windowUtilsMock
+            .setup(x => x.addEventListener(windowStub, 'resize', It.isAny(), It.isAny()))
+            .verifiable(Times.never());
+        windowUtilsMock
+            .setup(x => x.addEventListener(windowStub, 'scroll', It.isAny(), It.isAny()))
+            .verifiable(Times.never());
     }
 });

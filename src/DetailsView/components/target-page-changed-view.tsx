@@ -1,36 +1,33 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
-import { Toggle } from 'office-ui-fabric-react/lib/Toggle';
+import * as commonStaticStyles from 'DetailsView/components/static-content-common.scss';
+import * as styles from 'DetailsView/components/target-page-changed-view.scss';
 import * as React from 'react';
 
-import { IDisplayableVisualizationTypeData } from '../../common/configs/visualization-configuration-factory';
+import { DisplayableVisualizationTypeData } from '../../common/configs/visualization-configuration-factory';
+import { NamedFC } from '../../common/react/named-fc';
 import { VisualizationType } from '../../common/types/visualization-type';
 
 export interface TargetPageChangedViewProps {
-    type: VisualizationType;
-    displayableData: IDisplayableVisualizationTypeData;
+    visualizationType: VisualizationType;
+    displayableData: DisplayableVisualizationTypeData;
     toggleClickHandler: (event) => void;
 }
 
-export class TargetPageChangedView extends React.Component<TargetPageChangedViewProps, {}> {
-    public render(): JSX.Element {
-        const data = this.props.displayableData;
-        const title = data ? data.title : '';
-        const label = data ? data.toggleLabel : '';
+export const TargetPageChangedView = NamedFC<TargetPageChangedViewProps>(
+    'TargetPageChangedView',
+    props => {
+        const { title = '', subtitle } = props.displayableData;
+
+        const startOverText =
+            'The target page has changed. Use the start over button to scan the new target page.';
 
         return (
-            <div className="target-page-changed">
+            <div className={commonStaticStyles.staticContentInDetailsView}>
                 <h1>{title}</h1>
-                <Toggle
-                    onText="On"
-                    offText="Off"
-                    checked={false}
-                    onClick={this.props.toggleClickHandler}
-                    label={label}
-                    className="details-view-toggle"
-                />
-                <p>The target page was changed. Use the toggle to enable the visualization in the current target page.</p>
+                <div className={styles.targetPageChangedSubtitle}>{subtitle}</div>
+                <p>{startOverText}</p>
             </div>
         );
-    }
-}
+    },
+);

@@ -1,39 +1,41 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
-import { autobind } from '@uifabric/utilities';
-import * as _ from 'lodash';
+import { isEqual } from 'lodash';
 
-import { ClientChromeAdapter } from './client-browser-adapter';
+import { BaseStore } from './base-store';
+import { BrowserAdapter } from './browser-adapters/browser-adapter';
 import { GenericStoreMessageTypes } from './constants/generic-store-messages-types';
 import { Store } from './flux/store';
-import { IBaseStore } from './istore';
 import { StoreType } from './types/store-type';
 import { StoreUpdateMessage } from './types/store-update-message';
 
-export class StoreProxy<TState> extends Store implements IBaseStore<TState> {
-    private _state: TState;
-    private _storeId: string;
-    private _tabId: number;
-    private _clientChomeAdapter: ClientChromeAdapter;
+export class StoreProxy<TState> extends Store implements BaseStore<TState> {
+    private state: TState;
+    private storeId: string;
+    private tabId: number;
+    private browserAdapter: BrowserAdapter;
 
-    constructor(storeId: string, chromeAdapter: ClientChromeAdapter) {
+    constructor(storeId: string, browserAdapter: BrowserAdapter, tabId: number = null) {
         super();
-        this._storeId = storeId;
-        this._clientChomeAdapter = chromeAdapter;
-        this._clientChomeAdapter.addListenerOnMessage(this.onChange);
+        this.storeId = storeId;
+        this.browserAdapter = browserAdapter;
+        this.tabId = tabId;
+        this.browserAdapter.addListenerOnMessage(this.onChange);
     }
 
-    @autobind
-    private onChange(message: StoreUpdateMessage<TState>): void {
+    private onChange = (message: StoreUpdateMessage<TState>): void => {
         if (!this.isValidMessage(message)) {
             return;
         }
 
-        if (message.type === GenericStoreMessageTypes.storeStateChanged && !_.isEqual(this._state, message.payload)) {
-            this._state = message.payload;
+        if (
+            message.messageType === GenericStoreMessageTypes.storeStateChanged &&
+            !isEqual(this.state, message.payload)
+        ) {
+            this.state = message.payload;
             this.emitChanged();
         }
-    }
+    };
 
     private isValidMessage(message: StoreUpdateMessage<TState>): boolean {
         return (
@@ -45,7 +47,7 @@ export class StoreProxy<TState> extends Store implements IBaseStore<TState> {
 
     private isMessageForCurrentTab(message: StoreUpdateMessage<TState>): boolean {
         return (
-            this._tabId == null || message.tabId === this._tabId // tabid will be null on inital state in content script of target page
+            this.tabId == null || message.tabId === this.tabId // tabid will be null on inital state in content script of target page
         );
     }
 
@@ -53,20 +55,15 @@ export class StoreProxy<TState> extends Store implements IBaseStore<TState> {
         return message.payload && message.storeId === this.getId();
     }
 
-    @autobind
-    public getState(): TState {
-        return this._state;
-    }
+    public getState = (): TState => {
+        return this.state;
+    };
 
     public getId(): string {
-        return this._storeId;
-    }
-
-    public setTabId(tabId: number): void {
-        this._tabId = tabId;
+        return this.storeId;
     }
 
     public dispose(): void {
-        this._clientChomeAdapter.removeListenerOnMessage(this.onChange);
+        this.browserAdapter.removeListenerOnMessage(this.onChange);
     }
 }

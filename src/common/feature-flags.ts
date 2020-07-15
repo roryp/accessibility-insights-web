@@ -1,20 +1,21 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
-import * as _ from 'lodash';
 
-import { FeatureFlagStoreData } from './types/store-data/feature-flag-store-data';
+import { FeatureFlagDefaultsHelper } from 'common/feature-flag-defaults-helper';
+import { FeatureFlagStoreData } from 'common/types/store-data/feature-flag-store-data';
 
 export class FeatureFlags {
     public static readonly logTelemetryToConsole = 'logTelemetryToConsole';
-    public static readonly newAssessmentExperience = 'newAssessmentExperience';
     public static readonly showAllAssessments = 'showAllAssessments';
     public static readonly shadowDialog = 'shadowDialog';
-    public static readonly exportResult = 'exportResult';
     public static readonly showAllFeatureFlags = 'showAllFeatureFlags';
     public static readonly scoping = 'scoping';
-    public static readonly showBugFiling = 'showBugFiling';
     public static readonly showInstanceVisibility = 'showInstanceVisibility';
-    public static readonly highContrastMode = 'highContrastMode';
+    public static readonly manualInstanceDetails = 'manualInstanceDetails';
+    public static readonly debugTools = 'debugTools';
+    public static readonly reflowUI = 'reflowUI';
+    public static readonly exportReportOptions = 'exportReportOptions';
+    public static readonly needsReview = 'needsReview';
 }
 
 export interface FeatureFlagDetail {
@@ -29,14 +30,6 @@ export interface FeatureFlagDetail {
 export function getAllFeatureFlagDetails(): FeatureFlagDetail[] {
     return [
         {
-            id: FeatureFlags.exportResult,
-            defaultValue: true,
-            displayableName: 'Export automated checks',
-            displayableDescription: 'Allows you to export a summary of automated check results as a sharable HTML file.',
-            isPreviewFeature: false,
-            forceDefault: true,
-        },
-        {
             id: FeatureFlags.shadowDialog,
             defaultValue: false,
             displayableName: 'Improved dialog styling',
@@ -45,14 +38,6 @@ export function getAllFeatureFlagDetails(): FeatureFlagDetail[] {
                 "(You'll need to refresh the target page to see the new dialog styling.)",
             isPreviewFeature: false,
             forceDefault: false,
-        },
-        {
-            id: FeatureFlags.newAssessmentExperience,
-            defaultValue: true,
-            displayableName: 'New assessment experience',
-            displayableDescription: 'Show new Assessment pivot and manual assisted test experiences under development.',
-            isPreviewFeature: false,
-            forceDefault: true,
         },
         {
             id: FeatureFlags.showAllAssessments,
@@ -66,7 +51,8 @@ export function getAllFeatureFlagDetails(): FeatureFlagDetail[] {
             id: FeatureFlags.logTelemetryToConsole,
             defaultValue: false,
             displayableName: 'Log telemetry to console',
-            displayableDescription: 'Write telemetry payload information to the developer tools console.',
+            displayableDescription:
+                'Write telemetry payload information to the developer tools console.',
             isPreviewFeature: false,
             forceDefault: false,
         },
@@ -82,17 +68,10 @@ export function getAllFeatureFlagDetails(): FeatureFlagDetail[] {
             id: FeatureFlags.scoping,
             defaultValue: false,
             displayableName: 'Scoping experience',
-            displayableDescription: 'Enable scoping to limit scanning to selected portions of the webpage.',
+            displayableDescription:
+                'Enable scoping to limit scanning to selected portions of the webpage.',
             isPreviewFeature: false,
             forceDefault: false,
-        },
-        {
-            id: FeatureFlags.showBugFiling,
-            defaultValue: true,
-            displayableName: 'Issue filing',
-            displayableDescription: 'Enable File Issue buttons that allow you to create GitHub issues pre-populated with failure details.',
-            isPreviewFeature: false,
-            forceDefault: true,
         },
         {
             id: FeatureFlags.showInstanceVisibility,
@@ -105,32 +84,53 @@ export function getAllFeatureFlagDetails(): FeatureFlagDetail[] {
             forceDefault: false,
         },
         {
-            id: FeatureFlags.highContrastMode,
-            defaultValue: true,
-            displayableName: 'High contrast mode',
-            displayableDescription: 'Show setting for high contrast mode under development',
+            id: FeatureFlags.manualInstanceDetails,
+            defaultValue: false,
+            displayableName: 'Enable manual instance details',
+            displayableDescription:
+                'Allow addition of path (CSS selector) which automatically ' +
+                'populates the corresponding code snippet when adding manual failure instance.',
             isPreviewFeature: false,
-            forceDefault: true,
+            forceDefault: false,
+        },
+        {
+            id: FeatureFlags.debugTools,
+            defaultValue: false,
+            displayableName: 'Enable debug tools',
+            displayableDescription:
+                'Click on the new icon close to the gear to open the debug tools',
+            isPreviewFeature: false,
+            forceDefault: false,
+        },
+        {
+            id: FeatureFlags.exportReportOptions,
+            defaultValue: false,
+            displayableName: 'More export options',
+            displayableDescription: 'Enables exporting reports to external services',
+            isPreviewFeature: true,
+            forceDefault: false,
+        },
+        {
+            id: FeatureFlags.reflowUI,
+            defaultValue: true,
+            displayableName: 'Reflow UI',
+            displayableDescription:
+                'Enables new UX to allow for better reflow of application content and UI elements.',
+            isPreviewFeature: false,
+            forceDefault: false,
+        },
+        {
+            id: FeatureFlags.needsReview,
+            defaultValue: false,
+            displayableName: 'Needs review',
+            displayableDescription:
+                'Enable a new test to show automated check rules that might have an accessibility issue and need to be reviewed.',
+            isPreviewFeature: false,
+            forceDefault: false,
         },
     ];
 }
 
-export function getDefaultFeatureFlagValues(): FeatureFlagStoreData {
-    const details: FeatureFlagDetail[] = getAllFeatureFlagDetails();
-    const values: FeatureFlagStoreData = {};
-    _.forEach(details, detail => {
-        values[detail.id] = detail.defaultValue;
-    });
-    return values;
-}
-
-export function getForceDefaultFlags(): FeatureFlags[] {
-    const details: FeatureFlagDetail[] = getAllFeatureFlagDetails();
-    const forceDefaultFlags: FeatureFlags[] = [];
-    _.forEach(details, detail => {
-        if (detail.forceDefault) {
-            forceDefaultFlags.push(detail.id);
-        }
-    });
-    return forceDefaultFlags;
+export function getDefaultFeatureFlagsWeb(): FeatureFlagStoreData {
+    return new FeatureFlagDefaultsHelper(getAllFeatureFlagDetails).getDefaultFeatureFlagValues();
 }

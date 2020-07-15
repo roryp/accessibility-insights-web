@@ -1,8 +1,9 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
-import { DevToolActions } from '../../../../../background/actions/dev-tools-actions';
-import { DevToolStore } from '../../../../../background/stores/dev-tools-store';
+import { DevToolActions } from 'background/actions/dev-tools-actions';
+import { DevToolStore } from 'background/stores/dev-tools-store';
 import { StoreNames } from '../../../../../common/stores/store-names';
+import { DevToolStoreData } from '../../../../../common/types/store-data/dev-tool-store-data';
 import { createStoreWithNullParams, StoreTester } from '../../../common/store-tester';
 
 describe('DevToolsStoreTest', () => {
@@ -20,7 +21,10 @@ describe('DevToolsStoreTest', () => {
         const initialState = getDefaultState();
         const expectedState = getDefaultState();
 
-        createStoreTesterForDevToolsActions('getCurrentState').testListenerToBeCalledOnce(initialState, expectedState);
+        createStoreTesterForDevToolsActions('getCurrentState').testListenerToBeCalledOnce(
+            initialState,
+            expectedState,
+        );
     });
 
     test('on setDevToolState, isOpen value change', () => {
@@ -53,13 +57,14 @@ describe('DevToolsStoreTest', () => {
 
         const payload = ['#frame1', '#elem1'];
 
-        const exepctedState = getDefaultState();
-        exepctedState.inspectElement = payload;
-        exepctedState.frameUrl = null;
+        const expectedState = getDefaultState();
+        expectedState.inspectElement = payload;
+        expectedState.frameUrl = null;
+        expectedState.inspectElementRequestId = 1;
 
         createStoreTesterForDevToolsActions('setInspectElement')
             .withActionParam(payload)
-            .testListenerToBeCalledOnce(initialState, exepctedState);
+            .testListenerToBeCalledOnce(initialState, expectedState);
     });
 
     test('on setFrameUrl', () => {
@@ -75,11 +80,13 @@ describe('DevToolsStoreTest', () => {
             .testListenerToBeCalledOnce(initialState, expectedState);
     });
 
-    function getDefaultState() {
+    function getDefaultState(): DevToolStoreData {
         return new DevToolStore(null).getDefaultState();
     }
 
-    function createStoreTesterForDevToolsActions(actionName: keyof DevToolActions) {
+    function createStoreTesterForDevToolsActions(
+        actionName: keyof DevToolActions,
+    ): StoreTester<DevToolStoreData, DevToolActions> {
         const factory = (actions: DevToolActions) => new DevToolStore(actions);
 
         return new StoreTester(DevToolActions, actionName, factory);

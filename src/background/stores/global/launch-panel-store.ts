@@ -1,31 +1,25 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
-import { autobind } from '@uifabric/utilities';
-
-import { StoreNames } from '../../../common/stores/store-names';
-import { ILaunchPanelStoreData } from '../../../common/types/store-data/ilaunch-panel-store-data';
-import { LaunchPanelType } from '../../../popup/scripts/components/popup-view';
-import { BrowserAdapter } from '../../browser-adapter';
+import { StorageAdapter } from 'common/browser-adapters/storage-adapter';
+import { StoreNames } from 'common/stores/store-names';
+import { LaunchPanelStoreData } from 'common/types/store-data/launch-panel-store-data';
+import { LaunchPanelType } from 'popup/components/popup-view';
 import { LocalStorageDataKeys } from '../../local-storage-data-keys';
-import { ILocalStorageData } from '../../storage-data';
-import { BaseStore } from '../base-store';
+import { LocalStorageData } from '../../storage-data';
+import { BaseStoreImpl } from '../base-store-impl';
 import { LaunchPanelStateActions } from './../../actions/launch-panel-state-action';
 
-export class LaunchPanelStore extends BaseStore<ILaunchPanelStoreData> {
-    private launchPanelStateActions: LaunchPanelStateActions;
-    private browserAdapter: BrowserAdapter;
-    private userData: ILocalStorageData;
-
-    constructor(launchPanelStateActions: LaunchPanelStateActions, browserAdapter: BrowserAdapter, userData: ILocalStorageData) {
+export class LaunchPanelStore extends BaseStoreImpl<LaunchPanelStoreData> {
+    constructor(
+        private readonly launchPanelStateActions: LaunchPanelStateActions,
+        private readonly storageAdapter: StorageAdapter,
+        private readonly userData: LocalStorageData,
+    ) {
         super(StoreNames.LaunchPanelStateStore);
-
-        this.launchPanelStateActions = launchPanelStateActions;
-        this.browserAdapter = browserAdapter;
-        this.userData = userData;
     }
 
-    public getDefaultState(): ILaunchPanelStoreData {
-        const defaultValues: ILaunchPanelStoreData = {
+    public getDefaultState(): LaunchPanelStoreData {
+        const defaultValues: LaunchPanelStoreData = {
             launchPanelType: LaunchPanelType.LaunchPad,
         };
 
@@ -42,10 +36,11 @@ export class LaunchPanelStore extends BaseStore<ILaunchPanelStoreData> {
         this.launchPanelStateActions.getCurrentState.addListener(this.onGetCurrentState);
     }
 
-    @autobind
-    private onSetLaunchPanelType(type: LaunchPanelType): void {
-        this.state.launchPanelType = type;
-        this.browserAdapter.setUserData({ [LocalStorageDataKeys.launchPanelSetting]: type });
+    private onSetLaunchPanelType = (panelType: LaunchPanelType): void => {
+        this.state.launchPanelType = panelType;
+        this.storageAdapter
+            .setUserData({ [LocalStorageDataKeys.launchPanelSetting]: panelType })
+            .catch(console.error);
         this.emitChanged();
-    }
+    };
 }

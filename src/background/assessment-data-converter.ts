@@ -1,19 +1,20 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
-import * as _ from 'lodash/index';
+import { forOwn, isEmpty } from 'lodash';
 
 import { ManualTestStatus } from '../common/types/manual-test-status';
-import { IPartialTabOrderPropertyBag } from '../injected/tab-order-property-bag';
-import { ITabStopEvent } from '../injected/tab-stops-listener';
 import {
-    IAssessmentInstancesMap,
-    IGeneratedAssessmentInstance,
-    IManualTestStepResult,
-    ITestStepResult,
-    IUserCapturedInstance,
-} from './../common/types/store-data/iassessment-result-data.d';
-import { DecoratedAxeNodeResult, IHtmlElementAxeResults } from './../injected/scanner-utils';
-import { IUniquelyIdentifiableInstances } from './instance-identifier-generator';
+    AssessmentInstancesMap,
+    GeneratedAssessmentInstance,
+    ManualTestStepResult,
+    TestStepResult,
+    UserCapturedInstance,
+} from '../common/types/store-data/assessment-result-data';
+import { DecoratedAxeNodeResult, HtmlElementAxeResults } from '../injected/scanner-utils';
+import { PartialTabOrderPropertyBag } from '../injected/tab-order-property-bag';
+import { TabStopEvent } from '../injected/tab-stops-listener';
+import { DictionaryStringTo } from '../types/common-types';
+import { UniquelyIdentifiableInstances } from './instance-identifier-generator';
 
 export class AssessmentDataConverter {
     private generateUID: () => string;
@@ -23,23 +24,27 @@ export class AssessmentDataConverter {
     }
 
     public generateAssessmentInstancesMap(
-        previouslyGeneratedInstances: IAssessmentInstancesMap,
-        selectorMap: DictionaryStringTo<IHtmlElementAxeResults>,
+        previouslyGeneratedInstances: AssessmentInstancesMap,
+        selectorMap: DictionaryStringTo<HtmlElementAxeResults>,
         stepName: string,
-        generateInstanceIdentifier: (instance: IUniquelyIdentifiableInstances) => string,
+        generateInstanceIdentifier: (instance: UniquelyIdentifiableInstances) => string,
         getInstanceStatus: (result: DecoratedAxeNodeResult) => ManualTestStatus,
-    ): IAssessmentInstancesMap {
-        let instancesMap: IAssessmentInstancesMap = {};
+        isVisualizationSupported: (result: DecoratedAxeNodeResult) => boolean,
+    ): AssessmentInstancesMap {
+        let instancesMap: AssessmentInstancesMap = {};
 
         if (previouslyGeneratedInstances != null) {
             instancesMap = previouslyGeneratedInstances;
         }
 
-        _.forOwn(selectorMap, elementAxeResult => {
+        forOwn(selectorMap, elementAxeResult => {
             const rule = Object.keys(elementAxeResult.ruleResults).pop();
             if (rule) {
                 const ruleResult = elementAxeResult.ruleResults[rule];
-                const identifier = generateInstanceIdentifier({ target: elementAxeResult.target, html: ruleResult.html });
+                const identifier = generateInstanceIdentifier({
+                    target: elementAxeResult.target,
+                    html: ruleResult.html,
+                });
                 const matchingInstance = instancesMap[identifier];
                 instancesMap[identifier] = this.getInitialAssessmentInstance(
                     matchingInstance,
@@ -47,6 +52,7 @@ export class AssessmentDataConverter {
                     stepName,
                     ruleResult,
                     getInstanceStatus,
+                    isVisualizationSupported,
                 );
             }
         });
@@ -55,12 +61,12 @@ export class AssessmentDataConverter {
     }
 
     public generateAssessmentInstancesMapForEvents(
-        previouslyGeneratedInstances: IAssessmentInstancesMap,
-        events: ITabStopEvent[],
+        previouslyGeneratedInstances: AssessmentInstancesMap,
+        events: TabStopEvent[],
         stepName: string,
-        generateInstanceIdentifier: (instance: IUniquelyIdentifiableInstances) => string,
-    ): IAssessmentInstancesMap {
-        let instancesMap: IAssessmentInstancesMap = {};
+        generateInstanceIdentifier: (instance: UniquelyIdentifiableInstances) => string,
+    ): AssessmentInstancesMap {
+        let instancesMap: AssessmentInstancesMap = {};
 
         if (previouslyGeneratedInstances != null) {
             instancesMap = previouslyGeneratedInstances;
@@ -69,13 +75,18 @@ export class AssessmentDataConverter {
         events.forEach(event => {
             const identifier = generateInstanceIdentifier(event);
             const matchingInstance = instancesMap[identifier];
-            instancesMap[identifier] = this.getInitialAssessmentFromEvent(matchingInstance, event, stepName, event.target.join(';'));
+            instancesMap[identifier] = this.getInitialAssessmentFromEvent(
+                matchingInstance,
+                event,
+                stepName,
+                event.target.join(';'),
+            );
         });
 
         return instancesMap;
     }
 
-    public getNewManualTestStepResult(step: string): IManualTestStepResult {
+    public getNewManualTestStepResult(step: string): ManualTestStepResult {
         return {
             status: ManualTestStatus.UNKNOWN,
             id: step,
@@ -84,12 +95,13 @@ export class AssessmentDataConverter {
     }
 
     private getInitialAssessmentInstance(
-        currentInstance: IGeneratedAssessmentInstance,
-        elementAxeResult: IHtmlElementAxeResults,
+        currentInstance: GeneratedAssessmentInstance,
+        elementAxeResult: HtmlElementAxeResults,
         testStep: string,
         ruleResult: DecoratedAxeNodeResult,
         getInstanceStatus: (result: DecoratedAxeNodeResult) => ManualTestStatus,
-    ): IGeneratedAssessmentInstance {
+        isVisualizationSupported: (result: DecoratedAxeNodeResult) => boolean,
+    ): GeneratedAssessmentInstance {
         const target: string[] = elementAxeResult.target;
         let testStepResults = {};
         let html: string = null;
@@ -101,13 +113,18 @@ export class AssessmentDataConverter {
             propertyBag = currentInstance.propertyBag;
         }
 
-        testStepResults[testStep] = this.getTestStepResults(ruleResult, elementAxeResult, getInstanceStatus);
+        testStepResults[testStep] = this.getTestStepResults(
+            ruleResult,
+            elementAxeResult,
+            getInstanceStatus,
+            isVisualizationSupported,
+        );
 
         let actualPropertyBag = {
             ...this.getPropertyBagFromAnyChecks(ruleResult),
             ...propertyBag,
         };
-        actualPropertyBag = _.isEmpty(actualPropertyBag) ? null : actualPropertyBag;
+        actualPropertyBag = isEmpty(actualPropertyBag) ? null : actualPropertyBag;
 
         return {
             target: target,
@@ -118,19 +135,19 @@ export class AssessmentDataConverter {
     }
 
     private getInitialAssessmentFromEvent(
-        matchingInstance: IGeneratedAssessmentInstance,
-        event: ITabStopEvent,
+        matchingInstance: GeneratedAssessmentInstance,
+        event: TabStopEvent,
         testStep: string,
         selector: string,
-    ): IGeneratedAssessmentInstance {
+    ): GeneratedAssessmentInstance {
         let testStepResults = {};
         const target: string[] = event.target;
         const html: string = event.html;
-        let propertyBag: IPartialTabOrderPropertyBag = { timestamp: event.timestamp };
+        let propertyBag: PartialTabOrderPropertyBag = { timestamp: event.timestamp };
 
         if (matchingInstance != null) {
             testStepResults = matchingInstance.testStepResults;
-            propertyBag = matchingInstance.propertyBag as IPartialTabOrderPropertyBag;
+            propertyBag = matchingInstance.propertyBag as PartialTabOrderPropertyBag;
         }
 
         testStepResults[testStep] = this.getGenericTestStepResultForEvent();
@@ -144,12 +161,13 @@ export class AssessmentDataConverter {
         };
     }
 
-    private getGenericTestStepResultForEvent(): ITestStepResult {
+    private getGenericTestStepResultForEvent(): TestStepResult {
         return {
             id: this.generateUID(),
             status: ManualTestStatus.UNKNOWN,
             isCapturedByUser: false,
             failureSummary: null,
+            isVisualizationSupported: true,
             isVisualizationEnabled: true,
             isVisible: true,
         };
@@ -157,16 +175,18 @@ export class AssessmentDataConverter {
 
     private getTestStepResults<T>(
         ruleResult: DecoratedAxeNodeResult,
-        elementAxeResult: IHtmlElementAxeResults,
+        elementAxeResult: HtmlElementAxeResults,
         getInstanceStatus: (result: DecoratedAxeNodeResult) => ManualTestStatus,
-    ): ITestStepResult {
+        isVisualizationSupported: (result: DecoratedAxeNodeResult) => boolean,
+    ): TestStepResult {
         return {
             id: ruleResult.id,
             status: getInstanceStatus(ruleResult),
             isCapturedByUser: false,
             failureSummary: ruleResult.failureSummary,
+            isVisualizationSupported: isVisualizationSupported(ruleResult),
             isVisualizationEnabled: false,
-            isVisible: elementAxeResult.isVisible,
+            isVisible: true,
         };
     }
 
@@ -174,19 +194,30 @@ export class AssessmentDataConverter {
         return this.getPropertyBagFrom(ruleResult, 'any');
     }
 
-    private getPropertyBagFrom(ruleResult: DecoratedAxeNodeResult, checkName: ChecksType) {
-        if (ruleResult[checkName] && !_.isEmpty(ruleResult[checkName]) && ruleResult[checkName][0].data) {
+    private getPropertyBagFrom(ruleResult: DecoratedAxeNodeResult, checkName: ChecksType): any {
+        if (
+            ruleResult[checkName] &&
+            !isEmpty(ruleResult[checkName]) &&
+            ruleResult[checkName][0].data
+        ) {
             return ruleResult[checkName][0].data;
         }
 
         return null;
     }
 
-    public generateFailureInstance(description: string): IUserCapturedInstance {
-        return {
+    public generateFailureInstance(
+        description: string,
+        path: string,
+        snippet: string,
+    ): UserCapturedInstance {
+        const instance: UserCapturedInstance = {
             id: this.generateUID(),
-            description: description,
+            description,
+            selector: path,
+            html: snippet,
         };
+        return instance;
     }
 }
 

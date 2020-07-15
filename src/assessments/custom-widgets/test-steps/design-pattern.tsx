@@ -2,19 +2,21 @@
 // Licensed under the MIT License.
 import * as React from 'react';
 
-import { AnalyzerConfigurationFactory } from '../../../assessments/common/analyzer-configuration-factory';
-import { NewTabLink } from '../../../common/components/new-tab-link';
-import { ICustomWidgetPropertyBag } from '../../../common/types/property-bag/icustom-widgets';
-import { VisualizationType } from '../../../common/types/visualization-type';
-import { link } from '../../../content/link';
-import { productName } from '../../../content/strings/application';
-import * as content from '../../../content/test/custom-widgets/design-pattern';
-import { AssessmentVisualizationEnabledToggle } from '../../../DetailsView/components/assessment-visualization-enabled-toggle';
-import { ScannerUtils } from '../../../injected/scanner-utils';
-import AssistedTestRecordYourResults from '../../common/assisted-test-record-your-results';
+import { NewTabLink } from 'common/components/new-tab-link';
+import { CustomWidgetPropertyBag } from 'common/types/property-bag/custom-widgets-property-bag';
+import { VisualizationType } from 'common/types/visualization-type';
+import { link } from 'content/link';
+import { productName } from 'content/strings/application';
+import { TestAutomaticallyPassedNotice } from 'content/test/common/test-automatically-passed-notice';
+import * as content from 'content/test/custom-widgets/design-pattern';
+import { AssessmentVisualizationEnabledToggle } from 'DetailsView/components/assessment-visualization-enabled-toggle';
+import { ScannerUtils } from 'injected/scanner-utils';
+import { AnalyzerConfigurationFactory } from '../../common/analyzer-configuration-factory';
+import { AssistedTestRecordYourResults } from '../../common/assisted-test-record-your-results';
+import { NoValue } from '../../common/property-bag-column-renderer';
 import * as Markup from '../../markup';
 import { ReportInstanceField } from '../../types/report-instance-field';
-import { TestStep } from '../../types/test-step';
+import { Requirement } from '../../types/requirement';
 import { getFlatDesignPatternStringFromRole } from '../custom-widgets-column-renderer';
 import { CustomWidgetsColumnRendererFactory } from '../custom-widgets-column-renderer-factory';
 import { CustomWidgetsTestStep } from './test-steps';
@@ -25,22 +27,32 @@ const designPatternDescription: JSX.Element = (
 
 const designPatternHowToTest: JSX.Element = (
     <div>
-        For this requirement, {productName} highlights custom widgets. (A custom widget is an element with a valid ARIA widget role.)
+        <p>
+            For this requirement, {productName} highlights custom widgets. (A custom widget is an
+            element with a valid ARIA widget role.)
+        </p>
+        <TestAutomaticallyPassedNotice />
         <ol>
             <li>
                 Familiarize yourself with the{' '}
-                <NewTabLink href="https://www.w3.org/TR/wai-aria-practices-1.1/">ARIA design patterns</NewTabLink> for custom widgets.
+                <NewTabLink href="https://www.w3.org/TR/wai-aria-practices-1.1/">
+                    ARIA design patterns
+                </NewTabLink>{' '}
+                for custom widgets.
             </li>
-            <li>In the target page, examine each custom widget to determine which design pattern best describes its function.</li>
             <li>
-                In the <Markup.Term>Instances</Markup.Term> list below, verify that the custom widget has the right role for its design
-                pattern.
+                In the target page, examine each custom widget to determine which design pattern
+                best describes its function.
+            </li>
+            <li>
+                In the <Markup.Term>Instances</Markup.Term> list below, verify that the custom
+                widget has the right role for its design pattern.
             </li>
             <AssistedTestRecordYourResults />
         </ol>
     </div>
 );
-export const DesignPattern: TestStep = {
+export const DesignPattern: Requirement = {
     key: CustomWidgetsTestStep.designPattern,
     name: 'Design pattern',
     description: designPatternDescription,
@@ -52,31 +64,36 @@ export const DesignPattern: TestStep = {
         {
             key: 'design-pattern-info',
             name: 'Design pattern',
-            onRender: CustomWidgetsColumnRendererFactory.getWithLink<ICustomWidgetPropertyBag>([
+            onRender: CustomWidgetsColumnRendererFactory.getWithLink<CustomWidgetPropertyBag>([
                 {
                     propertyName: 'role',
                     displayName: 'Widget role',
-                    defaultValue: '-',
+                    defaultValue: NoValue,
                 },
                 {
                     propertyName: 'designPattern',
                     displayName: 'Design pattern',
-                    defaultValue: '-',
+                    defaultValue: NoValue,
                 },
                 {
-                    propertyName: 'text',
-                    displayName: 'Accesssible name',
-                    defaultValue: '-',
+                    propertyName: 'accessibleName',
+                    displayName: 'Accessible name',
+                    defaultValue: NoValue,
                 },
             ]),
         },
     ],
     reportInstanceFields: [
-        ReportInstanceField.fromColumnValueBagField<ICustomWidgetPropertyBag>('Widget role', 'role'),
-        ReportInstanceField.fromPropertyBagFunction<ICustomWidgetPropertyBag>('Design pattern', 'designPattern', pb =>
-            getFlatDesignPatternStringFromRole(pb.role),
+        ReportInstanceField.fromColumnValueBagField<CustomWidgetPropertyBag>('Widget role', 'role'),
+        ReportInstanceField.fromPropertyBagFunction<CustomWidgetPropertyBag>(
+            'Design pattern',
+            'designPattern',
+            pb => getFlatDesignPatternStringFromRole(pb.role),
         ),
-        ReportInstanceField.fromColumnValueBagField<ICustomWidgetPropertyBag>('Accesssible name', 'text'),
+        ReportInstanceField.fromColumnValueBagField<CustomWidgetPropertyBag>(
+            'Accessible name',
+            'text',
+        ),
     ],
     getAnalyzer: provider =>
         provider.createRuleAnalyzer(
@@ -88,6 +105,5 @@ export const DesignPattern: TestStep = {
             }),
         ),
     getDrawer: provider => provider.createCustomWidgetsDrawer(),
-    updateVisibility: false,
     getVisualHelperToggle: props => <AssessmentVisualizationEnabledToggle {...props} />,
 };

@@ -2,42 +2,47 @@
 // Licensed under the MIT License.
 import { IMock, Mock } from 'typemoq';
 
-import { ClientBrowserAdapter } from '../../../../../common/client-browser-adapter';
+import { NavigatorUtils } from 'common/navigator-utils';
+import { BrowserAdapter } from '../../../../../common/browser-adapters/browser-adapter';
 import { HTMLElementUtils } from '../../../../../common/html-element-utils';
 import { WindowUtils } from '../../../../../common/window-utils';
+import { DetailsDialogHandler } from '../../../../../injected/details-dialog-handler';
 import { FrameCommunicator } from '../../../../../injected/frameCommunicators/frame-communicator';
-import { IHtmlElementAxeResults } from '../../../../../injected/scanner-utils';
+import { HtmlElementAxeResults } from '../../../../../injected/scanner-utils';
 import { ShadowUtils } from '../../../../../injected/shadow-utils';
-import { IHeadingStyleConfiguration } from '../../../../../injected/visualization/heading-formatter';
+import { HeadingStyleConfiguration } from '../../../../../injected/visualization/heading-formatter';
 import { IssuesFormatter } from '../../../../../injected/visualization/issues-formatter';
 
 describe('IssuesFormatterTests', () => {
     let testSubject: IssuesFormatter;
     const htmlElement = document.createElement('div');
-    let issuesStyle: IHeadingStyleConfiguration;
+    let issuesStyle: HeadingStyleConfiguration;
     let htmlElementUtilsMock: IMock<HTMLElementUtils>;
     beforeEach(() => {
         issuesStyle = IssuesFormatter.style;
         const frameCommunicator: IMock<FrameCommunicator> = Mock.ofType(FrameCommunicator);
         htmlElementUtilsMock = Mock.ofType(HTMLElementUtils);
         const windowUtils: IMock<WindowUtils> = Mock.ofType(WindowUtils);
+        const navigatorUtils: IMock<NavigatorUtils> = Mock.ofType(NavigatorUtils);
         const shadowUtils: IMock<ShadowUtils> = Mock.ofType(ShadowUtils);
-        const clientBrowserAdapter = Mock.ofType<ClientBrowserAdapter>();
+        const browserAdapter = Mock.ofType<BrowserAdapter>();
         const getRTLMock = Mock.ofInstance(() => null);
+        const detailsDialogHandlerMock = Mock.ofType<DetailsDialogHandler>();
         testSubject = new IssuesFormatter(
             frameCommunicator.object,
             htmlElementUtilsMock.object,
             windowUtils.object,
+            navigatorUtils.object,
             shadowUtils.object,
-            clientBrowserAdapter.object,
+            browserAdapter.object,
             getRTLMock.object,
+            detailsDialogHandlerMock.object,
         );
     });
 
     test('tooltip for the failed rules from the axe result', () => {
-        const axeData: IHtmlElementAxeResults = {
+        const axeData: HtmlElementAxeResults = {
             target: ['html'],
-            isVisible: true,
             ruleResults: {
                 rule1: {
                     any: [],
@@ -52,8 +57,6 @@ describe('IssuesFormatterTests', () => {
                     id: 'id1',
                     guidanceLinks: [],
                     helpUrl: 'help1',
-                    fingerprint: 'fp1',
-                    snippet: 'html',
                 },
                 rule2: {
                     any: [],
@@ -68,8 +71,6 @@ describe('IssuesFormatterTests', () => {
                     id: 'id2',
                     guidanceLinks: [],
                     helpUrl: 'help2',
-                    fingerprint: 'fp2',
-                    snippet: 'html',
                 },
             },
         };

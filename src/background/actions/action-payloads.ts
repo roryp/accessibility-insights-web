@@ -1,44 +1,64 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
-import { BaseTelemetryData, TelemetryData, ToggleTelemetryData } from '../../common/telemetry-events';
-import * as TelemetryEvents from '../../common/telemetry-events';
-import { DetailsViewPivotType } from '../../common/types/details-view-pivot-type';
-import { ManualTestStatus } from '../../common/types/manual-test-status';
-import { VisualizationType } from '../../common/types/visualization-type';
-import { ITabStopEvent } from '../../injected/tab-stops-listener';
-import { LaunchPanelType } from '../../popup/scripts/components/popup-view';
+import * as TelemetryEvents from 'common/extension-telemetry-events';
+import {
+    BaseTelemetryData,
+    TelemetryData,
+    ToggleTelemetryData,
+} from 'common/extension-telemetry-events';
+import { Tab } from 'common/itab';
+import { CreateIssueDetailsTextData } from 'common/types/create-issue-details-text-data';
+import { DetailsViewPivotType } from 'common/types/details-view-pivot-type';
+import { ManualTestStatus } from 'common/types/manual-test-status';
+import { ScanIncompleteWarningId } from 'common/types/scan-incomplete-warnings';
+import {
+    PlatformData,
+    ScreenshotData,
+    TargetAppData,
+    ToolData,
+    UnifiedResult,
+    UnifiedRule,
+} from 'common/types/store-data/unified-data-interface';
+import { IssueFilingServiceProperties } from 'common/types/store-data/user-configuration-store';
+import { VisualizationType } from 'common/types/visualization-type';
+import { FailureInstanceData } from 'DetailsView/components/failure-instance-panel-control';
+import { TabStopEvent } from 'injected/tab-stops-listener';
+import { LaunchPanelType } from 'popup/components/popup-view';
 
 export interface BaseActionPayload {
     telemetry?: TelemetryData;
 }
 
-export interface SelectTestStepPayload extends BaseActionPayload {
-    selectedStep: string;
+export interface SelectTestSubviewPayload extends BaseActionPayload {
+    selectedTestSubview: string;
     selectedTest: VisualizationType;
 }
 
-export interface UpdateInstanceVisibilityPayload extends ToggleActionPayload {
-    selector: string;
-    isVisible: boolean;
+export interface SelectGettingStartedPayload extends BaseActionPayload {
+    selectedTest: VisualizationType;
 }
 
-export interface UpdateVisibilityPayload {
-    payloadBatch: UpdateInstanceVisibilityPayload[];
+export interface ExpandTestNavPayload extends BaseActionPayload {
+    selectedTest: VisualizationType;
 }
 
 export interface AssessmentToggleActionPayload extends ToggleActionPayload {
-    step: string;
+    requirement: string;
 }
 
 export interface AssessmentActionInstancePayload extends AssessmentToggleActionPayload {
     selector: string;
 }
 
-export interface ChangeAssessmentStepStatusPayload extends AssessmentToggleActionPayload {
+export interface ChangeRequirementStatusPayload extends AssessmentToggleActionPayload {
     status?: ManualTestStatus;
 }
 
 export interface AddFailureInstancePayload extends AssessmentToggleActionPayload {
+    instanceData: FailureInstanceData;
+}
+
+export interface AddResultDescriptionPayload extends BaseActionPayload {
     description: string;
 }
 
@@ -83,6 +103,8 @@ export interface ToggleActionPayload extends BaseActionPayload {
     test: VisualizationType;
 }
 
+export type RescanVisualizationPayload = ToggleActionPayload;
+
 export interface VisualizationTogglePayload extends ToggleActionPayload {
     enabled: boolean;
     telemetry: ToggleTelemetryData;
@@ -97,7 +119,7 @@ export interface PageVisibilityChangeTabPayload extends BaseActionPayload {
 }
 
 export interface AddTabbedElementPayload extends BaseActionPayload {
-    tabbedElements: ITabStopEvent[];
+    tabbedElements: TabStopEvent[];
 }
 
 export interface SetLaunchPanelState extends BaseActionPayload {
@@ -124,16 +146,60 @@ export interface SetHighContrastModePayload extends BaseActionPayload {
     enableHighContrast: boolean;
 }
 
-export interface SetBugServicePayload extends BaseActionPayload {
-    bugServiceName: string;
+export interface SetNativeHighContrastModePayload extends BaseActionPayload {
+    enableHighContrast: boolean;
 }
 
-export interface SetBugServicePropertyPayload extends BaseActionPayload {
-    bugServiceName: string;
+export interface SetIssueFilingServicePayload extends BaseActionPayload {
+    issueFilingServiceName: string;
+}
+
+export interface SaveIssueFilingSettingsPayload extends SetIssueFilingServicePayload {
+    issueFilingSettings: IssueFilingServiceProperties;
+}
+
+export interface SetIssueFilingServicePropertyPayload extends BaseActionPayload {
+    issueFilingServiceName: string;
     propertyName: string;
     propertyValue: string;
 }
 
-export interface SetIssueTrackerPathPayload extends BaseActionPayload {
-    issueTrackerPath: string;
+export interface FileIssuePayload extends BaseActionPayload {
+    issueData: CreateIssueDetailsTextData;
+    service: string;
+    toolData: ToolData;
 }
+
+export interface SetAdbLocationPayload extends BaseActionPayload {
+    adbLocation: string;
+}
+
+export interface UnifiedScanCompletedPayload extends BaseActionPayload {
+    scanResult: UnifiedResult[];
+    rules: UnifiedRule[];
+    toolInfo: ToolData;
+    targetAppInfo: TargetAppData;
+    timestamp: string;
+    scanIncompleteWarnings: ScanIncompleteWarningId[];
+    screenshotData?: ScreenshotData;
+    platformInfo?: PlatformData;
+}
+
+export interface RuleExpandCollapsePayload extends BaseActionPayload {
+    ruleId: string;
+}
+
+export interface CardSelectionPayload extends BaseActionPayload {
+    ruleId: string;
+    resultInstanceUid: string;
+}
+
+export interface PopupInitializedPayload extends BaseActionPayload {
+    tab: Tab;
+}
+
+export interface SetAllUrlsPermissionStatePayload extends BaseActionPayload {
+    hasAllUrlAndFilePermissions: boolean;
+}
+
+export type ExistingTabUpdatedPayload = BaseActionPayload & Tab;

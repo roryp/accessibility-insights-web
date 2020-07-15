@@ -1,20 +1,25 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
-import { Assessment } from '../../assessments/types/iassessment';
-import { IAssessmentsProvider } from '../../assessments/types/iassessments-provider';
-import { OutcomeStats, outcomeStatsFromManualTestStatus } from '../../DetailsView/reports/components/outcome-type';
+import { AssessmentsProvider } from 'assessments/types/assessments-provider';
+import { Assessment } from 'assessments/types/iassessment';
+import {
+    outcomeStatsFromManualTestStatus,
+    RequirementOutcomeStats,
+} from 'reports/components/requirement-outcome-type';
 import { ManualTestStatusData } from '../types/manual-test-status';
-import { IAssessmentData } from '../types/store-data/iassessment-result-data';
+import { AssessmentData } from '../types/store-data/assessment-result-data';
 import { VisualizationType } from '../types/visualization-type';
 import { getRequirementsResults, RequirementResult } from './requirement';
 
 export type AssessmentTestDefinition = Assessment;
 
 export type AssessmentTestProviderDeps = {
-    outcomeStatsFromManualTestStatus: (testStepStatus: ManualTestStatusData) => OutcomeStats;
+    outcomeStatsFromManualTestStatus: (
+        testStepStatus: ManualTestStatusData,
+    ) => RequirementOutcomeStats;
     getRequirementsResults: (
-        provider: IAssessmentsProvider,
-        type: VisualizationType,
+        provider: AssessmentsProvider,
+        visualizationType: VisualizationType,
         stepStatus: ManualTestStatusData,
     ) => RequirementResult[];
 };
@@ -26,9 +31,9 @@ const depDefaults = {
 
 export class AssessmentTestResult {
     constructor(
-        private readonly assessmentProvider: IAssessmentsProvider,
-        public readonly type: VisualizationType,
-        public readonly data: IAssessmentData,
+        private readonly assessmentProvider: AssessmentsProvider,
+        public readonly visualizationType: VisualizationType,
+        public readonly data: AssessmentData,
         private readonly deps: AssessmentTestProviderDeps = depDefaults,
     ) {}
 
@@ -37,14 +42,18 @@ export class AssessmentTestResult {
     }
 
     public getRequirementResults(): RequirementResult[] {
-        return this.deps.getRequirementsResults(this.assessmentProvider, this.type, this.data.testStepStatus);
+        return this.deps.getRequirementsResults(
+            this.assessmentProvider,
+            this.visualizationType,
+            this.data.testStepStatus,
+        );
     }
 
-    public getOutcomeStats(): OutcomeStats {
+    public getOutcomeStats(): RequirementOutcomeStats {
         return this.deps.outcomeStatsFromManualTestStatus(this.data.testStepStatus);
     }
 
     public get definition(): AssessmentTestDefinition {
-        return this.assessmentProvider.forType(this.type);
+        return this.assessmentProvider.forType(this.visualizationType);
     }
 }

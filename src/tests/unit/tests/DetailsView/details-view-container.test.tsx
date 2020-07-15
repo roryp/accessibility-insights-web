@@ -1,315 +1,185 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
-import { shallow } from 'enzyme';
-import { ISelection, Selection } from 'office-ui-fabric-react/lib/DetailsList';
-import * as React from 'react';
-import { IMock, It, Mock, MockBehavior, Times } from 'typemoq';
-
-import { DropdownClickHandler } from '../../../../common/dropdown-click-handler';
-import { IStoreActionMessageCreator } from '../../../../common/message-creators/istore-action-message-creator';
-import { StoreActionMessageCreator } from '../../../../common/message-creators/store-action-message-creator';
-import { BaseClientStoresHub } from '../../../../common/stores/base-client-stores-hub';
-import { DetailsViewPivotType } from '../../../../common/types/details-view-pivot-type';
-import { ITabStoreData } from '../../../../common/types/store-data/itab-store-data';
-import { UserConfigurationStoreData } from '../../../../common/types/store-data/user-configuration-store';
-import { VisualizationType } from '../../../../common/types/visualization-type';
-import { DetailsViewActionMessageCreator } from '../../../../DetailsView/actions/details-view-action-message-creator';
-import { DetailsViewOverlay } from '../../../../DetailsView/components/details-view-overlay';
-import {
-    DetailsRightPanelConfiguration,
-    GetDetailsRightPanelConfiguration,
-    GetDetailsRightPanelConfigurationProps,
-} from '../../../../DetailsView/components/details-view-right-panel';
-import {
-    DetailsViewSwitcherNavConfiguration,
-    GetDetailsSwitcherNavConfiguration,
-    GetDetailsSwitcherNavConfigurationProps,
-} from '../../../../DetailsView/components/details-view-switcher-nav';
-import { Header } from '../../../../DetailsView/components/header';
-import { DetailsViewRightContentPanelType } from '../../../../DetailsView/components/left-nav/details-view-right-content-panel-type';
-import { GetSelectedDetailsViewProps } from '../../../../DetailsView/components/left-nav/get-selected-details-view';
+import { BaseClientStoresHub } from 'common/stores/base-client-stores-hub';
+import { DetailsViewPivotType } from 'common/types/details-view-pivot-type';
+import { FeatureFlagStoreData } from 'common/types/store-data/feature-flag-store-data';
+import { DetailsViewActionMessageCreator } from 'DetailsView/actions/details-view-action-message-creator';
 import {
     DetailsViewContainer,
-    DetailsViewContainerDeps,
     DetailsViewContainerProps,
-    DetailsViewContainerState,
-} from '../../../../DetailsView/details-view-container';
-import { DetailsViewMainContent } from '../../../../DetailsView/details-view-main-content';
-import { DetailsViewToggleClickHandlerFactory } from '../../../../DetailsView/handlers/details-view-toggle-click-handler-factory';
-import { PreviewFeatureFlagsHandler } from '../../../../DetailsView/handlers/preview-feature-flags-handler';
-import { DetailsViewStoreDataBuilder } from '../../common/details-view-store-data-builder';
-import { TabStoreDataBuilder } from '../../common/tab-store-data-builder';
-import { CreateTestAssessmentProviderWithFeatureFlag } from '../../common/test-assessment-provider';
-import { VisualizationStoreDataBuilder } from '../../common/visualization-store-data-builder';
-import { DetailsViewContainerPropsBuilder } from './details-view-container-props-builder';
-import { StoreMocks } from './store-mocks';
+} from 'DetailsView/details-view-container';
+import { shallow } from 'enzyme';
+import * as React from 'react';
+import { IMock, Mock, Times } from 'typemoq';
 
 describe('DetailsViewContainer', () => {
     let detailsViewActionMessageCreator: IMock<DetailsViewActionMessageCreator>;
-    let deps: DetailsViewContainerDeps;
-    let getDetailsRightPanelConfiguration: IMock<GetDetailsRightPanelConfiguration>;
-    let getDetailsSwitcherNavConfiguration: IMock<GetDetailsSwitcherNavConfiguration>;
 
     beforeEach(() => {
-        detailsViewActionMessageCreator = Mock.ofType<DetailsViewActionMessageCreator>();
-        getDetailsRightPanelConfiguration = Mock.ofInstance((props: GetDetailsRightPanelConfigurationProps) => null, MockBehavior.Strict);
-        getDetailsSwitcherNavConfiguration = Mock.ofInstance((props: GetDetailsSwitcherNavConfigurationProps) => null, MockBehavior.Strict);
-        deps = {
-            detailsViewActionMessageCreator: detailsViewActionMessageCreator.object,
-            getDetailsRightPanelConfiguration: getDetailsRightPanelConfiguration.object,
-            getDetailsSwitcherNavConfiguration: getDetailsSwitcherNavConfiguration.object,
-        } as DetailsViewContainerDeps;
+        detailsViewActionMessageCreator = Mock.ofType(DetailsViewActionMessageCreator);
     });
-
-    const assessmentProviderMock = Mock.ofInstance(CreateTestAssessmentProviderWithFeatureFlag());
 
     describe('render', () => {
         it('renders spinner when stores not ready', () => {
-            const detailsViewStoreActionMessageCreatorMock = Mock.ofType(StoreActionMessageCreator, MockBehavior.Strict);
-            detailsViewStoreActionMessageCreatorMock.setup(amc => amc.getAllStates()).verifiable(Times.once());
+            const storesHubMock = Mock.ofType(BaseClientStoresHub);
 
-            const storeMocks = new StoreMocks()
-                .setDetailsViewStoreData(null)
-                .setVisualizationStoreData(null)
-                .setUserConfigurationStoreData({ enableTelemetry: true } as UserConfigurationStoreData);
+            const props: DetailsViewContainerProps = {
+                storeState: null,
+                deps: {
+                    storesHub: storesHubMock.object,
+                },
+            } as DetailsViewContainerProps;
 
-            const props = new DetailsViewContainerPropsBuilder(deps)
-                .setStoreMocks(storeMocks)
-                .setStoresHubMock(createStoresHubMock(storeMocks, true, false).object)
-                .setDetailsViewStoreActionMessageCreator(detailsViewStoreActionMessageCreatorMock.object)
-                .build();
+            storesHubMock.setup(mock => mock.hasStores()).returns(() => true);
+            storesHubMock.setup(mock => mock.hasStoreData()).returns(() => false);
 
-            const testObject = shallow(<DetailsViewContainer {...props} />);
-
-            expect(testObject.getElement()).toMatchSnapshot();
+            const rendered = shallow(<DetailsViewContainer {...props} />);
+            expect(rendered.getElement()).toMatchSnapshot();
         });
     });
 
-    describe('renderContent', () => {
-        it('renders normally', () => {
-            const viewType = -1;
-            testRenderStaticContent(viewType, false);
-        });
+    describe('render content', () => {
+        it('show NoContentAvailable when stores are not loaded', () => {
+            const storesHubMock = Mock.ofType(BaseClientStoresHub);
 
-        it('renders TargetPageClosedView when target page closed', () => {
-            const props = new DetailsViewContainerPropsBuilder(null).build();
-            const rendered = shallow(<DetailsViewContainer {...props} />);
-            expect(rendered.debug()).toMatchSnapshot();
-        });
+            const props: DetailsViewContainerProps = {
+                storeState: null,
+                deps: {
+                    storesHub: storesHubMock.object,
+                },
+            } as DetailsViewContainerProps;
 
-        it('shows target tab was closed when stores are not loaded', () => {
-            const storeActionCreator = Mock.ofType(StoreActionMessageCreator, MockBehavior.Strict);
-
-            const visualizationStoreData = new VisualizationStoreDataBuilder()
-                .with('selectedAdhocDetailsView', VisualizationType.Issues)
-                .build();
-
-            setupActionMessageCreatorMock(detailsViewActionMessageCreator, visualizationStoreData.selectedDetailsViewPivot, 1);
-
-            const tabStoreData: ITabStoreData = {
-                title: 'DetailsViewContainerTest title',
-                url: 'http://detailsViewContainerTest/url/',
-                id: 1,
-                isClosed: true,
-                isChanged: false,
-                isPageHidden: false,
-            };
-
-            const storeMocks = new StoreMocks().setVisualizationStoreData(visualizationStoreData).setTabStoreData(tabStoreData);
-
-            const detailsViewStoreActionCreatorMock = Mock.ofType<IStoreActionMessageCreator>();
-
-            const props = new DetailsViewContainerPropsBuilder(deps)
-                .setStoreMocks(storeMocks)
-                .setStoreActionMessageCreator(storeActionCreator.object)
-                .setDetailsViewStoreActionMessageCreator(detailsViewStoreActionCreatorMock.object)
-                .setStoresHubMock(createStoresHubMock(storeMocks, false).object)
-                .build();
+            storesHubMock.setup(mock => mock.hasStores()).returns(() => false);
 
             const rendered = shallow(<DetailsViewContainer {...props} />);
-            expect(rendered.debug()).toMatchSnapshot();
+            expect(rendered.getElement()).toMatchSnapshot();
         });
 
-        it('render twice; should not call details view opened on 2nd render', () => {
-            const storeActionCreator = Mock.ofType(StoreActionMessageCreator, MockBehavior.Strict);
-            const clickHandlerFactoryMock = Mock.ofType(DetailsViewToggleClickHandlerFactory);
-            const getSelectedDetailsViewMock = Mock.ofInstance((props: GetSelectedDetailsViewProps) => null, MockBehavior.Strict);
-            const rightContentPanelType = 'TestView';
-            const viewType = VisualizationType.Headings;
-            const switcherNavConfig = {
-                getSelectedDetailsView: getSelectedDetailsViewMock.object,
-            } as DetailsViewSwitcherNavConfiguration;
+        it('show NoContentAvailable when target tab is closed', () => {
+            const storesHubMock = Mock.ofType(BaseClientStoresHub);
 
-            const visualizationStoreData = new VisualizationStoreDataBuilder().build();
-            const detailsViewState = new DetailsViewStoreDataBuilder().withDetailsViewRightContentPanel(rightContentPanelType).build();
-            const tabStoreData = new TabStoreDataBuilder().with('isClosed', false).build();
+            const props: DetailsViewContainerProps = {
+                storeState: {
+                    tabStoreData: {
+                        isClosed: true,
+                    },
+                    featureFlagStoreData: {
+                        reflowUI: true,
+                    } as FeatureFlagStoreData,
+                },
+                deps: {
+                    storesHub: storesHubMock.object,
+                },
+            } as DetailsViewContainerProps;
 
-            setupGetDetailsRightPanelConfiguration(rightContentPanelType, visualizationStoreData.selectedDetailsViewPivot, null);
-            setupGetSwitcherNavConfiguration(visualizationStoreData.selectedDetailsViewPivot, switcherNavConfig);
-            setupActionMessageCreatorMock(detailsViewActionMessageCreator, visualizationStoreData.selectedDetailsViewPivot, 1);
+            storesHubMock.setup(mock => mock.hasStores()).returns(() => true);
+            storesHubMock.setup(mock => mock.hasStoreData()).returns(() => true);
 
-            const storeMocks = new StoreMocks()
-                .setVisualizationStoreData(visualizationStoreData)
-                .setTabStoreData(tabStoreData)
-                .setDetailsViewStoreData(detailsViewState);
+            const rendered = shallow(<DetailsViewContainer {...props} />);
+            expect(rendered.getElement()).toMatchSnapshot();
+        });
 
-            const props = new DetailsViewContainerPropsBuilder(deps)
-                .setStoreMocks(storeMocks)
-                .setStoreActionMessageCreator(storeActionCreator.object)
-                .setClickHandlerFactory(clickHandlerFactoryMock.object)
-                .setStoresHubMock(createStoresHubMock(storeMocks).object)
-                .build();
+        it('shows NoContentAvailable when target page is changed and no permissions granted', () => {
+            const storesHubMock = Mock.ofType(BaseClientStoresHub);
+
+            const props: DetailsViewContainerProps = {
+                storeState: {
+                    tabStoreData: {
+                        isClosed: false,
+                        isOriginChanged: true,
+                    },
+                    permissionsStateStoreData: {
+                        hasAllUrlAndFilePermissions: false,
+                    },
+                    featureFlagStoreData: {
+                        reflowUI: true,
+                    } as FeatureFlagStoreData,
+                },
+                deps: {
+                    storesHub: storesHubMock.object,
+                },
+            } as DetailsViewContainerProps;
+
+            storesHubMock.setup(mock => mock.hasStores()).returns(() => true);
+            storesHubMock.setup(mock => mock.hasStoreData()).returns(() => true);
+
+            const rendered = shallow(<DetailsViewContainer {...props} />);
+            expect(rendered.getElement()).toMatchSnapshot();
+        });
+
+        it('render once; should call details view opened', () => {
+            const storesHubMock = Mock.ofType(BaseClientStoresHub);
+            const selectedDetailsViewPivotStub: DetailsViewPivotType = -1;
+            const props: DetailsViewContainerProps = {
+                storeState: {
+                    tabStoreData: {
+                        isClosed: false,
+                        isOriginChanged: false,
+                    },
+                    visualizationStoreData: {
+                        selectedDetailsViewPivot: selectedDetailsViewPivotStub,
+                    },
+                },
+                deps: {
+                    storesHub: storesHubMock.object,
+                    detailsViewActionMessageCreator: detailsViewActionMessageCreator.object,
+                },
+            } as DetailsViewContainerProps;
+
+            storesHubMock.setup(mock => mock.hasStores()).returns(() => true);
+            storesHubMock.setup(mock => mock.hasStoreData()).returns(() => true);
+
+            detailsViewActionMessageCreator
+                .setup(mock => mock.detailsViewOpened(selectedDetailsViewPivotStub))
+                .verifiable();
+
+            const rendered = shallow(<DetailsViewContainer {...props} />);
+            expect(rendered.getElement()).toMatchSnapshot();
+            detailsViewActionMessageCreator.verifyAll();
+        });
+
+        it('render twice; should not call details view opened on second render', () => {
+            const storesHubMock = Mock.ofType(BaseClientStoresHub);
+            const selectedDetailsViewPivotStub: DetailsViewPivotType = -1;
+            const props: DetailsViewContainerProps = {
+                storeState: {
+                    tabStoreData: {
+                        isClosed: false,
+                        isOriginChanged: false,
+                    },
+                    visualizationStoreData: {
+                        selectedDetailsViewPivot: selectedDetailsViewPivotStub,
+                    },
+                },
+                deps: {
+                    storesHub: storesHubMock.object,
+                    detailsViewActionMessageCreator: detailsViewActionMessageCreator.object,
+                },
+            } as DetailsViewContainerProps;
+
+            storesHubMock.setup(mock => mock.hasStores()).returns(() => true);
+            storesHubMock.setup(mock => mock.hasStoreData()).returns(() => true);
 
             const testObject = new DetailsViewContainer(props);
-            const state = getState(storeMocks, -1, null);
-            testObject.state = getState(storeMocks, -1, null);
 
-            getSelectedDetailsViewMock
-                .setup(gsdvm =>
-                    gsdvm(
-                        It.isObjectWith({
-                            assessmentStoreData: state.assessmentStoreData,
-                            visualizationStoreData: state.visualizationStoreData,
-                        }),
-                    ),
-                )
-                .returns(() => viewType);
-
+            setupActionMessageCreatorMock(
+                detailsViewActionMessageCreator,
+                selectedDetailsViewPivotStub,
+                1,
+            );
             testObject.render();
-
             detailsViewActionMessageCreator.verifyAll();
             detailsViewActionMessageCreator.reset();
-            setupActionMessageCreatorMock(detailsViewActionMessageCreator, visualizationStoreData.selectedDetailsViewPivot, 0);
+            setupActionMessageCreatorMock(
+                detailsViewActionMessageCreator,
+                selectedDetailsViewPivotStub,
+                0,
+            );
 
             testObject.render();
             detailsViewActionMessageCreator.verifyAll();
         });
-
-        it('shows target tab for nonsupported type', () => {
-            const unsupportedType = null;
-
-            const toggleClickHandlerMock = Mock.ofInstance(event => {});
-            const clickHandlerFactoryMock = Mock.ofType(DetailsViewToggleClickHandlerFactory);
-            const storeActionCreator = Mock.ofType(StoreActionMessageCreator, MockBehavior.Strict);
-
-            const visualizationStoreData = new VisualizationStoreDataBuilder().with('selectedAdhocDetailsView', unsupportedType).build();
-
-            const storeMocks = new StoreMocks().setDetailsViewStoreData(null).setVisualizationStoreData(visualizationStoreData);
-
-            const props = new DetailsViewContainerPropsBuilder(deps)
-                .setStoreMocks(storeMocks)
-                .setClickHandlerFactory(clickHandlerFactoryMock.object)
-                .setStoreActionMessageCreator(storeActionCreator.object)
-                .setStoresHubMock(createStoresHubMock(storeMocks, false).object)
-                .build();
-
-            clickHandlerFactoryMock
-                .setup(factory => factory.createClickHandler(It.isAny(), It.isAny()))
-                .returns(() => toggleClickHandlerMock.object)
-                .verifiable(Times.never());
-
-            const testObject = new DetailsViewContainer(props);
-            expect(testObject.render).toThrow();
-            clickHandlerFactoryMock.verifyAll();
-        });
     });
-
-    function createStoresHubMock(storeMocks: StoreMocks, hasStores = true, hasStoreData = true): IMock<BaseClientStoresHub<any>> {
-        const storesHubMock = Mock.ofType(BaseClientStoresHub);
-        storesHubMock.setup(s => s.hasStores()).returns(() => hasStores);
-        storesHubMock.setup(s => s.hasStoreData()).returns(() => hasStoreData);
-        storesHubMock.setup(s => s.addChangedListenerToAllStores(It.isAny())).verifiable();
-        storesHubMock.setup(s => s.removeChangedListenerFromAllStores(It.isAny())).verifiable();
-
-        storesHubMock
-            .setup(s => s.getAllStoreData())
-            .returns(() => {
-                return (
-                    storeMocks && {
-                        visualizationStoreData: storeMocks.visualizationStoreData,
-                        tabStoreData: storeMocks.tabStoreData,
-                        visualizationScanResultStoreData: storeMocks.visualizationScanResultsStoreData,
-                        featureFlagStoreData: storeMocks.featureFlagStoreData,
-                        detailsViewStoreData: storeMocks.detailsViewStoreData,
-                        assessmentStoreData: storeMocks.assessmentStoreData,
-                        scopingPanelStateStoreData: storeMocks.scopingStoreData,
-                        userConfigurationStoreData: storeMocks.userConfigurationStoreData,
-                    }
-                );
-            });
-        return storesHubMock;
-    }
-
-    function buildDetailsViewMainContent(
-        storeMocks: StoreMocks,
-        props: DetailsViewContainerProps,
-        selectedDetailsView: VisualizationType,
-        rightPanelConfiguration: DetailsRightPanelConfiguration,
-        switcherNavConfiguration: DetailsViewSwitcherNavConfiguration,
-    ): JSX.Element {
-        const issueTrackerPath = storeMocks.userConfigurationStoreData.bugServicePropertiesMap.gitHub.repository;
-        return (
-            <DetailsViewMainContent
-                deps={deps}
-                tabStoreData={storeMocks.tabStoreData}
-                assessmentStoreData={storeMocks.assessmentStoreData}
-                featureFlagStoreData={storeMocks.featureFlagStoreData}
-                selectedTest={selectedDetailsView}
-                detailsViewStoreData={storeMocks.detailsViewStoreData}
-                visualizationStoreData={storeMocks.visualizationStoreData}
-                visualizationScanResultData={storeMocks.visualizationScanResultsStoreData}
-                visualizationConfigurationFactory={props.visualizationConfigurationFactory}
-                assessmentsProvider={props.assessmentsProvider}
-                dropdownClickHandler={props.dropdownClickHandler}
-                clickHandlerFactory={props.clickHandlerFactory}
-                assessmentInstanceTableHandler={props.assessmentInstanceTableHandler}
-                issuesSelection={props.issuesSelection}
-                reportGenerator={props.reportGenerator}
-                issuesTableHandler={props.issuesTableHandler}
-                issueTrackerPath={issueTrackerPath}
-                rightPanelConfiguration={rightPanelConfiguration}
-                switcherNavConfiguration={switcherNavConfiguration}
-            />
-        );
-    }
-
-    function setupGetDetailsRightPanelConfiguration(
-        type: DetailsViewRightContentPanelType,
-        selectedPivot: DetailsViewPivotType,
-        returnConfiguration: DetailsRightPanelConfiguration,
-    ): void {
-        const expected: GetDetailsRightPanelConfigurationProps = {
-            selectedDetailsViewPivot: selectedPivot,
-            detailsViewRightContentPanel: type,
-        };
-        getDetailsRightPanelConfiguration.setup(gtrpc => gtrpc(It.isValue(expected))).returns(() => returnConfiguration);
-    }
-
-    function setupGetSwitcherNavConfiguration(
-        selectedPivot: DetailsViewPivotType,
-        returnConfiguration: DetailsViewSwitcherNavConfiguration,
-    ): void {
-        const expected: GetDetailsSwitcherNavConfigurationProps = {
-            selectedDetailsViewPivot: selectedPivot,
-        };
-        getDetailsSwitcherNavConfiguration.setup(gtrpc => gtrpc(It.isValue(expected))).returns(() => returnConfiguration);
-    }
-
-    function buildOverlay(storeMocks: StoreMocks, props: DetailsViewContainerProps): JSX.Element {
-        return (
-            <DetailsViewOverlay
-                deps={props.deps}
-                actionMessageCreator={props.deps.detailsViewActionMessageCreator}
-                previewFeatureFlagsHandler={props.previewFeatureFlagsHandler}
-                scopingActionMessageCreator={props.scopingActionMessageCreator}
-                inspectActionMessageCreator={props.inspectActionMessageCreator}
-                detailsViewStoreData={storeMocks.detailsViewStoreData}
-                scopingStoreData={storeMocks.scopingStoreData}
-                featureFlagStoreData={storeMocks.featureFlagStoreData}
-                userConfigurationStoreData={storeMocks.userConfigurationStoreData}
-            />
-        );
-    }
 
     function setupActionMessageCreatorMock(
         mock: IMock<DetailsViewActionMessageCreator>,
@@ -317,117 +187,5 @@ describe('DetailsViewContainer', () => {
         timesCalled: number,
     ): void {
         mock.setup(acm => acm.detailsViewOpened(pivot)).verifiable(Times.exactly(timesCalled));
-    }
-
-    function getState(
-        storeMocks: StoreMocks,
-        viewType: VisualizationType,
-        rightPanel: DetailsRightPanelConfiguration,
-    ): DetailsViewContainerState {
-        return {
-            visualizationStoreData: storeMocks.visualizationStoreData,
-            tabStoreData: storeMocks.tabStoreData,
-            featureFlagStoreData: storeMocks.featureFlagStoreData,
-            detailsViewStoreData: storeMocks.detailsViewStoreData,
-            assessmentStoreData: storeMocks.assessmentStoreData,
-            userConfigurationStoreData: storeMocks.userConfigurationStoreData,
-            visualizationScanResultStoreData: storeMocks.visualizationScanResultsStoreData,
-            scopingPanelStateStoreData: storeMocks.scopingSelectorsData,
-            selectedDetailsView: viewType,
-            selectedDetailsRightPanelConfiguration: rightPanel,
-        };
-    }
-
-    function testRenderStaticContent(viewType: VisualizationType, isPreviewFeaturesOpen: boolean): void {
-        const selectionMock = Mock.ofType<ISelection>(Selection);
-        const clickHandlerFactoryMock = Mock.ofType(DetailsViewToggleClickHandlerFactory);
-        const previewFeatureFlagsHandlerMock = Mock.ofType(PreviewFeatureFlagsHandler);
-        const dropdownClickHandler = Mock.ofType(DropdownClickHandler);
-        const getSelectedDetailsViewMock = Mock.ofInstance((props: GetSelectedDetailsViewProps) => null, MockBehavior.Strict);
-        const rightContentPanelType = 'TestView';
-        const rightContentPanelConfig = {} as DetailsRightPanelConfiguration;
-        const switcherNavConfig = {
-            getSelectedDetailsView: getSelectedDetailsViewMock.object,
-        } as DetailsViewSwitcherNavConfiguration;
-
-        const visualizationStoreData = new VisualizationStoreDataBuilder()
-            .withSelectedDetailsViewPivot(DetailsViewPivotType.fastPass)
-            .with('selectedAdhocDetailsView', viewType)
-            .build();
-
-        setupActionMessageCreatorMock(detailsViewActionMessageCreator, visualizationStoreData.selectedDetailsViewPivot, 1);
-
-        setupGetDetailsRightPanelConfiguration(
-            rightContentPanelType,
-            visualizationStoreData.selectedDetailsViewPivot,
-            rightContentPanelConfig,
-        );
-
-        setupGetSwitcherNavConfiguration(visualizationStoreData.selectedDetailsViewPivot, switcherNavConfig);
-
-        const detailsViewState = new DetailsViewStoreDataBuilder()
-            .withPreviewFeaturesOpen(isPreviewFeaturesOpen)
-            .withDetailsViewRightContentPanel(rightContentPanelType)
-            .build();
-
-        const userConfigurationStoreData: UserConfigurationStoreData = {
-            isFirstTime: false,
-            enableTelemetry: true,
-            enableHighContrast: false,
-            bugService: 'gitHub',
-            bugServicePropertiesMap: { gitHub: { repository: 'gitHub-repository' } },
-        };
-
-        const storeMocks = new StoreMocks()
-            .setVisualizationStoreData(visualizationStoreData)
-            .setDetailsViewStoreData(detailsViewState)
-            .setUserConfigurationStoreData(userConfigurationStoreData);
-
-        const storesHubMock = createStoresHubMock(storeMocks);
-
-        const props = new DetailsViewContainerPropsBuilder(deps)
-            .setStoreMocks(storeMocks)
-            .setDropdownClickHandler(dropdownClickHandler.object)
-            .setIssuesSelection(selectionMock.object)
-            .setClickHandlerFactory(clickHandlerFactoryMock.object)
-            .setPreviewFeatureFlagsHandler(previewFeatureFlagsHandlerMock.object)
-            .setAssessmentProvider(assessmentProviderMock.object)
-            .setStoresHubMock(storesHubMock.object)
-            .build();
-
-        const testObject = new DetailsViewContainer(props);
-        const state = getState(storeMocks, viewType, rightContentPanelConfig);
-        testObject.state = state;
-
-        getSelectedDetailsViewMock
-            .setup(gsdvm =>
-                gsdvm(
-                    It.isObjectWith({
-                        assessmentStoreData: state.assessmentStoreData,
-                        visualizationStoreData: state.visualizationStoreData,
-                    }),
-                ),
-            )
-            .returns(() => viewType);
-
-        const expected: JSX.Element = (
-            <div className="table column-layout main-wrapper">
-                <Header
-                    deps={props.deps}
-                    selectedPivot={DetailsViewPivotType.fastPass}
-                    featureFlagStoreData={storeMocks.featureFlagStoreData}
-                    dropdownClickHandler={dropdownClickHandler.object}
-                    tabClosed={storeMocks.tabStoreData.isClosed}
-                />
-                <div className="table column-layout details-view-body">
-                    {buildDetailsViewMainContent(storeMocks, props, viewType, rightContentPanelConfig, switcherNavConfig)}
-                </div>
-                {buildOverlay(storeMocks, props)}
-            </div>
-        );
-
-        expect(testObject.render()).toEqual(expected);
-
-        clickHandlerFactoryMock.verifyAll();
     }
 });

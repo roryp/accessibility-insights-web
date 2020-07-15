@@ -1,11 +1,10 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
+import { shallow } from 'enzyme';
 import * as React from 'react';
-
+import { ContentPage } from 'views/content/content-page';
+import { ContentPanelButton } from 'views/content/content-panel-button';
 import { ContentActionMessageCreator } from '../../../../../common/message-creators/content-action-message-creator';
-import { ContentPage } from '../../../../../views/content/content-page';
-import { ContentPanelButton } from '../../../../../views/content/content-panel-button';
-import { shallowRender } from '../../../common/shallow-render';
 
 describe('ContentPanelButton', () => {
     const content = {
@@ -13,6 +12,7 @@ describe('ContentPanelButton', () => {
             testing: ContentPage.create(() => 'CONTENT FOR TESTING' as any),
         },
     };
+    const contentTitle = 'TITLE FOR TESTING';
 
     const deps = {
         contentProvider: ContentPage.provider(content),
@@ -20,20 +20,32 @@ describe('ContentPanelButton', () => {
     };
 
     it('renders from content', () => {
-        const result = shallowRender(
-            <ContentPanelButton deps={deps} reference={content.for.testing} iconName="iconName">
+        const wrapped = shallow(
+            <ContentPanelButton
+                deps={deps}
+                reference={content.for.testing}
+                iconName="iconName"
+                contentTitle={contentTitle}
+            >
                 TEXT
             </ContentPanelButton>,
         );
-        expect(result).toMatchSnapshot();
+
+        expect(wrapped.getElement()).toMatchSnapshot();
     });
 
     it('renders from path', () => {
-        const result = shallowRender(
-            <ContentPanelButton deps={deps} reference={'for/testing'} iconName="iconName">
+        const wrapped = shallow(
+            <ContentPanelButton
+                deps={deps}
+                reference={'for/testing'}
+                iconName="iconName"
+                contentTitle={contentTitle}
+            >
                 TEXT
             </ContentPanelButton>,
         );
-        expect(result).toMatchSnapshot();
+
+        expect(wrapped.getElement()).toMatchSnapshot();
     });
 });

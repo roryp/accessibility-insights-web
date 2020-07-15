@@ -1,43 +1,41 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
-import * as Enzyme from 'enzyme';
-import * as _ from 'lodash';
+import { AutomatedChecksVisualizationToggle } from 'assessments/automated-checks/automated-checks-visualization-enabled-toggle';
+import { shallow, ShallowWrapper } from 'enzyme';
 import * as React from 'react';
 import { IMock, Mock } from 'typemoq';
-
-import { AutomatedChecksVisualizationToggle } from '../../../../../assessments/automated-checks/automated-checks-visualization-enabled-toggle';
-import { VisualizationToggle, VisualizationToggleProps } from '../../../../../common/components/visualization-toggle';
-import { DetailsViewActionMessageCreator } from '../../../../../DetailsView/actions/details-view-action-message-creator';
 import {
-    VisualHelperToggleTestPropsBuilder,
-    VisualizationTogglePropsBuilder,
-} from '../../DetailsView/components/restart-scan-visual-helper-toggle.test';
+    VisualizationToggle,
+    VisualizationToggleProps,
+} from '../../../../../common/components/visualization-toggle';
+import { DetailsViewActionMessageCreator } from '../../../../../DetailsView/actions/details-view-action-message-creator';
+import { visualHelperText } from '../../../../../DetailsView/components/base-visual-helper-toggle';
+import { VisualHelperToggleConfigBuilder } from '../../../common/visual-helper-toggle-config-builder';
+import { VisualizationTogglePropsBuilder } from '../../../common/visualization-toggle-props-builder';
 
 describe('AutomatedChecksVisualizationToggle', () => {
-    const actionMessageCreatorMock: IMock<DetailsViewActionMessageCreator> = Mock.ofType(DetailsViewActionMessageCreator);
+    const detailsViewActionMessageCreatorMock: IMock<DetailsViewActionMessageCreator> = Mock.ofType(
+        DetailsViewActionMessageCreator,
+    );
 
     it('render with disabled message', () => {
-        const props = new VisualHelperToggleTestPropsBuilder()
+        const props = new VisualHelperToggleConfigBuilder()
             .withToggleStepEnabled(true)
             .withToggleStepScanned(false)
-            .withActionMessageCreator(actionMessageCreatorMock.object)
+            .withActionMessageCreator(detailsViewActionMessageCreatorMock.object)
             .withEmptyFilteredMap()
             .build();
 
-        const wrapper = Enzyme.shallow(<AutomatedChecksVisualizationToggle {...props} />);
+        const wrapper = shallow(<AutomatedChecksVisualizationToggle {...props} />);
 
         const visualHelperClass = 'visual-helper';
         const toggleDiv = wrapper.find(`.${visualHelperClass}`);
-
-        expect(toggleDiv.exists()).toBeTruthy();
-
         const textDiv = toggleDiv.find(`.${visualHelperClass}-text`);
-
-        expect(textDiv.exists()).toBeTruthy();
-        expect(textDiv.childAt(0).text()).toEqual('Visual helper');
-
         const noMatchesWarningClass = 'no-matching-elements';
-        expect(wrapper.find(`.${noMatchesWarningClass}`).exists()).toBeTruthy();
+
+        expect(toggleDiv.exists()).toBe(true);
+        expect(textDiv.exists()).toBe(true);
+        expect(wrapper.find(`.${noMatchesWarningClass}`).exists()).toBe(true);
 
         const toggle = wrapper.find(VisualizationToggle);
 
@@ -47,27 +45,28 @@ describe('AutomatedChecksVisualizationToggle', () => {
             .build();
 
         assertVisualizationToggle(expectedToggleProps, toggle);
+        assertSnapshotMatch(wrapper);
     });
 
     it('render: toggle not disabled', () => {
-        const props = new VisualHelperToggleTestPropsBuilder()
+        const props = new VisualHelperToggleConfigBuilder()
             .withToggleStepEnabled(true)
             .withToggleStepScanned(false)
-            .withActionMessageCreator(actionMessageCreatorMock.object)
+            .withActionMessageCreator(detailsViewActionMessageCreatorMock.object)
             .withNonEmptyFilteredMap()
             .build();
 
-        const wrapper = Enzyme.shallow(<AutomatedChecksVisualizationToggle {...props} />);
+        const wrapper = shallow(<AutomatedChecksVisualizationToggle {...props} />);
 
         const visualHelperClass = 'visual-helper';
         const toggleDiv = wrapper.find(`.${visualHelperClass}`);
 
-        expect(toggleDiv.exists()).toBeTruthy();
+        expect(toggleDiv.exists()).toBe(true);
 
         const textDiv = toggleDiv.find(`.${visualHelperClass}-text`);
 
-        expect(textDiv.exists()).toBeTruthy();
-        expect(textDiv.childAt(0).text()).toEqual('Visual helper');
+        expect(textDiv.exists()).toBe(true);
+
         expect(wrapper.find('strong').exists()).toBeFalsy();
         const toggle = wrapper.find(VisualizationToggle);
 
@@ -77,31 +76,32 @@ describe('AutomatedChecksVisualizationToggle', () => {
             .build();
 
         assertVisualizationToggle(expectedToggleProps, toggle);
+        assertSnapshotMatch(wrapper);
     });
 
     it('render: toggle disabled when there are no failing instances for automated checks', () => {
-        const props = new VisualHelperToggleTestPropsBuilder()
+        const props = new VisualHelperToggleConfigBuilder()
             .withToggleStepEnabled(true)
             .withToggleStepScanned(false)
-            .withActionMessageCreator(actionMessageCreatorMock.object)
+            .withActionMessageCreator(detailsViewActionMessageCreatorMock.object)
             .withPassingFilteredMap()
             .build();
 
-        const wrapper = Enzyme.shallow(<AutomatedChecksVisualizationToggle {...props} />);
+        const wrapper = shallow(<AutomatedChecksVisualizationToggle {...props} />);
         const visualHelperClass = 'visual-helper';
         const toggleDiv = wrapper.find(`.${visualHelperClass}`);
 
-        expect(toggleDiv.exists()).toBeTruthy();
+        expect(toggleDiv.exists()).toBe(true);
 
         const textDiv = toggleDiv.find(`.${visualHelperClass}-text`);
 
-        expect(textDiv.exists()).toBeTruthy();
-        expect(textDiv.childAt(0).text()).toEqual('Visual helper');
+        expect(textDiv.exists()).toBe(true);
 
         const noMatchesWarningClass = 'no-matching-elements';
-        expect(wrapper.find(`.${noMatchesWarningClass}`).exists()).toBeTruthy();
 
         const toggle = wrapper.find(VisualizationToggle);
+
+        expect(wrapper.find(`.${noMatchesWarningClass}`).exists()).toBe(true);
 
         const expectedToggleProps = getDefaultVisualizationTogglePropsBuilder()
             .with('checked', false)
@@ -109,22 +109,27 @@ describe('AutomatedChecksVisualizationToggle', () => {
             .build();
 
         assertVisualizationToggle(expectedToggleProps, toggle);
+        assertSnapshotMatch(wrapper);
     });
 
     function assertVisualizationToggle(
         expectedProps: VisualizationToggleProps,
-        visualizationToggle: Enzyme.ShallowWrapper<VisualizationToggleProps>,
-    ) {
-        expect(visualizationToggle.exists()).toBeTruthy();
+        visualizationToggle: ShallowWrapper<VisualizationToggleProps>,
+    ): void {
+        expect(visualizationToggle.exists()).toBe(true);
 
         const actualProps = visualizationToggle.props();
 
-        _.forEach(expectedProps, (value, key) => {
-            expect(actualProps[key]).toEqual(value);
-        });
+        expect(actualProps).toMatchObject(expectedProps);
     }
 
-    function getDefaultVisualizationTogglePropsBuilder() {
-        return new VisualizationTogglePropsBuilder().with('visualizationName', 'Visual helper').with('className', 'visual-helper-toggle');
+    function assertSnapshotMatch(wrapper: ShallowWrapper): void {
+        expect(wrapper.getElement()).toMatchSnapshot();
+    }
+
+    function getDefaultVisualizationTogglePropsBuilder(): VisualizationTogglePropsBuilder {
+        return new VisualizationTogglePropsBuilder()
+            .with('visualizationName', visualHelperText)
+            .with('className', 'visual-helper-toggle');
     }
 });

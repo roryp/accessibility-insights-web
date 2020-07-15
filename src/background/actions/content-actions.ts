@@ -1,10 +1,11 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
-import { Action } from '../../common/flux/action';
+import { Action } from 'common/flux/action';
 import { BaseActionPayload } from './action-payloads';
 
 export interface ContentPayload extends BaseActionPayload {
     contentPath: string;
+    contentTitle: string;
 }
 
 export class ContentActions {

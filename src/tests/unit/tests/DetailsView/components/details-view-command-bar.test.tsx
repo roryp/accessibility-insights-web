@@ -1,86 +1,94 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
+import { NamedFC, ReactFCWithDisplayName } from 'common/react/named-fc';
+import { ScanMetadata } from 'common/types/store-data/unified-data-interface';
+import { DetailsViewActionMessageCreator } from 'DetailsView/actions/details-view-action-message-creator';
+import {
+    DetailsViewSwitcherNavConfiguration,
+    LeftNavProps,
+} from 'DetailsView/components/details-view-switcher-nav';
 import { shallow } from 'enzyme';
-import { escape } from 'lodash';
+import { ActionButton } from 'office-ui-fabric-react';
 import * as React from 'react';
-import { IMock, It, Mock, MockBehavior, Times } from 'typemoq';
-
-import { AssessmentsProvider } from '../../../../../assessments/assessments-provider';
-import { Assessment } from '../../../../../assessments/types/iassessment';
-import { IAssessmentsProvider } from '../../../../../assessments/types/iassessments-provider';
-import { FeatureFlags } from '../../../../../common/feature-flags';
-import { FeatureFlagStoreData } from '../../../../../common/types/store-data/feature-flag-store-data';
-import { IAssessmentStoreData } from '../../../../../common/types/store-data/iassessment-result-data';
-import { ITabStoreData } from '../../../../../common/types/store-data/itab-store-data';
-import { DetailsViewActionMessageCreator } from '../../../../../DetailsView/actions/details-view-action-message-creator';
+import { IMock, Mock, MockBehavior } from 'typemoq';
+import { TabStoreData } from '../../../../../common/types/store-data/tab-store-data';
 import {
     DetailsViewCommandBar,
-    DetailsViewCommandBarDeps,
     DetailsViewCommandBarProps,
 } from '../../../../../DetailsView/components/details-view-command-bar';
-import { ReportGenerator } from '../../../../../DetailsView/reports/report-generator';
 
 describe('DetailsViewCommandBar', () => {
-    let featureFlagStoreData: FeatureFlagStoreData;
-    let actionMessageCreatorMock: IMock<DetailsViewActionMessageCreator>;
-    let tabStoreData: ITabStoreData;
-    let assessmentsProviderMock: IMock<IAssessmentsProvider>;
-    let assessmentStoreData: IAssessmentStoreData;
-    let reportGeneratorMock: IMock<ReportGenerator>;
-    let descriptionPlaceholder: string;
-    let renderExportAndStartOver: boolean;
+    const thePageTitle = 'command-bar-test-tab-title';
+    const thePageUrl = 'command-bar-test-url';
+
+    let tabStoreData: TabStoreData;
+    let startOverComponent: JSX.Element;
+    let reportExportComponent: JSX.Element;
+    let detailsViewActionMessageCreatorMock: IMock<DetailsViewActionMessageCreator>;
+    let isCommandBarCollapsed: boolean;
 
     beforeEach(() => {
-        featureFlagStoreData = {
-            [FeatureFlags[FeatureFlags.newAssessmentExperience]]: true,
-        };
-        actionMessageCreatorMock = Mock.ofType(DetailsViewActionMessageCreator, MockBehavior.Loose);
+        detailsViewActionMessageCreatorMock = Mock.ofType(
+            DetailsViewActionMessageCreator,
+            MockBehavior.Loose,
+        );
         tabStoreData = {
-            title: 'command-bar-test-tab-title',
+            title: thePageTitle,
             isClosed: false,
-        } as ITabStoreData;
-        renderExportAndStartOver = true;
-        assessmentsProviderMock = Mock.ofType<IAssessmentsProvider>(AssessmentsProvider);
-        assessmentStoreData = {
-            assessmentNavState: {
-                selectedTestType: -1,
-            },
-        } as IAssessmentStoreData;
-        assessmentsProviderMock
-            .setup(provider => provider.forType(-1))
-            .returns(() => {
-                return {
-                    title: 'test title',
-                } as Assessment;
-            });
-        reportGeneratorMock = Mock.ofType(ReportGenerator, MockBehavior.Strict);
-        descriptionPlaceholder = '7efdac3c-8c94-4e00-a765-6fc8c59a232b';
+        } as TabStoreData;
+        startOverComponent = null;
+        reportExportComponent = null;
+        isCommandBarCollapsed = false;
     });
 
     function getProps(): DetailsViewCommandBarProps {
-        const deps: DetailsViewCommandBarDeps = {
-            detailsViewActionMessageCreator: actionMessageCreatorMock.object,
-            outcomeTypeSemanticsFromTestStatus: { stub: 'outcomeTypeSemanticsFromTestStatus' } as any,
-        };
+        const CommandBarStub: ReactFCWithDisplayName<DetailsViewCommandBarProps> = NamedFC<
+            DetailsViewCommandBarProps
+        >('test', _ => null);
+        const LeftNavStub: ReactFCWithDisplayName<LeftNavProps> = NamedFC<LeftNavProps>(
+            'test',
+            _ => null,
+        );
+        const switcherNavConfiguration: DetailsViewSwitcherNavConfiguration = {
+            CommandBar: CommandBarStub,
+            ReportExportComponentFactory: p => reportExportComponent,
+            StartOverComponentFactory: p => startOverComponent,
+            LeftNav: LeftNavStub,
+        } as DetailsViewSwitcherNavConfiguration;
+        const scanMetadata = {
+            targetAppInfo: {
+                name: thePageTitle,
+                url: thePageUrl,
+            },
+        } as ScanMetadata;
 
         return {
-            deps,
-            featureFlagStoreData,
-            actionMessageCreator: actionMessageCreatorMock.object,
+            deps: {
+                detailsViewActionMessageCreator: detailsViewActionMessageCreatorMock.object,
+            },
             tabStoreData,
-            renderExportAndStartOver,
-            assessmentsProvider: assessmentsProviderMock.object,
-            assessmentStoreData,
-            reportGenerator: reportGeneratorMock.object,
-        };
+            switcherNavConfiguration: switcherNavConfiguration,
+            scanMetadata: scanMetadata,
+            narrowModeStatus: {
+                isCommandBarCollapsed,
+            },
+        } as DetailsViewCommandBarProps;
     }
 
-    test('renders with export button and dialog', () => {
-        testOnPivot(true);
+    test('renders with export button, with start over', () => {
+        testOnPivot(true, true);
     });
 
-    test('renders without export button and dialog', () => {
-        testOnPivot(false);
+    test('renders without export button, without start over', () => {
+        testOnPivot(false, false);
+    });
+
+    test('renders with export button, without start over', () => {
+        testOnPivot(true, false);
+    });
+
+    test('renders without export button, with start over', () => {
+        testOnPivot(false, true);
     });
 
     test('renders null when tab closed', () => {
@@ -89,94 +97,27 @@ describe('DetailsViewCommandBar', () => {
         expect(render()).toBeNull();
     });
 
-    test('renders null when newAssessmentExperience FF is false', () => {
-        featureFlagStoreData[FeatureFlags[FeatureFlags.newAssessmentExperience]] = false;
+    test('renders with buttons collapsed into a menu', () => {
+        isCommandBarCollapsed = true;
+        const props = getProps();
 
-        expect(render()).toBeNull();
+        const rendered = shallow(<DetailsViewCommandBar {...props} />);
+
+        expect(rendered.debug()).toMatchSnapshot();
     });
 
-    test('onExportDialogClose sets state isExportDialogOpen to false', () => {
-        const stateChange = { isExportDialogOpen: false };
-        const setStateMock = Mock.ofInstance(state => {});
-        setStateMock.setup(s => s(It.isValue(stateChange))).verifiable(Times.once());
+    function testOnPivot(renderExportResults: boolean, renderStartOver: boolean): void {
+        if (renderExportResults) {
+            reportExportComponent = <ActionButton>Report Export Component</ActionButton>;
+        }
 
-        const testSubject = getTestSubject();
-        (testSubject as any).setState = setStateMock.object;
+        if (renderStartOver) {
+            startOverComponent = <ActionButton>Start Over Component</ActionButton>;
+        }
 
-        (testSubject as any).onExportDialogClose();
+        const props = getProps();
+        const rendered = shallow(<DetailsViewCommandBar {...props} />);
 
-        setStateMock.verifyAll();
-    });
-
-    test('onExportButtonClick sets state isExportDialogOpen to true and generates html', () => {
-        const description = '';
-        const testHtmlWithPlaceholder = `<html><body>export-button-click ${descriptionPlaceholder}</body></html>`;
-        const testHtmlWithDescription = `<html><body>export-button-click ${description}</body></html>`;
-        const deps = getProps().deps;
-
-        reportGeneratorMock
-            .setup(rb =>
-                rb.generateAssessmentHtml(
-                    deps,
-                    assessmentStoreData,
-                    assessmentsProviderMock.object,
-                    featureFlagStoreData,
-                    tabStoreData,
-                    descriptionPlaceholder,
-                ),
-            )
-            .returns(() => testHtmlWithPlaceholder)
-            .verifiable();
-
-        const stateChange = {
-            isExportDialogOpen: true,
-            exportDialogDescription: '',
-            exportHtmlWithPlaceholder: testHtmlWithPlaceholder,
-            exportHtmlWithDescription: testHtmlWithDescription,
-        };
-        const setStateMock = Mock.ofInstance(state => {});
-        setStateMock.setup(s => s(It.isValue(stateChange))).verifiable(Times.once());
-
-        const testSubject = getTestSubject();
-        (testSubject as any).setState = setStateMock.object;
-
-        (testSubject as any).onExportButtonClick();
-
-        setStateMock.verifyAll();
-        reportGeneratorMock.verifyAll();
-    });
-
-    test('onExportDialogDescriptionChanged updates description and html in state', () => {
-        const description = '<b>changed-description</b>';
-        const escapedDescription = escape(description);
-        const testHtmlWithPlaceholder = `<html><body>export-button-click ${descriptionPlaceholder}</body></html>`;
-        const testHtmlWithDescription = `<html><body>export-button-click ${escapedDescription}</body></html>`;
-
-        const stateBefore = {
-            exportHtmlWithPlaceholder: testHtmlWithPlaceholder,
-        };
-        const stateChange = {
-            exportDialogDescription: description,
-            exportHtmlWithDescription: testHtmlWithDescription,
-        };
-        const setStateMock = Mock.ofInstance(state => {});
-        setStateMock.setup(s => s(It.isValue(stateChange))).verifiable(Times.once());
-
-        const testSubject = getTestSubject();
-        (testSubject as any).state = stateBefore;
-        (testSubject as any).setState = setStateMock.object;
-
-        (testSubject as any).onExportDialogDescriptionChanged(description);
-
-        setStateMock.verifyAll();
-    });
-
-    function testOnPivot(givenRenderExportAndStartOver: boolean): void {
-        const switchToTargetTabStub = () => {};
-        actionMessageCreatorMock.setup(amc => amc.switchToTargetTab).returns(() => switchToTargetTabStub);
-        renderExportAndStartOver = givenRenderExportAndStartOver;
-
-        const rendered = shallow(<DetailsViewCommandBar {...getProps()} />);
         expect(rendered.debug()).toMatchSnapshot();
     }
 

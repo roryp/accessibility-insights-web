@@ -2,9 +2,9 @@
 // Licensed under the MIT License.
 import { IMock, Mock } from 'typemoq';
 
-import { ClientBrowserAdapter } from '../../../../../common/client-browser-adapter';
+import { BrowserAdapter } from '../../../../../common/browser-adapters/browser-adapter';
+import { WindowMessage } from '../../../../../injected/frameCommunicators/window-message';
 import {
-    IWindowMessage,
     MESSAGE_STABLE_SIGNATURE,
     WindowMessageMarshaller,
 } from '../../../../../injected/frameCommunicators/window-message-marshaller';
@@ -12,7 +12,7 @@ import {
 describe('WindowMessageMarshallerTests', () => {
     let testSubject: WindowMessageMarshaller;
     let messageIdToBeReturned: string;
-    let browserAdapter: IMock<ClientBrowserAdapter>;
+    let browserAdapter: IMock<BrowserAdapter>;
     const messageSourceId = 'app id';
     const messageVersion = 'app version';
     let manifest: chrome.runtime.Manifest;
@@ -25,7 +25,7 @@ describe('WindowMessageMarshallerTests', () => {
             version: messageVersion,
         } as chrome.runtime.Manifest;
 
-        browserAdapter = Mock.ofType<ClientBrowserAdapter>();
+        browserAdapter = Mock.ofType<BrowserAdapter>();
         browserAdapter.setup(b => b.getManifest()).returns(() => manifest);
 
         testSubject = new WindowMessageMarshaller(browserAdapter.object, () => {
@@ -42,10 +42,10 @@ describe('WindowMessageMarshallerTests', () => {
         null,
         JSON.stringify({}),
         // Only one required field present
-        JSON.stringify({ messageId: '12' } as IWindowMessage),
-        JSON.stringify({ messageSourceId: messageSourceId } as IWindowMessage),
-        JSON.stringify({ messageVersion: messageVersion } as IWindowMessage),
-        JSON.stringify({ messageStableSignature: MESSAGE_STABLE_SIGNATURE } as IWindowMessage),
+        JSON.stringify({ messageId: '12' } as WindowMessage),
+        JSON.stringify({ messageSourceId: messageSourceId } as WindowMessage),
+        JSON.stringify({ messageVersion: messageVersion } as WindowMessage),
+        JSON.stringify({ messageStableSignature: MESSAGE_STABLE_SIGNATURE } as WindowMessage),
         // Only one required field missing
         JSON.stringify({
             // messageId: { unknownMessageIdType: true } as any,
@@ -53,28 +53,28 @@ describe('WindowMessageMarshallerTests', () => {
             messageStableSignature: MESSAGE_STABLE_SIGNATURE,
             messageSourceId: messageSourceId,
             messageVersion: messageVersion,
-        } as IWindowMessage),
+        } as WindowMessage),
         JSON.stringify({
             messageId: validMessageId,
             message: validMessageProperty,
             // messageStableSignature: 'unknown stable signature',
             messageSourceId: messageSourceId,
             messageVersion: messageVersion,
-        } as IWindowMessage),
+        } as WindowMessage),
         JSON.stringify({
             messageId: validMessageId,
             message: validMessageProperty,
             messageStableSignature: MESSAGE_STABLE_SIGNATURE,
             // messageSourceId: 'unknown source id',
             messageVersion: messageVersion,
-        } as IWindowMessage),
+        } as WindowMessage),
         JSON.stringify({
             messageId: validMessageId,
             message: validMessageProperty,
             messageStableSignature: MESSAGE_STABLE_SIGNATURE,
             messageSourceId: messageSourceId,
             // messageVersion: 'unknown version',
-        } as IWindowMessage),
+        } as WindowMessage),
         // Only one required field malformed
         JSON.stringify({
             messageId: { unknownMessageIdType: true } as any,
@@ -82,28 +82,28 @@ describe('WindowMessageMarshallerTests', () => {
             messageStableSignature: MESSAGE_STABLE_SIGNATURE,
             messageSourceId: messageSourceId,
             messageVersion: messageVersion,
-        } as IWindowMessage),
+        } as WindowMessage),
         JSON.stringify({
             messageId: validMessageId,
             message: validMessageProperty,
             messageStableSignature: 'unknown stable signature',
             messageSourceId: messageSourceId,
             messageVersion: messageVersion,
-        } as IWindowMessage),
+        } as WindowMessage),
         JSON.stringify({
             messageId: validMessageId,
             message: validMessageProperty,
             messageStableSignature: MESSAGE_STABLE_SIGNATURE,
             messageSourceId: 'unknown source id',
             messageVersion: messageVersion,
-        } as IWindowMessage),
+        } as WindowMessage),
         JSON.stringify({
             messageId: validMessageId,
             message: validMessageProperty,
             messageStableSignature: MESSAGE_STABLE_SIGNATURE,
             messageSourceId: messageSourceId,
             messageVersion: 'unknown version',
-        } as IWindowMessage),
+        } as WindowMessage),
     ])('handleParsingUnknownData: %#', message => {
         expect(testSubject.parseMessage(message)).toBeNull();
     });
@@ -121,14 +121,14 @@ describe('WindowMessageMarshallerTests', () => {
             messageVersion: messageVersion,
             messageId: 'id1',
             command: 'someCommand',
-        } as IWindowMessage, // with message
+        } as WindowMessage, // with message
         {
             messageStableSignature: MESSAGE_STABLE_SIGNATURE,
             messageSourceId: messageSourceId,
             messageVersion: messageVersion,
             messageId: 'id1',
             command: 'someCommand',
-        } as IWindowMessage, // without message
+        } as WindowMessage, // without message
     ])('handleParsingValidData: %#', message => {
         expect(testSubject.parseMessage(JSON.stringify(message))).toEqual(message);
     });
@@ -137,7 +137,7 @@ describe('WindowMessageMarshallerTests', () => {
         const command = 'command1';
         const responseId = 'responseId';
         const payload = {};
-        const expectedMessage: IWindowMessage = {
+        const expectedMessage: WindowMessage = {
             messageId: responseId,
             command: command,
             message: payload,
@@ -156,7 +156,7 @@ describe('WindowMessageMarshallerTests', () => {
         const command = 'command1';
         const payload = {};
         messageIdToBeReturned = 'newId1';
-        const expectedMessage: IWindowMessage = {
+        const expectedMessage: WindowMessage = {
             messageId: messageIdToBeReturned,
             command: command,
             message: payload,
@@ -175,7 +175,7 @@ describe('WindowMessageMarshallerTests', () => {
         const command = 'command1';
         const payload = new Error('hi');
         messageIdToBeReturned = 'newId1';
-        const expectedMessage: IWindowMessage = {
+        const expectedMessage: WindowMessage = {
             messageId: messageIdToBeReturned,
             command: command,
             message: undefined,
@@ -205,6 +205,8 @@ describe('WindowMessageMarshallerTests', () => {
         // Using strings instead of strongly typed names to avoid accidentally tool-refactoring the names/values
         // such that this test still passes but our partners break; those partners depend on this *exact* format
         // to distinguish our messages from unknown/assumed-malicious messages.
-        expect(actualMessage['messageStableSignature']).toBe('e467510c-ca1f-47df-ace1-a39f7f0678c9');
+        expect(actualMessage['messageStableSignature']).toBe(
+            'e467510c-ca1f-47df-ace1-a39f7f0678c9',
+        );
     });
 });

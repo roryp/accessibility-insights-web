@@ -1,11 +1,13 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
+@import '../../common/styles/root-level-only/color-definitions.scss';
+@import '../../common/styles/root-level-only/global-styles.scss';
 @import '../../common/styles/common.scss';
 
 body {
     margin: 0;
     overflow-y: auto;
-    height: 0px;
+    height: fit-content; // required for the popup's window to resize properly when the details view is zoomed in/out
     background: $neutral-0;
     font-family: $fontFamily;
 }
@@ -29,6 +31,12 @@ div.insights-dialog-main-override.telemetry-permission-dialog {
         border-radius: 4px;
     }
 
+    .ms-Checkbox-checkmark {
+        @media screen and (-ms-high-contrast: active) {
+            color: inherit;
+        }
+    }
+
     .telemetry-permission-details {
         font-size: 14px;
     }
@@ -49,7 +57,34 @@ div.insights-dialog-main-override.telemetry-permission-dialog {
 }
 
 html {
-    height: 0px; //required for properly resize the popup when zoom in/out
+    height: fit-content; // required for the popup's window to resize properly when the details view is zoomed in/out
+}
+
+// The CSS selector here specifically targets Microsoft Edge.
+// Certain heights/width values do not sit well with Microsoft Edge and need to be modified.
+@supports (-ms-ime-align: auto) {
+    body {
+        height: unset;
+    }
+
+    html {
+        height: unset;
+    }
+
+    #popup-container .unsupported-browser-info-panel {
+        text-align: center;
+        width: 30em;
+        margin: 20px 14px 20px 14px;
+
+        .incompatible-browser-message {
+            margin-top: 15px;
+        }
+
+        [role='heading'] {
+            width: unset;
+            float: unset;
+        }
+    }
 }
 
 #popup-container,
@@ -62,10 +97,6 @@ html {
 #popup-container [role='heading'] {
     width: fit-content;
     padding-left: 0;
-
-    &.old {
-        padding-left: 8px;
-    }
 }
 
 #popup-container .launch-panel {
@@ -82,15 +113,6 @@ html {
     margin: 4px;
 }
 
-#popup-container .getting-started-dialog {
-    width: 38em;
-}
-
-#popup-container .feedback-dialog {
-    width: 38em;
-    margin: 20px 14px 20px 14px;
-}
-
 #popup-container .unsupported-url-info-panel {
     width: 28em;
     margin: 20px 14px 20px 14px;
@@ -98,17 +120,6 @@ html {
 
 #popup-container .toggle-label {
     font-size: 16px;
-}
-
-#popup-container .popup-submit-button {
-    margin-top: 19px;
-}
-
-#popup-container .getting-started-dialog-header {
-    margin: 0 0 5px 0;
-    width: 100%;
-    padding: 3%;
-    background: $neutral-100;
 }
 
 #popup-container .main-section {
@@ -126,84 +137,8 @@ html {
     color: $secondary-text;
 }
 
-#popup-container .launch-panel-header {
-    margin-bottom: 12px;
-    margin-left: 14px;
-    margin-right: 14px;
-}
-
-#popup-container .gear-options-button-component {
-    display: inline-block;
-
-    button {
-        margin-right: 5px;
-    }
-
-    .sign-in-link {
-        margin-top: 6px;
-    }
-
-    button.gear-button {
-        margin-top: 10px;
-    }
-}
-
-#popup-container .feedback-dialog-header {
-    margin-bottom: 12px;
-}
-
 .popup-menu .ms-ContextualMenu-icon {
-    color: $communication-shade-10;
     max-height: 30px;
-}
-
-#popup-container .launch-panel-header .header-title {
-    height: 32px;
-}
-
-#popup-container .launch-panel-header .header-subtitle {
-    color: $neutral-60;
-}
-
-#popup-container .launch-panel-header .feedback-collapseMenuButton-col {
-    padding-right: 0;
-    padding-left: 0;
-    float: right;
-}
-
-#popup-container .getting-started-dialog-exit-button {
-    color: $neutral-0;
-}
-
-#popup-container .main-section .shortcut-label {
-    color: $secondary-text;
-    text-align: right;
-    padding-top: 3px;
-    padding-bottom: 0px;
-}
-
-#popup-container .main-section .ad-hoc-tools-panel-group-0 {
-    padding-right: 15px;
-}
-
-#popup-container .main-section .ad-hoc-tools-panel-group-1 {
-    padding-left: 15px;
-}
-
-#popup-container .main-section .ad-hoc-tools-panel-footer {
-    margin-top: 24px;
-
-    .back-to-launch-pad-icon {
-        margin-right: 6px;
-    }
-}
-
-#popup-container #getting-started-main-section {
-    margin: 0 8px;
-}
-
-#popup-container #feed-back-dialog-main-section {
-    margin: 0 8px;
 }
 
 #popup-container .main-section h3 {
@@ -216,39 +151,9 @@ html {
     margin-bottom: 8px;
 }
 
-#popup-container .main-section .italic-text-container {
-    margin-left: 0px;
-    margin-top: 5px;
-}
-
-#popup-container .main-section .ms-Grid-row .italic-text-container {
-    margin-left: 20px;
-    margin-top: -2px;
-    color: $secondary-text;
-}
-
-#popup-container .main-section .getting-started-hr {
-    margin-top: 10px;
-    margin-bottom: 3px;
-}
-
-#popup-container .main-section .launch-panel-hr {
-    margin-top: 14px;
-    margin-bottom: 14px;
-    cursor: default;
-    display: block;
-    height: 1px;
-    background-color: $neutral-8;
-    position: relative;
-}
-
 #popup-container .main-section .footer {
     padding-top: 11px;
     padding-bottom: 10px;
-}
-
-#popup-container .main-section .ad-hoc-tools-panel-footer {
-    font-size: 11px;
 }
 
 #popup-container .main-section .ms-Toggle {
@@ -258,15 +163,6 @@ html {
 
 #popup-container .main-section .ms-Spinner {
     padding-top: 3px;
-}
-
-#popup-container .main-section .view-toggle-row {
-    height: 25px;
-}
-
-#popup-container .main-section .view-toggle-col {
-    padding-right: 0;
-    text-align: right;
 }
 
 #popup-container .main-section .ms-Checkbox-checkbox {
@@ -283,10 +179,6 @@ button[disabled]:hover:not(.ms-ContextualMenu-link) {
 
 button[disabled]:focus:not(.ms-ContextualMenu-link) {
     border: none;
-}
-
-#popup-container .feedback-dialog-button {
-    width: 92px;
 }
 
 #popup-container .right-float-button-row {
@@ -309,21 +201,13 @@ button[disabled]:focus:not(.ms-ContextualMenu-link) {
     text-align: right;
 }
 
-#popup-container .feedback-dialog .ms-TextField-field {
-    height: 100px;
-}
-
 #popup-container .launch-panel-general-container {
     margin-bottom: 20px;
 }
 
-#popup-container .ask-a-question-button {
-    height: 0px;
-}
-
 #popup-container {
     .ms-Link {
-        color: $communication-shade-10;
+        color: $communication-primary;
         font-weight: 600;
     }
 
@@ -377,55 +261,6 @@ button[disabled]:focus:not(.ms-ContextualMenu-link) {
 #popup-container .launch-panel {
     width: 296px;
 
-    .launch-pad-main-section #getting-started-heading {
-        margin: 0px;
-        height: 20px;
-        padding: 0px;
-    }
-
-    .getting-started-dialog-header-title {
-        height: 28px;
-        width: 180px;
-        color: $neutral-100;
-        font-family: $fontFamily;
-        font-size: 21px;
-        line-height: 25px;
-        padding: 0px 8px;
-    }
-
-    .getting-started-dialog-header-subtitle {
-        color: $neutral-100;
-        height: 15px;
-        font-size: 11px;
-        line-height: 13px;
-        font-style: normal;
-        font-family: $fontFamily;
-        padding: 0px;
-    }
-
-    .getting-started-dialog-exit-button {
-        color: $secondary-text;
-        height: 17px;
-        width: 17px;
-        font-size: 17px;
-        line-height: 20px;
-        font-style: normal;
-        position: relative;
-        left: 10px;
-    }
-
-    .popup-submit-button {
-        margin: 0px;
-    }
-
-    .getting-started-dialog-header-fast-pass {
-        margin: 0px 0px 12px 0px;
-        width: 256px;
-        height: 42px;
-        background: $neutral-0;
-        padding: 0px;
-    }
-
     .launch-pad-main-section {
         width: 100%;
         margin: 0px;
@@ -433,30 +268,6 @@ button[disabled]:focus:not(.ms-ContextualMenu-link) {
 
     .launch-pad-item-description {
         width: 280px;
-    }
-
-    .popup-submit-button-disabled {
-        color: $neutral-20;
-        background-color: $neutral-8;
-        border-style: solid;
-        border-width: 1px 1px 1px 0px;
-        border-color: $neutral-20;
-    }
-
-    .popup-submit-button-enabled {
-        color: $neutral-0;
-        background-color: $communication-primary;
-        border-style: solid;
-        border-width: 1px 1px 1px 0px;
-        border-color: $communication-primary;
-    }
-
-    .popup-submit-button-submitted {
-        color: $accent2-dark;
-        background-color: $neutral-0;
-        border-style: solid;
-        border-width: 1px 1px 1px 0px;
-        border-color: $neutral-20;
     }
 
     .popup-start-dialog-icon-circle {
@@ -486,176 +297,11 @@ button[disabled]:focus:not(.ms-ContextualMenu-link) {
             color: $secondary-text;
             font-style: normal;
         }
-
-        .getting-started-dialog-panel-item-description {
-            margin: 0px;
-            font-size: 14px;
-            white-space: nowrap;
-        }
     }
 
     ::placeholder {
         font-style: italic;
     }
-}
-
-#popup-container #getting-started-dialog-fast-pass {
-    width: 296px;
-    height: 502px;
-    padding: 20px;
-
-    #getting-started-main-section #getting-started-heading {
-        margin: 0px;
-        height: 20px;
-        padding: 0px;
-    }
-
-    .getting-started-dialog-header-title {
-        height: 28px;
-        width: 180px;
-        color: $neutral-100;
-        font-family: $fontFamily;
-        font-size: 21px;
-        line-height: 25px;
-        padding: 0px 8px;
-    }
-
-    .getting-started-dialog-header-subtitle {
-        color: $neutral-100;
-        height: 15px;
-        font-size: 11px;
-        line-height: 13px;
-        font-style: normal;
-        font-family: $fontFamily;
-        padding: 0px;
-    }
-
-    .getting-started-dialog-exit-button {
-        color: $secondary-text;
-        height: 17px;
-        width: 17px;
-        font-size: 17px;
-        line-height: 20px;
-        font-style: normal;
-        position: relative;
-        left: 10px;
-    }
-
-    .popup-submit-button {
-        margin: 0px;
-    }
-
-    .getting-started-dialog-header-fast-pass {
-        margin: 0px 0px 12px 0px;
-        width: 256px;
-        height: 42px;
-        background: $neutral-0;
-        padding: 0px;
-    }
-
-    #getting-started-main-section {
-        width: 100%;
-        margin: 0px;
-    }
-
-    #getting-started-main-section .getting-started-hr {
-        margin: 12px 0px 0px 0px;
-        border-width: 1px 0px 0px 0px;
-        padding: 0px;
-        border-style: solid;
-        border-color: $neutral-8;
-    }
-
-    .popup-submit-button-disabled {
-        color: $neutral-20;
-        background-color: $neutral-8;
-        border-style: solid;
-        border-width: 1px 1px 1px 0px;
-        border-color: $neutral-20;
-    }
-
-    .popup-submit-button-enabled {
-        color: $neutral-0;
-        background-color: $communication-primary;
-        border-style: solid;
-        border-width: 1px 1px 1px 0px;
-        border-color: $communication-primary;
-    }
-
-    .popup-submit-button-submitted {
-        color: $accent2-dark;
-        background-color: $neutral-0;
-        border-style: solid;
-        border-width: 1px 1px 1px 0px;
-        border-color: $neutral-20;
-    }
-
-    .popup-start-dialog-icon-circle {
-        border-radius: 50%;
-        width: 59px;
-        height: 59px;
-        background-color: $neutral-10;
-        margin-top: 16px;
-        padding: 12px 14px 14px 14px;
-    }
-
-    #getting-started-main-section .getting-started-dialog-panel {
-        h3 {
-            margin: 16px 0px 0px 0px;
-            padding: 0px;
-            height: 20px;
-        }
-
-        .ms-Button-icon {
-            width: 31px;
-            height: 31px;
-            font-size: 31px;
-            line-height: 36px;
-            color: $secondary-text;
-            font-style: normal;
-        }
-
-        .popup-start-dialog-icon {
-            width: 31px;
-            height: 31px;
-            font-size: 31px;
-            line-height: 36px;
-            color: $secondary-text;
-            font-style: normal;
-        }
-
-        .getting-started-dialog-panel-item-description {
-            height: 38px;
-            margin: 0px;
-        }
-    }
-
-    ::placeholder {
-        font-style: italic;
-    }
-}
-
-#popup-container .fast-pass-launch-panel {
-    padding-left: 16px;
-    padding-right: 16px;
-    padding-top: 16px;
-    padding-bottom: 16px;
-    background: $communication-tint-40;
-    line-height: 16px;
-    margin-bottom: 14px;
-}
-
-#popup-container .fast-pass-title,
-#popup-container .fast-pass-description {
-    padding-bottom: 10px;
-}
-
-#popup-container .fast-pass-rocket-large {
-    position: absolute;
-    font-size: 124px;
-    top: 87px;
-    left: 155px;
-    color: $communication-alpha-5;
 }
 
 .gear-options-icon {

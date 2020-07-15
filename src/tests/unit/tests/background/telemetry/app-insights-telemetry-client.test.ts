@@ -1,19 +1,19 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
-import * as _ from 'lodash';
+import {
+    AppInsightsTelemetryClient,
+    ExtendedEnvelop,
+} from 'background/telemetry/app-insights-telemetry-client';
+import { ApplicationTelemetryDataFactory } from 'background/telemetry/application-telemetry-data-factory';
+import { configMutator } from 'common/configuration';
+import { cloneDeep } from 'lodash';
 import { IMock, It, Mock, MockBehavior, Times } from 'typemoq';
-
-import { AppInsightsTelemetryClient, ExtendedEnvelop } from '../../../../../background/telemetry/app-insights-telemetry-client';
-import { ApplicationTelemetryDataFactory } from '../../../../../background/telemetry/application-telemetry-data-factory';
-import { TelemetryLogger } from '../../../../../background/telemetry/telemetry-logger';
-import { configMutator } from '../../../../../common/configuration';
 
 describe('AppInsights telemetry client tests', () => {
     let addTelemetryInitializerStrictMock: IMock<(callback) => void>;
     let appInsightsStrictMock: IMock<Microsoft.ApplicationInsights.IAppInsights>;
     let coreTelemetryDataFactoryMock: IMock<ApplicationTelemetryDataFactory>;
-
-    let loggerMock: IMock<TelemetryLogger>;
+    let operationStub: Microsoft.ApplicationInsights.Context.IOperation;
     let testSubject: AppInsightsTelemetryClient;
     const aiKey: string = 'ai key';
     let queue: Array<() => void>;
@@ -33,16 +33,23 @@ describe('AppInsights telemetry client tests', () => {
         aiConfig = {};
         configMutator.setOption('appInsightsInstrumentationKey', aiKey);
         addTelemetryInitializerStrictMock = Mock.ofInstance(callback => {}, MockBehavior.Strict);
-
-        loggerMock = Mock.ofType<TelemetryLogger>();
-        loggerMock.setup(l => l.log(It.isAny()));
-
-        appInsightsStrictMock = Mock.ofType<Microsoft.ApplicationInsights.IAppInsights>(null, MockBehavior.Strict);
+        operationStub = {
+            name: 'should be overwritten to an empty string',
+        } as Microsoft.ApplicationInsights.Context.IOperation;
+        appInsightsStrictMock = Mock.ofType<Microsoft.ApplicationInsights.IAppInsights>(
+            null,
+            MockBehavior.Strict,
+        );
         coreTelemetryDataFactoryMock = Mock.ofType<ApplicationTelemetryDataFactory>();
 
-        coreTelemetryDataFactoryMock.setup(c => c.getData()).returns(() => _.cloneDeep(coreTelemetryData as any));
+        coreTelemetryDataFactoryMock
+            .setup(c => c.getData())
+            .returns(() => cloneDeep(coreTelemetryData as any));
 
-        testSubject = new AppInsightsTelemetryClient(appInsightsStrictMock.object, coreTelemetryDataFactoryMock.object, loggerMock.object);
+        testSubject = new AppInsightsTelemetryClient(
+            appInsightsStrictMock.object,
+            coreTelemetryDataFactoryMock.object,
+        );
     });
 
     describe('enableTelemetry', () => {
@@ -63,17 +70,23 @@ describe('AppInsights telemetry client tests', () => {
 
             expect(returnVal).toBe(true);
             verifyBaseDataProperties(extendedEnvelopStub);
+            expect(operationStub.name).toEqual('');
         });
 
         test('verify disableTelemetry config on callback', () => {
             aiConfig.disableTelemetry = true;
 
             invokeFirstEnableTelemetryCall();
-            expect(aiConfig).toEqual({ disableTelemetry: true } as Microsoft.ApplicationInsights.IConfig);
+            expect(aiConfig).toEqual({
+                disableTelemetry: true,
+            } as Microsoft.ApplicationInsights.IConfig);
 
             invokeCallbacksForFirstEnableTelemetryCall();
 
-            expect(aiConfig).toEqual({ disableTelemetry: false } as Microsoft.ApplicationInsights.IConfig);
+            expect(aiConfig).toEqual({
+                disableTelemetry: false,
+            } as Microsoft.ApplicationInsights.IConfig);
+            expect(operationStub.name).toEqual('');
         });
 
         test('2nd call after initialization - queue null', () => {
@@ -83,11 +96,16 @@ describe('AppInsights telemetry client tests', () => {
             invokeAllFunctionsInQueue();
             queue = null;
 
-            expect(aiConfig).toEqual({ disableTelemetry: true } as Microsoft.ApplicationInsights.IConfig);
+            expect(aiConfig).toEqual({
+                disableTelemetry: true,
+            } as Microsoft.ApplicationInsights.IConfig);
 
             testSubject.enableTelemetry();
 
-            expect(aiConfig).toEqual({ disableTelemetry: false } as Microsoft.ApplicationInsights.IConfig);
+            expect(aiConfig).toEqual({
+                disableTelemetry: false,
+            } as Microsoft.ApplicationInsights.IConfig);
+            expect(operationStub.name).toEqual('');
         });
 
         test('2nd call before initialization completed - queue not null', () => {
@@ -97,11 +115,16 @@ describe('AppInsights telemetry client tests', () => {
             queue = [];
 
             testSubject.enableTelemetry();
-            expect(aiConfig).toEqual({ disableTelemetry: true } as Microsoft.ApplicationInsights.IConfig);
+            expect(aiConfig).toEqual({
+                disableTelemetry: true,
+            } as Microsoft.ApplicationInsights.IConfig);
 
             invokeAllFunctionsInQueue();
 
-            expect(aiConfig).toEqual({ disableTelemetry: false } as Microsoft.ApplicationInsights.IConfig);
+            expect(aiConfig).toEqual({
+                disableTelemetry: false,
+            } as Microsoft.ApplicationInsights.IConfig);
+            expect(operationStub.name).toEqual('');
         });
 
         test('do nothing if already enabled', () => {
@@ -125,7 +148,7 @@ describe('AppInsights telemetry client tests', () => {
         });
 
         test('when initialization in progress (queue not null)', () => {
-            const aiConfig = { disableTelemetry: false } as Microsoft.ApplicationInsights.IConfig;
+            aiConfig = { disableTelemetry: false } as Microsoft.ApplicationInsights.IConfig;
             invokeFirstEnableTelemetryCall();
             queue = [];
 
@@ -151,6 +174,7 @@ describe('AppInsights telemetry client tests', () => {
             testSubject.disableTelemetry();
 
             expect(aiConfig.disableTelemetry).toBe(true);
+            expect(operationStub.name).toEqual('');
         });
     });
 
@@ -163,11 +187,14 @@ describe('AppInsights telemetry client tests', () => {
                 test: 'a',
             };
 
-            appInsightsStrictMock.setup(ai => ai.trackEvent(eventName, eventObject)).verifiable(Times.once());
+            appInsightsStrictMock
+                .setup(ai => ai.trackEvent(eventName, eventObject))
+                .verifiable(Times.once());
 
             testSubject.trackEvent(eventName, eventObject);
 
             appInsightsStrictMock.verifyAll();
+            expect(operationStub.name).toEqual('');
         });
 
         test('do nothing if not initialized', () => {
@@ -180,13 +207,13 @@ describe('AppInsights telemetry client tests', () => {
         });
     });
 
-    function verifyBaseDataProperties(extendedEnvelop: ExtendedEnvelop) {
+    function verifyBaseDataProperties(extendedEnvelop: ExtendedEnvelop): void {
         expect(extendedEnvelop.data.baseData.properties).toMatchObject(coreTelemetryData);
 
         expect(extendedEnvelop.data.baseData).toMatchObject(getEnvelopStub().data.baseData);
     }
 
-    function setupAddTelemetryInitializerCall() {
+    function setupAddTelemetryInitializerCall(): void {
         addTelemetryInitializerStrictMock
             .setup(x =>
                 x(
@@ -213,20 +240,21 @@ describe('AppInsights telemetry client tests', () => {
         } as ExtendedEnvelop;
     }
 
-    function setupAppInsightsContext() {
-        appInsightsStrictMock.setup(ai => ai.context).returns(() => getAppInsightsContext() as any);
+    function setupAppInsightsContext(): void {
+        appInsightsStrictMock
+            .setup(ai => ai.context)
+            .returns(() => getAppInsightsContext())
+            .verifiable(Times.exactly(2));
     }
 
-    function getAppInsightsContext() {
+    function getAppInsightsContext(): Microsoft.ApplicationInsights.ITelemetryContext {
         return {
             addTelemetryInitializer: addTelemetryInitializerStrictMock.object,
-            user: {
-                id: null,
-            },
-        };
+            operation: operationStub,
+        } as any;
     }
 
-    function setupAppInsightsDownloadAndSetupCall() {
+    function setupAppInsightsDownloadAndSetupCall(): void {
         appInsightsStrictMock
             .setup(ai =>
                 ai.downloadAndSetup(
@@ -240,19 +268,19 @@ describe('AppInsights telemetry client tests', () => {
             .verifiable(Times.once());
     }
 
-    function invokeFirstEnableTelemetryCall() {
+    function invokeFirstEnableTelemetryCall(): void {
         setupAppInsightsQueue();
         setupAppInsightsDownloadAndSetupCall();
 
         testSubject.enableTelemetry();
     }
 
-    function invokeFirstEnableTelemetryCallWithCallbacks() {
+    function invokeFirstEnableTelemetryCallWithCallbacks(): void {
         invokeFirstEnableTelemetryCall();
         invokeCallbacksForFirstEnableTelemetryCall();
     }
 
-    function invokeCallbacksForFirstEnableTelemetryCall() {
+    function invokeCallbacksForFirstEnableTelemetryCall(): void {
         setupAppInsightsContext();
         setupAddTelemetryInitializerCall();
         setupAppInsightsConfig();
@@ -261,19 +289,19 @@ describe('AppInsights telemetry client tests', () => {
         invokeAllFunctionsInQueue();
     }
 
-    function invokeAllFunctionsInQueue() {
+    function invokeAllFunctionsInQueue(): void {
         queue.forEach(q => q());
         queue = [];
     }
 
-    function setupAppInsightsQueue() {
+    function setupAppInsightsQueue(): void {
         appInsightsStrictMock
             .setup(ai => ai.queue)
             .returns(() => queue)
             .verifiable(Times.atLeast(1));
     }
 
-    function setupAppInsightsConfig() {
+    function setupAppInsightsConfig(): void {
         appInsightsStrictMock.setup(ai => ai.config).returns(() => aiConfig);
     }
 });

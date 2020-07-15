@@ -1,24 +1,30 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
-import { autobind } from '@uifabric/utilities';
+import { ScanIncompleteWarningDetector } from 'injected/scan-incomplete-warning-detector';
 import * as Q from 'q';
 
+import { Message } from '../../common/message';
 import { VisualizationType } from '../../common/types/visualization-type';
-import { AxeAnalyzerResult, IAnalyzer, IAnalyzerConfiguration, IScanCompletedPayload } from './ianalyzer';
+import {
+    Analyzer,
+    AnalyzerConfiguration,
+    AxeAnalyzerResult,
+    ScanCompletedPayload,
+} from './analyzer';
 
-export class BaseAnalyzer implements IAnalyzer<void> {
-    protected sendMessage: (message) => void;
-    protected type: VisualizationType;
-    protected config: IAnalyzerConfiguration;
+export class BaseAnalyzer implements Analyzer {
+    protected visualizationType: VisualizationType;
     protected emptyResults: AxeAnalyzerResult = {
         results: {},
         originalResult: null,
     };
 
-    constructor(config: IAnalyzerConfiguration, sendMessageDelegate: (message) => void) {
-        this.config = config;
-        this.sendMessage = sendMessageDelegate;
-        this.type = config.testType;
+    constructor(
+        protected config: AnalyzerConfiguration,
+        protected sendMessage: (message) => void,
+        private scanIncompleteWarningDetector: ScanIncompleteWarningDetector,
+    ) {
+        this.visualizationType = config.testType;
     }
 
     public analyze(): void {
@@ -33,27 +39,30 @@ export class BaseAnalyzer implements IAnalyzer<void> {
 
     public teardown(): void {}
 
-    @autobind
-    protected getResults(): Q.Promise<AxeAnalyzerResult> {
+    protected getResults = (): Q.Promise<AxeAnalyzerResult> => {
         return Q(this.emptyResults);
-    }
+    };
 
-    @autobind
-    protected onResolve(analyzerResult: AxeAnalyzerResult): void {
+    protected onResolve = (analyzerResult: AxeAnalyzerResult): void => {
         this.sendMessage(this.createBaseMessage(analyzerResult, this.config));
-    }
+    };
 
-    protected createBaseMessage(analyzerResult: AxeAnalyzerResult, config: IAnalyzerConfiguration) {
+    protected createBaseMessage(
+        analyzerResult: AxeAnalyzerResult,
+        config: AnalyzerConfiguration,
+    ): Message {
         const messageType = config.analyzerMessageType;
         const originalAxeResult = analyzerResult.originalResult;
-        const payload: IScanCompletedPayload<any> = {
+        const payload: ScanCompletedPayload<any> = {
             key: config.key,
             selectorMap: analyzerResult.results,
             scanResult: originalAxeResult,
             testType: config.testType,
+            scanIncompleteWarnings: this.scanIncompleteWarningDetector.detectScanIncompleteWarnings(),
         };
+
         return {
-            type: messageType,
+            messageType,
             payload,
         };
     }

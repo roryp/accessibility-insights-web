@@ -1,9 +1,8 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
+import { StoreNames } from './stores/store-names';
 
 export interface StateMessages {
-    GetCurrentVisualizationToggleState: string;
-    GetCurrentVisualizationResultState: string;
     InjectionCompleted: string;
     InjectionStarted: string;
 }
@@ -14,7 +13,6 @@ export interface DetailsViewMessages {
     PivotSelect: string;
     Close: string;
     SetDetailsViewRightContentPanel: string;
-    GetState: string;
 }
 
 export interface IssuesMessages {
@@ -32,13 +30,13 @@ export interface VisualizationCommonMessages {
     Toggle: string;
     ScanCompleted: string;
     ScrollRequested: string;
+    RescanVisualization: string;
 }
 
 export interface DevToolsMessages {
     DevtoolStatus: string;
     InspectElement: string;
     InspectFrameUrl: string;
-    Get: string;
 }
 
 export interface VisualizationMessages {
@@ -49,146 +47,171 @@ export interface VisualizationMessages {
     DetailsView: DetailsViewMessages;
 }
 
+const messagePrefix = 'insights';
+export const getStoreStateMessage = (storeName: StoreNames): string => {
+    return `${messagePrefix}/${StoreNames[storeName]}/state/current`;
+};
+
 export class Messages {
     public static readonly Visualizations: VisualizationMessages = {
         Common: {
-            Toggle: 'insights/visualization/toggle',
-            ScanCompleted: 'insights/visualization/scanCompleted',
-            ScrollRequested: 'insights/visualization/scrollRequested',
+            Toggle: `${messagePrefix}/visualization/toggle`,
+            ScanCompleted: `${messagePrefix}/visualization/scanCompleted`,
+            ScrollRequested: `${messagePrefix}/visualization/scrollRequested`,
+            RescanVisualization: `${messagePrefix}/visualization/rescanVisualization`,
         },
         TabStops: {
-            TabbedElementAdded: 'insights/visualization/tab-stops/element-added',
-            RecordingCompleted: 'insights/visualization/tab-stops/completed',
-            TerminateScan: 'insights/visualization/tab-stops/terminated',
+            TabbedElementAdded: `${messagePrefix}/visualization/tab-stops/element-added`,
+            RecordingCompleted: `${messagePrefix}/visualization/tab-stops/completed`,
+            TerminateScan: `${messagePrefix}/visualization/tab-stops/terminated`,
         },
         Issues: {
-            UpdateSelectedTargets: 'insights/visualization/issues/targets/selected/update',
-            UpdateFocusedInstance: 'insights/visualization/issues/targets/focused/update',
+            UpdateSelectedTargets: `${messagePrefix}/visualization/issues/targets/selected/update`,
+            UpdateFocusedInstance: `${messagePrefix}/visualization/issues/targets/focused/update`,
         },
         State: {
-            GetCurrentVisualizationToggleState: 'insights/toggles/state/current',
-            GetCurrentVisualizationResultState: 'insights/results/state/current',
-            InjectionCompleted: 'insights/visualization/state/injectionCompleted',
-            InjectionStarted: 'insights/visualization/state/InjectionStarted',
+            InjectionCompleted: `${messagePrefix}/visualization/state/injectionCompleted`,
+            InjectionStarted: `${messagePrefix}/visualization/state/InjectionStarted`,
         },
         DetailsView: {
-            Open: 'insights/details-view/open',
-            Select: 'insights/details-view/select',
-            PivotSelect: 'insights/details-view/pivot/select',
-            Close: 'insights/details-view/closed',
-            SetDetailsViewRightContentPanel: 'insights/details-view/setRightContentPanel',
-            GetState: 'insights/details-view/state/current',
+            Open: `${messagePrefix}/details-view/open`,
+            Select: `${messagePrefix}/details-view/select`,
+            PivotSelect: `${messagePrefix}/details-view/pivot/select`,
+            Close: `${messagePrefix}/details-view/closed`,
+            SetDetailsViewRightContentPanel: `${messagePrefix}/details-view/setRightContentPanel`,
         },
     };
 
     public static readonly DevTools: DevToolsMessages = {
-        DevtoolStatus: 'insights/devtools/status',
-        InspectElement: 'insights/devtools/inspect',
-        InspectFrameUrl: 'insights/devtools/inspectFrameUrl',
-        Get: 'insights/devtools/get',
-    };
-
-    public static readonly Extension = {
-        Updated: 'insights/extension/updated',
+        DevtoolStatus: `${messagePrefix}/devtools/status`,
+        InspectElement: `${messagePrefix}/devtools/inspect`,
+        InspectFrameUrl: `${messagePrefix}/devtools/inspectFrameUrl`,
     };
 
     public static readonly Telemetry = {
-        Send: 'insights/telemetry/send',
+        Send: `${messagePrefix}/telemetry/send`,
     };
 
     public static readonly UserConfig = {
-        GetCurrentState: 'insights/userConfig/getCurrentState',
-        SetTelemetryConfig: 'insights/userConfig/setTelemetryConfig',
-        SetHighContrastConfig: 'insights/userConfig/setHighContrastConfig',
-        SetBugService: 'insights/userConfig/setBugService',
-        SetBugServiceProperty: 'insights/userConfig/setBugServiceProperty',
-        NotifyFeatureFlagChange: 'insights/userConfig/notifyFeatureFlagChange',
-        SetIssueTrackerPath: 'insights/userConfig/issueTrackerPath',
+        SetTelemetryConfig: `${messagePrefix}/userConfig/setTelemetryConfig`,
+        SetHighContrastConfig: `${messagePrefix}/userConfig/setHighContrastConfig`,
+        SetNativeHighContrastConfig: `${messagePrefix}/userConfig/setNativeHighContrastConfig`,
+        SetIssueFilingService: `${messagePrefix}/userConfig/setIssueFilingService`,
+        SetIssueFilingServiceProperty: `${messagePrefix}/userConfig/setIssueFilingServiceProperty`,
+        SaveIssueFilingSettings: `${messagePrefix}/userConfig/saveIssueFilingSettings`,
+        SetAdbLocationConfig: `${messagePrefix}/userConfig/setAdbLocationConfig`,
+    };
+
+    public static readonly Popup = {
+        Initialized: `${messagePrefix}/popup/initialized`,
     };
 
     public static readonly Tab = {
-        Update: 'insights/tab/update',
-        GetCurrent: 'insights/tab/current',
-        Remove: 'insights/tab/remove',
-        Change: 'insights/targetTab/changed',
-        Switch: 'insights/targetTab/switch',
-        VisibilityChange: 'insights/targetTab/visibilitychange',
-    };
-
-    public static readonly Command = {
-        GetCommands: 'insights/command/get',
+        NewTabCreated: `${messagePrefix}/tab/newTabCreated`,
+        Remove: `${messagePrefix}/tab/remove`,
+        ExistingTabUpdated: `${messagePrefix}/tab/existingTabUpdated`,
+        Switch: `${messagePrefix}/tab/switch`,
+        VisibilityChange: `${messagePrefix}/tab/visibilitychange`,
     };
 
     public static readonly Assessment = {
-        GetCurrentState: 'insights/assessment/getCurrentState',
-        SelectTestStep: 'insights/details-view/test-steps/select',
-        AssessmentScanCompleted: 'insights/assessment/scanComplete',
-        TabbedElementAdded: 'insights/assessment/tab-stops/element-added',
-        TrackingCompleted: 'insights/assessment/tab-stops/recording-completed',
-        CancelStartOver: 'insights/assessment/cancel-start-over',
-        CancelStartOverAllAssessments: 'insights/assessment/cancel-start-over-all-assessments',
-        StartOver: 'insights/assessment/startOver',
-        StartOverAllAssessments: 'insights/assessment/startOverAllAssessments',
-        EnableVisualHelper: 'insights/assessment/enableVisualHelper',
-        EnableVisualHelperWithoutScan: 'insights/assessment/enableVisualHelperWithoutScan',
-        DisableVisualHelperForTest: 'insights/assessment/disableVisualHelperForTest',
-        DisableVisualHelper: 'insights/assessment/disableVisualHelper',
-        ChangeStatus: 'insights/assessment/changeStatus',
-        ChangeStepStatus: 'insights/assessment/changeManualTestStepStatus',
-        ChangeVisualizationState: 'insights/assessment/changeSVisualizationState',
-        Undo: 'insights/assessment/undo',
-        UndoChangeStepStatus: 'insights/assessment/undoChangeManualTestStepStatus',
-        AddFailureInstance: 'insights/assessment/addFailureInstance',
-        RemoveFailureInstance: 'insights/assessment/removeFailureInstance',
-        EditFailureInstance: 'insights/assessment/editFailureInstance',
-        PassUnmarkedInstances: 'insights/assessment/passUnmarkedInstances',
-        ChangeVisualizationStateForAll: 'insights/assessment/changeVisualizationStateForAll',
-        UpdateInstanceVisibility: 'insights/assessment/updateInstanceVisibility',
-        ScanUpdate: 'insights/assessment/scanUpdate',
-        ContinuePreviousAssessment: 'insights/assessment/continuePreviousAssessment',
+        SelectTestRequirement: `${messagePrefix}/details-view/requirement/select`,
+        SelectGettingStarted: `${messagePrefix}/details-view/select-getting-started`,
+        ExpandTestNav: `${messagePrefix}/details-view/expand-test-nav`,
+        CollapseTestNav: `${messagePrefix}/details-view/collapse-test-nav`,
+        AssessmentScanCompleted: `${messagePrefix}/assessment/scanComplete`,
+        TabbedElementAdded: `${messagePrefix}/assessment/tab-stops/element-added`,
+        TrackingCompleted: `${messagePrefix}/assessment/tab-stops/recording-completed`,
+        CancelStartOver: `${messagePrefix}/assessment/cancel-start-over`,
+        CancelStartOverAllAssessments: `${messagePrefix}/assessment/cancel-start-over-all-assessments`,
+        StartOverTest: `${messagePrefix}/assessment/startOverTest`,
+        StartOverAllAssessments: `${messagePrefix}/assessment/startOverAllAssessments`,
+        EnableVisualHelper: `${messagePrefix}/assessment/enableVisualHelper`,
+        EnableVisualHelperWithoutScan: `${messagePrefix}/assessment/enableVisualHelperWithoutScan`,
+        DisableVisualHelperForTest: `${messagePrefix}/assessment/disableVisualHelperForTest`,
+        DisableVisualHelper: `${messagePrefix}/assessment/disableVisualHelper`,
+        ChangeStatus: `${messagePrefix}/assessment/changeStatus`,
+        ChangeRequirementStatus: `${messagePrefix}/assessment/changeManualRequirementStatus`,
+        ChangeVisualizationState: `${messagePrefix}/assessment/changeSVisualizationState`,
+        Undo: `${messagePrefix}/assessment/undo`,
+        UndoChangeRequirementStatus: `${messagePrefix}/assessment/undoChangeManualRequirementStatus`,
+        AddFailureInstance: `${messagePrefix}/assessment/addFailureInstance`,
+        AddResultDescription: `${messagePrefix}/assessment/addResultDescription`,
+        RemoveFailureInstance: `${messagePrefix}/assessment/removeFailureInstance`,
+        EditFailureInstance: `${messagePrefix}/assessment/editFailureInstance`,
+        PassUnmarkedInstances: `${messagePrefix}/assessment/passUnmarkedInstances`,
+        ChangeVisualizationStateForAll: `${messagePrefix}/assessment/changeVisualizationStateForAll`,
+        ScanUpdate: `${messagePrefix}/assessment/scanUpdate`,
+        ContinuePreviousAssessment: `${messagePrefix}/assessment/continuePreviousAssessment`,
     };
 
     public static readonly FeatureFlags = {
-        GetFeatureFlags: 'insights/featureFlags/get',
-        SetFeatureFlag: 'insights/featureFlags/set',
-        ResetFeatureFlag: 'insights/featureFlags/reset',
+        SetFeatureFlag: `${messagePrefix}/featureFlags/set`,
+        ResetFeatureFlag: `${messagePrefix}/featureFlags/reset`,
     };
 
-    public static readonly ChromeFeature = {
-        configureCommand: 'insights/command/configureCommand',
+    public static readonly Shortcuts = {
+        ConfigureShortcuts: `${messagePrefix}/command/configureShortcuts`,
     };
 
     public static readonly LaunchPanel = {
-        Get: 'insights/launchpanel/get',
-        Set: 'insights/launchpanel/set',
+        Set: `${messagePrefix}/launchpanel/set`,
     };
 
     public static readonly PreviewFeatures = {
-        ClosePanel: 'insights/previewFeatures/closePanel',
-        OpenPanel: 'insights/previewFeatures/openPanel',
+        ClosePanel: `${messagePrefix}/previewFeatures/closePanel`,
+        OpenPanel: `${messagePrefix}/previewFeatures/openPanel`,
     };
 
     public static readonly ContentPanel = {
-        ClosePanel: 'insights/contentPanel/closePanel',
-        OpenPanel: 'insights/contentPanel/openPanel',
+        ClosePanel: `${messagePrefix}/contentPanel/closePanel`,
+        OpenPanel: `${messagePrefix}/contentPanel/openPanel`,
     };
 
     public static readonly SettingsPanel = {
-        ClosePanel: 'insights/settingsPanel/closePanel',
-        OpenPanel: 'insights/settingsPanel/openPanel',
+        ClosePanel: `${messagePrefix}/settingsPanel/closePanel`,
+        OpenPanel: `${messagePrefix}/settingsPanel/openPanel`,
     };
 
     public static readonly Scoping = {
-        ClosePanel: 'insights/scoping/closePanel',
-        OpenPanel: 'insights/scoping/openPanel',
-        GetCurrentState: 'insights/scoping/get',
-        AddSelector: 'insights/scoping/addSelector',
-        DeleteSelector: 'insights/scoping/deleteSelector',
+        ClosePanel: `${messagePrefix}/scoping/closePanel`,
+        OpenPanel: `${messagePrefix}/scoping/openPanel`,
+        AddSelector: `${messagePrefix}/scoping/addSelector`,
+        DeleteSelector: `${messagePrefix}/scoping/deleteSelector`,
     };
 
     public static readonly Inspect = {
-        ChangeInspectMode: 'insights/inspect/changeInspectMode',
-        GetCurrentState: 'insights/inspect/get',
-        SetHoveredOverSelector: 'insights/inspect/setHoveredOverSelector',
+        ChangeInspectMode: `${messagePrefix}/inspect/changeInspectMode`,
+        SetHoveredOverSelector: `${messagePrefix}/inspect/setHoveredOverSelector`,
+    };
+
+    public static readonly IssueFiling = {
+        FileIssue: `${messagePrefix}/issueFiling/file`,
+    };
+
+    public static readonly PathSnippet = {
+        AddPathForValidation: `${messagePrefix}/pathSnippet/addPathForValidation`,
+        AddCorrespondingSnippet: `${messagePrefix}/pathSnippet/addCorrespondingSnippet`,
+        ClearPathSnippetData: `${messagePrefix}/pathSnippet/clearPathSnippetData`,
+    };
+
+    public static readonly UnifiedScan = {
+        ScanCompleted: `${messagePrefix}/unifiedScan/scanCompleted`,
+    };
+
+    public static readonly CardSelection = {
+        CardSelectionToggled: `${messagePrefix}/cardSelection/cardSelectionToggled`,
+        RuleExpansionToggled: `${messagePrefix}/cardSelection/ruleExpansionToggled`,
+        CollapseAllRules: `${messagePrefix}/cardSelection/collapseAllRules`,
+        ExpandAllRules: `${messagePrefix}/cardSelection/expandAllRules`,
+        ToggleVisualHelper: `${messagePrefix}/cardSelection/toggleVisualHelper`,
+    };
+
+    public static readonly PermissionsState = {
+        SetPermissionsState: `${messagePrefix}/permissionsState/setPermissionsState`,
+    };
+
+    public static readonly DebugTools = {
+        Open: `${messagePrefix}/debugTools/open`,
     };
 }

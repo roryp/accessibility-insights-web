@@ -1,20 +1,25 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
+import { ScopingInputTypes } from 'background/scoping-input-types';
+import { ScopingStore } from 'background/stores/global/scoping-store';
 import { IMock, It, Mock, MockBehavior, Times } from 'typemoq';
-
-import { ScopingInputTypes } from '../../../../background/scoping-input-types';
-import { ScopingStore } from '../../../../background/stores/global/scoping-store';
 import { Logger } from '../../../../common/logging/logger';
-import { IScopingStoreData } from '../../../../common/types/store-data/scoping-store-data';
-import { DecoratedAxeNodeResult, IHtmlElementAxeResults, ScannerUtils } from '../../../../injected/scanner-utils';
-import { scan, ScanOptions } from '../../../../scanner/exposed-apis';
+import { ScopingStoreData } from '../../../../common/types/store-data/scoping-store-data';
+import {
+    DecoratedAxeNodeResult,
+    HtmlElementAxeResults,
+    ScannerUtils,
+} from '../../../../injected/scanner-utils';
+import { scan } from '../../../../scanner/exposed-apis';
 import { RuleResult, ScanResults } from '../../../../scanner/iruleresults';
+import { ScanOptions } from '../../../../scanner/scan-options';
+import { DictionaryStringTo } from '../../../../types/common-types';
 
 describe('ScannerUtilsTest', () => {
     let scannerMock: IMock<typeof scan>;
     let testSubject: ScannerUtils;
     let scopingStoreMock: IMock<ScopingStore>;
-    let scopingState: IScopingStoreData;
+    let scopingState: ScopingStoreData;
 
     beforeEach(() => {
         scannerMock = Mock.ofInstance(scan, MockBehavior.Strict);
@@ -24,7 +29,7 @@ describe('ScannerUtilsTest', () => {
             .returns(() => scopingState)
             .verifiable();
         const loggerMock = Mock.ofType<Logger>();
-        testSubject = new ScannerUtils(scannerMock.object, null, loggerMock.object);
+        testSubject = new ScannerUtils(scannerMock.object, loggerMock.object, null);
         scopingState = {
             selectors: {
                 [ScopingInputTypes.include]: [],
@@ -46,7 +51,10 @@ describe('ScannerUtilsTest', () => {
 
         const expectedAxeResults: ScanResults = {
             passes: [getSampleRule('rule1', [selectors[0]]), getSampleRule('rule2', selectors)],
-            violations: [getSampleRule('rule1', [selectors[1]]), getSampleRule('rule3', [selectors[0], selectors[1]])],
+            violations: [
+                getSampleRule('rule1', [selectors[1]]),
+                getSampleRule('rule3', [selectors[0], selectors[1]]),
+            ],
             inapplicable: [],
             incomplete: [],
             timestamp: '0',
@@ -84,7 +92,10 @@ describe('ScannerUtilsTest', () => {
 
         const axeResults: ScanResults = {
             passes: [getSampleRule('rule1', [element1Selector]), getSampleRule('rule2', selectors)],
-            violations: [getSampleRule('rule1', [element2Selector]), getSampleRule('rule3', [element1Selector, element2Selector])],
+            violations: [
+                getSampleRule('rule1', [element2Selector]),
+                getSampleRule('rule3', [element1Selector, element2Selector]),
+            ],
             inapplicable: [],
             incomplete: [],
             timestamp: '0',
@@ -103,9 +114,17 @@ describe('ScannerUtilsTest', () => {
             rule3: false,
         };
 
-        verifyElementSelector(selectorMap[element1Selector], element1Selector, expectedElement1RuleResults);
+        verifyElementSelector(
+            selectorMap[element1Selector],
+            element1Selector,
+            expectedElement1RuleResults,
+        );
 
-        verifyElementSelector(selectorMap[element2Selector], element2Selector, expectedElement2RuleResults);
+        verifyElementSelector(
+            selectorMap[element2Selector],
+            element2Selector,
+            expectedElement2RuleResults,
+        );
     });
 
     test('getPassingInstances', () => {
@@ -115,7 +134,10 @@ describe('ScannerUtilsTest', () => {
         const element2Selector = expectedElementSelectors[1];
 
         const axeResults: ScanResults = {
-            passes: [getSampleRule('rule1', [element1Selector]), getSampleRule('rule2', [element1Selector, element2Selector])],
+            passes: [
+                getSampleRule('rule1', [element1Selector]),
+                getSampleRule('rule2', [element1Selector, element2Selector]),
+            ],
             violations: [getSampleRule('rule3', selectors)],
             inapplicable: [],
             incomplete: [],
@@ -135,9 +157,17 @@ describe('ScannerUtilsTest', () => {
             rule2: true,
         };
 
-        verifyElementSelector(selectorMap[element1Selector], element1Selector, expectedElement1RuleResults);
+        verifyElementSelector(
+            selectorMap[element1Selector],
+            element1Selector,
+            expectedElement1RuleResults,
+        );
 
-        verifyElementSelector(selectorMap[element2Selector], element2Selector, expectedElement2RuleResults);
+        verifyElementSelector(
+            selectorMap[element2Selector],
+            element2Selector,
+            expectedElement2RuleResults,
+        );
     });
 
     test('getPassingInstances with separate snippet field', () => {
@@ -147,7 +177,10 @@ describe('ScannerUtilsTest', () => {
         const element2Selector = expectedElementSelectors[1];
 
         const axeResults: ScanResults = {
-            passes: [getSampleRule('rule1', [element1Selector], true), getSampleRule('rule2', [element1Selector, element2Selector])],
+            passes: [
+                getSampleRule('rule1', [element1Selector], true),
+                getSampleRule('rule2', [element1Selector, element2Selector]),
+            ],
             violations: [getSampleRule('rule3', selectors)],
             inapplicable: [],
             incomplete: [],
@@ -167,9 +200,17 @@ describe('ScannerUtilsTest', () => {
             rule2: true,
         };
 
-        verifyElementSelector(selectorMap[element1Selector], element1Selector, expectedElement1RuleResults);
+        verifyElementSelector(
+            selectorMap[element1Selector],
+            element1Selector,
+            expectedElement1RuleResults,
+        );
 
-        verifyElementSelector(selectorMap[element2Selector], element2Selector, expectedElement2RuleResults);
+        verifyElementSelector(
+            selectorMap[element2Selector],
+            element2Selector,
+            expectedElement2RuleResults,
+        );
     });
 
     test('getIncompleteInstances', () => {
@@ -182,7 +223,10 @@ describe('ScannerUtilsTest', () => {
             passes: [getSampleRule('rule1', [element1Selector]), getSampleRule('rule2', selectors)],
             violations: [],
             inapplicable: [],
-            incomplete: [getSampleRule('rule1', [element2Selector]), getSampleRule('rule3', [element1Selector, element2Selector])],
+            incomplete: [
+                getSampleRule('rule1', [element2Selector]),
+                getSampleRule('rule3', [element1Selector, element2Selector]),
+            ],
             timestamp: '0',
             targetPageUrl: 'test url',
             targetPageTitle: 'test title',
@@ -199,16 +243,29 @@ describe('ScannerUtilsTest', () => {
             rule3: undefined,
         };
 
-        verifyElementSelector(selectorMap[element1Selector], element1Selector, expectedElement1RuleResults);
+        verifyElementSelector(
+            selectorMap[element1Selector],
+            element1Selector,
+            expectedElement1RuleResults,
+        );
 
-        verifyElementSelector(selectorMap[element2Selector], element2Selector, expectedElement2RuleResults);
+        verifyElementSelector(
+            selectorMap[element2Selector],
+            element2Selector,
+            expectedElement2RuleResults,
+        );
     });
 
     test('getAllCompletedInstances with IDs', () => {
         const generateUIDMock = Mock.ofInstance(() => {
             return null;
         });
-        testSubject = new ScannerUtils(scannerMock.object, generateUIDMock.object);
+        const loggerMock = Mock.ofType<Logger>();
+        testSubject = new ScannerUtils(
+            scannerMock.object,
+            loggerMock.object,
+            generateUIDMock.object,
+        );
 
         generateUIDMock
             .setup(generate => generate())
@@ -257,7 +314,10 @@ describe('ScannerUtilsTest', () => {
 
         const axeResults: ScanResults = {
             passes: [getSampleRule('rule1', [element1Selector]), getSampleRule('rule2', selectors)],
-            violations: [getSampleRule('rule1', [element2Selector]), getSampleRule('rule3', [element1Selector, element2Selector])],
+            violations: [
+                getSampleRule('rule1', [element2Selector]),
+                getSampleRule('rule3', [element1Selector, element2Selector]),
+            ],
             inapplicable: [],
             incomplete: [],
             timestamp: '0',
@@ -305,7 +365,10 @@ describe('ScannerUtilsTest', () => {
                 getSampleRule('rule2', selectors),
                 getSampleRule('rule3', [element2Selector]),
             ],
-            violations: [getSampleRule('rule1', [element3Selector]), getSampleRule('rule3', [element1Selector, element3Selector])],
+            violations: [
+                getSampleRule('rule1', [element3Selector]),
+                getSampleRule('rule3', [element1Selector, element3Selector]),
+            ],
             inapplicable: [],
             incomplete: [],
             timestamp: '0',
@@ -333,9 +396,21 @@ describe('ScannerUtilsTest', () => {
             rule3: false,
         };
 
-        verifyElementSelector(selectorMap[element1Selector], element1Selector, expectedElement1RuleResults);
-        verifyElementSelector(selectorMap[element2Selector], element2Selector, expectedElement2RuleResults);
-        verifyElementSelector(selectorMap[element3Selector], element3Selector, expectedElement3RuleResults);
+        verifyElementSelector(
+            selectorMap[element1Selector],
+            element1Selector,
+            expectedElement1RuleResults,
+        );
+        verifyElementSelector(
+            selectorMap[element2Selector],
+            element2Selector,
+            expectedElement2RuleResults,
+        );
+        verifyElementSelector(
+            selectorMap[element3Selector],
+            element3Selector,
+            expectedElement3RuleResults,
+        );
     });
 
     test('getFingerprint', () => {
@@ -359,7 +434,12 @@ describe('ScannerUtilsTest', () => {
         expect(actual).toEqual(expected);
     });
 
-    function getAxeNodeResult(selector: string, ruleId, status: boolean, includeSnippet?: boolean): DecoratedAxeNodeResult {
+    function getAxeNodeResult(
+        selector: string,
+        ruleId,
+        status: boolean,
+        includeSnippet?: boolean,
+    ): DecoratedAxeNodeResult {
         const axeNodeResult = getSampleNodeResultForSelector(selector, includeSnippet);
 
         return {
@@ -375,13 +455,11 @@ describe('ScannerUtilsTest', () => {
             id: axeNodeResult.instanceId,
             guidanceLinks: [],
             helpUrl: 'help',
-            fingerprint: 'fingerprint',
-            snippet: axeNodeResult.snippet || axeNodeResult.html,
         };
     }
 
     function verifyElementSelector(
-        elementResult: IHtmlElementAxeResults,
+        elementResult: HtmlElementAxeResults,
         selector: string,
         ruleResultMap: DictionaryStringTo<boolean>,
         includeSnippet?: boolean,
@@ -394,7 +472,12 @@ describe('ScannerUtilsTest', () => {
         const ruleResults: DictionaryStringTo<DecoratedAxeNodeResult> = {};
 
         ruleIds.forEach(ruleId => {
-            ruleResults[ruleId] = getAxeNodeResult(selector, ruleId, ruleResultMap[ruleId], includeSnippet);
+            ruleResults[ruleId] = getAxeNodeResult(
+                selector,
+                ruleId,
+                ruleResultMap[ruleId],
+                includeSnippet,
+            );
         });
 
         const ruleResultIds = Object.keys(ruleResults);

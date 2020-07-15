@@ -1,15 +1,16 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 import * as React from 'react';
-import Helmet from 'react-helmet';
+import { Helmet } from 'react-helmet';
 
-import { Code, Emphasis, Tag, Term } from '../../assessments/markup';
+import { Code, Emphasis, Tag, Term } from 'assessments/markup';
+import { TextContent } from 'content/strings/text-content';
 import { NewTabLink } from '../../common/components/new-tab-link';
 import { CheckIcon } from '../../common/icons/check-icon';
 import { CrossIcon } from '../../common/icons/cross-icon';
 import { ContentActionMessageCreator } from '../../common/message-creators/content-action-message-creator';
-import { productName } from '../../content/strings/application';
 import { ContentPageComponent, ContentPageOptions } from './content-page';
+import { CodeExample, CodeExampleProps } from './markup/code-example';
 
 type PassFailProps = {
     passText: JSX.Element;
@@ -18,50 +19,47 @@ type PassFailProps = {
     failExample?: React.ReactNode;
 };
 
-type CodeExampleProps = {
-    title?: React.ReactNode;
-    children: string;
-};
-
 export type Markup = {
-    Tag: React.SFC;
-    Code: React.SFC;
-    Term: React.SFC;
-    Emphasis: React.SFC;
-    Do: React.SFC;
-    Dont: React.SFC;
-    Pass: React.SFC;
-    Fail: React.SFC;
-    PassFail: React.SFC<PassFailProps>;
-    Columns: React.SFC;
-    Column: React.SFC;
-    Inline: React.SFC;
-    HyperLink: React.SFC<{ href: string }>;
-    Title: React.SFC<{ children: string }>;
-    Highlight: React.SFC;
-    CodeExample: React.SFC<CodeExampleProps>;
-    Links: React.SFC;
-    Table: React.SFC;
-    LandmarkLegend: React.SFC<{ role: string }>;
-    ProblemList: React.SFC;
-    Include: React.SFC<{ content: ContentPageComponent }>;
+    Tag: React.FC;
+    Code: React.FC;
+    Term: React.FC;
+    Emphasis: React.FC;
+    Do: React.FC;
+    Dont: React.FC;
+    Pass: React.FC;
+    Fail: React.FC;
+    PassFail: React.FC<PassFailProps>;
+    Columns: React.FC;
+    Column: React.FC;
+    Inline: React.FC;
+    HyperLink: React.FC<{ href: string }>;
+    Title: React.FC<{ children: string }>;
+    Highlight: React.FC;
+    CodeExample: React.FC<CodeExampleProps>;
+    Links: React.FC;
+    Table: React.FC;
+    LandmarkLegend: React.FC<{ role: string }>;
+    ProblemList: React.FC;
+    Include: React.FC<{ content: ContentPageComponent }>;
 };
 
-export type MarkupDeps = { contentActionMessageCreator: ContentActionMessageCreator };
+export type MarkupDeps = {
+    textContent: Pick<TextContent, 'applicationTitle'>;
+    contentActionMessageCreator: Pick<ContentActionMessageCreator, 'openContentHyperLink'>;
+};
 
 export const createMarkup = (deps: MarkupDeps, options: ContentPageOptions) => {
-    const { openContentHyperLink } = deps.contentActionMessageCreator;
-
     function Include(props: { content: ContentPageComponent }): JSX.Element {
         const Content = props.content;
         return <Content deps={deps} options={options} />;
     }
 
     function Title(props: { children: string }): JSX.Element {
+        const { applicationTitle } = deps.textContent;
         const helmet = (
             <Helmet>
                 <title>
-                    {props.children} - {productName}
+                    {props.children} - {applicationTitle}
                 </title>
             </Helmet>
         );
@@ -76,6 +74,7 @@ export const createMarkup = (deps: MarkupDeps, options: ContentPageOptions) => {
 
     function HyperLink(props: { href: string; children: React.ReactNode }): JSX.Element {
         const { href } = props;
+        const { openContentHyperLink } = deps.contentActionMessageCreator;
 
         return (
             <NewTabLink href={href} onClick={e => openContentHyperLink(e, href)}>
@@ -87,7 +86,9 @@ export const createMarkup = (deps: MarkupDeps, options: ContentPageOptions) => {
     function Links(props: { children: React.ReactNode }): JSX.Element {
         return (
             <>
-                <div className="content-hyperlinks">{React.Children.map(props.children, el => el)}</div>
+                <div className="content-hyperlinks">
+                    {React.Children.map(props.children, el => el)}
+                </div>
             </>
         );
     }
@@ -164,60 +165,6 @@ export const createMarkup = (deps: MarkupDeps, options: ContentPageOptions) => {
 
     function Column(props: { children: React.ReactNode }): JSX.Element {
         return <div className="column">{props.children}</div>;
-    }
-
-    function CodeExample(props: CodeExampleProps): JSX.Element {
-        const { title, children } = props;
-
-        function getRegions(code: string): string[] {
-            if (code.length === 0) {
-                return [];
-            }
-
-            if (code[0] === '[') {
-                const end = code.indexOf(']');
-                if (end > 0) {
-                    return [code.slice(0, end + 1), ...getRegions(code.slice(end + 1))];
-                } else {
-                    return [code + ']'];
-                }
-            }
-
-            const start = code.indexOf('[');
-            if (start > 0) {
-                return [code.slice(0, start), ...getRegions(code.slice(start))];
-            } else {
-                return [code];
-            }
-        }
-
-        function renderRegion(str: string, index: number): string | JSX.Element {
-            if (str[0] === '[') {
-                return (
-                    <span key={index} className="highlight">
-                        {str.slice(1, -1)}
-                    </span>
-                );
-            } else {
-                return str;
-            }
-        }
-
-        const regions = getRegions(children);
-        const formattedCode = regions.map(renderRegion);
-
-        return (
-            <div className="code-example">
-                {props.title && (
-                    <div className="code-example-title">
-                        <h4>{props.title}</h4>
-                    </div>
-                )}
-                <div className="code-example-code">
-                    <Code>{formattedCode}</Code>
-                </div>
-            </div>
-        );
     }
 
     function PassFail(props: PassFailProps): React.ReactNode {

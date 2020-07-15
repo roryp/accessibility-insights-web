@@ -1,33 +1,52 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
+import { MultiplexingTelemetryClient } from 'background/telemetry/multiplexing-telemetry-client';
+import { AppDataAdapter } from '../../common/browser-adapters/app-data-adapter';
+import { StorageAdapter } from '../../common/browser-adapters/storage-adapter';
 import { config } from '../../common/configuration';
 import { DateProvider } from '../../common/date-provider';
 import { generateUID } from '../../common/uid-generator';
 import { ApplicationBuildGenerator } from '../application-build-generator';
-import { BrowserAdapter } from '../browser-adapter';
 import { InstallDataGenerator } from '../install-data-generator';
-import { ILocalStorageData } from '../storage-data';
+import { InstallationData } from '../installation-data';
 import { AppInsightsTelemetryClient } from './app-insights-telemetry-client';
 import { ApplicationTelemetryDataFactory } from './application-telemetry-data-factory';
-import { NullTelemetryClient } from './null-telemetry-client';
 import { TelemetryClient } from './telemetry-client';
-import { TelemetryLogger } from './telemetry-logger';
 
 export const getTelemetryClient = (
-    userData: ILocalStorageData,
-    browserAdapter: BrowserAdapter,
-    logger: TelemetryLogger,
+    applicationTelemetryDataFactory: ApplicationTelemetryDataFactory,
     appInsights: Microsoft.ApplicationInsights.IAppInsights,
+    baseClients: TelemetryClient[],
 ): TelemetryClient => {
+    const clients = [...baseClients];
+
     const appInsightsInstrumentationKey = config.getOption('appInsightsInstrumentationKey');
 
-    if (appInsightsInstrumentationKey == null) {
-        return new NullTelemetryClient(logger);
+    if (appInsightsInstrumentationKey != null) {
+        clients.push(new AppInsightsTelemetryClient(appInsights, applicationTelemetryDataFactory));
     }
 
-    const installDataGenerator = new InstallDataGenerator(userData.installationData, generateUID, DateProvider.getDate, browserAdapter);
-    const applicationBuildGenerator = new ApplicationBuildGenerator();
-    const coreTelemetryDataFactory = new ApplicationTelemetryDataFactory(browserAdapter, applicationBuildGenerator, installDataGenerator);
+    return new MultiplexingTelemetryClient(clients);
+};
 
-    return new AppInsightsTelemetryClient(appInsights, coreTelemetryDataFactory, logger);
+export const getApplicationTelemetryDataFactory = (
+    installationData: InstallationData,
+    storageAdapter: StorageAdapter,
+    appDataAdapter: AppDataAdapter,
+    applicationName: string,
+) => {
+    const installDataGenerator = new InstallDataGenerator(
+        installationData,
+        generateUID,
+        DateProvider.getCurrentDate,
+        storageAdapter,
+    );
+
+    const applicationBuildGenerator = new ApplicationBuildGenerator();
+    return new ApplicationTelemetryDataFactory(
+        appDataAdapter.getVersion(),
+        applicationName,
+        applicationBuildGenerator.getBuild(),
+        installDataGenerator,
+    );
 };

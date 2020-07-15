@@ -1,31 +1,35 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
+import { VisualizationType } from 'common/types/visualization-type';
+import { link } from 'content/link';
+import * as content from 'content/test/page/page-title';
 import * as React from 'react';
-
-import { VisualizationType } from '../../../common/types/visualization-type';
-import { link } from '../../../content/link';
-import * as content from '../../../content/test/page/page-title';
-import { AssessmentVisualizationEnabledToggle } from '../../../DetailsView/components/assessment-visualization-enabled-toggle';
 import { AnalyzerConfigurationFactory } from '../../common/analyzer-configuration-factory';
 import { Term } from '../../markup';
 import { ReportInstanceField } from '../../types/report-instance-field';
-import { TestStep } from '../../types/test-step';
+import { Requirement } from '../../types/requirement';
 import { pageTitleInstanceDetailsColumnRenderer } from '../pagetitle-instance-details-column-renderer';
 import { PageTestStep } from './test-steps';
 
-const pageTitleDescription: JSX.Element = <span>A web page must have a title that describes its topic or purpose.</span>;
+const pageTitleDescription: JSX.Element = (
+    <span>A web page must have a title that describes its topic or purpose.</span>
+);
 
 const pageTitleHowToTest: JSX.Element = (
     <div>
         <ol>
             <li>
-                Consider the title of the target page, displayed in the <Term>Instances</Term> list below.
+                Consider the title of the target page, displayed in the <Term>Instances</Term> list
+                below.
             </li>
             <li>
                 Verify that the page's title describes its topic or purpose:
                 <ol>
                     <li>For pages within a website, the page title must be unique.</li>
-                    <li>For documents or single-page web apps, the document name or app name is sufficient.</li>
+                    <li>
+                        For documents or single-page web apps, the document name or app name is
+                        sufficient.
+                    </li>
                 </ol>
             </li>
             <li>
@@ -43,7 +47,7 @@ const pageTitleHowToTest: JSX.Element = (
     </div>
 );
 
-export const PageTitle: TestStep = {
+export const PageTitle: Requirement = {
     key: PageTestStep.pageTitle,
     name: 'Page title',
     description: pageTitleDescription,

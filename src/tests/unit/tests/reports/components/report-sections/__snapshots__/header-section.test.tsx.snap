@@ -1,0 +1,31 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`HeaderSection renders 1`] = `
+<header>
+  <div
+    className="reportHeaderBar"
+  >
+    <BrandWhite />
+    <div
+      className="headerText"
+    >
+      Accessibility Insights for Web
+    </div>
+  </div>
+  <div
+    className="reportHeaderCommandBar"
+  >
+    <div
+      className="targetPage"
+    >
+      Target page: 
+      <NewTabLinkWithConfirmationDialog
+        href="url://page"
+        title="page-title"
+      >
+        page-title
+      </NewTabLinkWithConfirmationDialog>
+    </div>
+  </div>
+</header>
+`;

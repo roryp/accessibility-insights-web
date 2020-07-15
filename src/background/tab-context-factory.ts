@@ -1,136 +1,160 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
-import * as Q from 'q';
-
-import { IAssessmentsProvider } from '../assessments/types/iassessments-provider';
-import { VisualizationConfigurationFactory } from '../common/configs/visualization-configuration-factory';
-import { NotificationCreator } from '../common/notification-creator';
-import { StateDispatcher } from '../common/state-dispatcher';
-import { WindowUtils } from '../common/window-utils';
+import { BrowserAdapter } from 'common/browser-adapters/browser-adapter';
+import { VisualizationConfigurationFactory } from 'common/configs/visualization-configuration-factory';
+import { Logger } from 'common/logging/logger';
+import { NotificationCreator } from 'common/notification-creator';
+import { PromiseFactory } from 'common/promises/promise-factory';
+import { StateDispatcher } from 'common/state-dispatcher';
 import { ActionCreator } from './actions/action-creator';
 import { ActionHub } from './actions/action-hub';
+import { CardSelectionActionCreator } from './actions/card-selection-action-creator';
 import { ContentActionCreator } from './actions/content-action-creator';
+import { DetailsViewActionCreator } from './actions/details-view-action-creator';
 import { DevToolsActionCreator } from './actions/dev-tools-action-creator';
+import { InjectionActionCreator } from './actions/injection-action-creator';
 import { InspectActionCreator } from './actions/inspect-action-creator';
-import { ScopingActionCreator } from './actions/scoping-action-creator';
+import { PathSnippetActionCreator } from './actions/path-snippet-action-creator';
+import { PopupActionCreator } from './actions/popup-action-creator';
+import { ShortcutsPageActionCreator } from './actions/shortcuts-page-action-creator';
 import { TabActionCreator } from './actions/tab-action-creator';
-import { AssessmentScanPolicyRunner } from './assessment-scan-policy-runner';
-import { BrowserAdapter } from './browser-adapter';
-import { ChromeFeatureController } from './chrome-feature-controller';
-import { DetailsViewController } from './details-view-controller';
-import { DetailsViewPivotValidator } from './details-view-pivot-validator';
+import { UnifiedScanResultActionCreator } from './actions/unified-scan-result-action-creator';
+import { ExtensionDetailsViewController } from './extension-details-view-controller';
 import { InjectorController } from './injector-controller';
 import { ContentScriptInjector } from './injector/content-script-injector';
 import { Interpreter } from './interpreter';
-import { isAnAssessmentSelected } from './is-an-assessment-selected';
-import { ScannerUtility } from './scanner-utility';
-import { AssessmentStore } from './stores/assessment-store';
-import { FeatureFlagStore } from './stores/global/feature-flag-store';
+import { ShortcutsPageController } from './shortcuts-page-controller';
 import { TabContextStoreHub } from './stores/tab-context-store-hub';
 import { TabContext } from './tab-context';
 import { TargetTabController } from './target-tab-controller';
 import { TelemetryEventHandler } from './telemetry/telemetry-event-handler';
+import { UsageLogger } from './usage-logger';
 
 export class TabContextFactory {
     constructor(
         private visualizationConfigurationFactory: VisualizationConfigurationFactory,
         private telemetryEventHandler: TelemetryEventHandler,
-        private featureFlagStore: FeatureFlagStore,
-        private windowUtils: WindowUtils,
         private targetTabController: TargetTabController,
-        private assessmentStore: AssessmentStore,
-        private assessmentsProvider: IAssessmentsProvider,
+        private readonly promiseFactory: PromiseFactory,
+        private readonly logger: Logger,
+        private readonly usageLogger: UsageLogger,
     ) {}
 
     public createTabContext(
-        broadcastMessage: (message) => void,
+        broadcastMessage: (message) => Promise<void>,
         browserAdapter: BrowserAdapter,
-        detailsViewController: DetailsViewController,
-        tabId: number,
+        detailsViewController: ExtensionDetailsViewController,
     ): TabContext {
         const interpreter = new Interpreter();
         const actionsHub = new ActionHub();
         const storeHub = new TabContextStoreHub(actionsHub, this.visualizationConfigurationFactory);
-        const notificationCreator = new NotificationCreator(browserAdapter, this.visualizationConfigurationFactory);
-        const chromeFeatureController = new ChromeFeatureController(browserAdapter);
+        const notificationCreator = new NotificationCreator(
+            browserAdapter,
+            this.visualizationConfigurationFactory,
+            this.logger,
+        );
+        const shortcutsPageController = new ShortcutsPageController(browserAdapter);
+
+        const shortcutsPageActionCreator = new ShortcutsPageActionCreator(
+            interpreter,
+            shortcutsPageController,
+            this.telemetryEventHandler,
+            this.logger,
+        );
 
         const actionCreator = new ActionCreator(
+            interpreter,
             actionsHub,
-            interpreter.registerTypeToPayloadCallback,
             detailsViewController,
-            chromeFeatureController,
             this.telemetryEventHandler,
             notificationCreator,
             this.visualizationConfigurationFactory,
             this.targetTabController,
+            this.logger,
+        );
+
+        const detailsViewActionCreator = new DetailsViewActionCreator(
+            interpreter,
+            actionsHub.detailsViewActions,
+            actionsHub.sidePanelActions,
+            detailsViewController,
+            this.telemetryEventHandler,
         );
 
         const tabActionCreator = new TabActionCreator(
-            interpreter.registerTypeToPayloadCallback,
+            interpreter,
+            actionsHub.tabActions,
             browserAdapter,
             this.telemetryEventHandler,
-            actionsHub.tabActions,
+            this.logger,
         );
-
+        const popupActionCreator = new PopupActionCreator(
+            interpreter,
+            actionsHub.tabActions,
+            this.telemetryEventHandler,
+            this.usageLogger,
+        );
         const devToolsActionCreator = new DevToolsActionCreator(
+            interpreter,
             actionsHub.devToolActions,
             this.telemetryEventHandler,
-            interpreter.registerTypeToPayloadCallback,
         );
-
         const inspectActionsCreator = new InspectActionCreator(
+            interpreter,
             actionsHub.inspectActions,
             this.telemetryEventHandler,
             browserAdapter,
-            interpreter.registerTypeToPayloadCallback,
+            this.logger,
         );
-
-        const scopingActionCreator = new ScopingActionCreator(
-            actionsHub.scopingActions,
+        const pathSnippetActionCreator = new PathSnippetActionCreator(
+            interpreter,
+            actionsHub.pathSnippetActions,
+        );
+        const scanResultActionCreator = new UnifiedScanResultActionCreator(
+            interpreter,
+            actionsHub.scanResultActions,
             this.telemetryEventHandler,
-            interpreter.registerTypeToPayloadCallback,
-            detailsViewController,
         );
-
         const contentActionCreator = new ContentActionCreator(
+            interpreter,
             actionsHub.contentActions,
             this.telemetryEventHandler,
-            interpreter.registerTypeToPayloadCallback,
             detailsViewController,
+        );
+        const cardSelectionActionCreator = new CardSelectionActionCreator(
+            interpreter,
+            actionsHub.cardSelectionActions,
+            this.telemetryEventHandler,
+        );
+        const injectionActionCreator = new InjectionActionCreator(
+            interpreter,
+            actionsHub.injectionActions,
         );
 
         const injectorController = new InjectorController(
-            new ContentScriptInjector(browserAdapter, Q),
+            new ContentScriptInjector(browserAdapter, this.promiseFactory),
             storeHub.visualizationStore,
             interpreter,
             storeHub.tabStore,
             storeHub.inspectStore,
         );
 
-        const scannerUtility = new ScannerUtility(interpreter, this.windowUtils);
-        const simpleSequentialScanner = new AssessmentScanPolicyRunner(
-            this.assessmentStore,
-            storeHub.visualizationStore,
-            scannerUtility.executeScan,
-            this.assessmentsProvider,
-            isAnAssessmentSelected,
-            tabId,
-        );
-        simpleSequentialScanner.beginListeningToStores();
-
+        shortcutsPageActionCreator.registerCallbacks();
         actionCreator.registerCallbacks();
+        detailsViewActionCreator.registerCallback();
         devToolsActionCreator.registerCallbacks();
         inspectActionsCreator.registerCallbacks();
+        pathSnippetActionCreator.registerCallbacks();
         tabActionCreator.registerCallbacks();
-        scopingActionCreator.registerCallbacks();
+        popupActionCreator.registerCallbacks();
         contentActionCreator.registerCallbacks();
+        scanResultActionCreator.registerCallbacks();
+        cardSelectionActionCreator.registerCallbacks();
+        injectionActionCreator.registerCallbacks();
 
         injectorController.initialize();
-        const dispatcher = new StateDispatcher(broadcastMessage, storeHub);
+        const dispatcher = new StateDispatcher(broadcastMessage, storeHub, this.logger);
         dispatcher.initialize();
-
-        const validator = new DetailsViewPivotValidator(this.featureFlagStore, interpreter, storeHub.tabStore, this.windowUtils);
-        validator.initialize();
 
         return new TabContext(interpreter, storeHub);
     }

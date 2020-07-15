@@ -4,7 +4,6 @@ import { create, React } from '../../common';
 
 export const infoAndExamples = create(({ Markup }) => (
     <React.Fragment>
-        <h1>Audio description</h1>
         <p>Pre-recorded video with audio must have an audio description.</p>
 
         <h2>Why it matters</h2>
@@ -50,6 +49,9 @@ export const infoAndExamples = create(({ Markup }) => (
 
         <h3>WCAG success criteria</h3>
         <Markup.Links>
+            <Markup.HyperLink href="https://www.w3.org/WAI/WCAG21/Understanding/audio-description-or-media-alternative-prerecorded">
+                Understanding Success Criterion 1.2.3: Audio Description or Media Alternative (Prerecorded)
+            </Markup.HyperLink>
             <Markup.HyperLink href="https://www.w3.org/WAI/WCAG21/Understanding/audio-description-prerecorded">
                 Understanding Success Criterion 1.2.5: Audio Description (Prerecorded)
             </Markup.HyperLink>

@@ -2,8 +2,8 @@
 // Licensed under the MIT License.
 import * as React from 'react';
 
-import { VisualizationType } from '../../common/types/visualization-type';
-import { test as content } from '../../content/test';
+import { VisualizationType } from 'common/types/visualization-type';
+import { test as content } from 'content/test';
 import { AssessmentBuilder } from '../assessment-builder';
 import { Assessment } from '../types/iassessment';
 import { FrameTitle } from './test-steps/frame-titles';
@@ -15,15 +15,18 @@ const pageAssessmentTitle = 'Page navigation';
 const { guidance } = content.page;
 
 const pageGettingStartedText: JSX.Element = (
-    <p>This test addresses a variety of page-level requirements that ensure users can find the pages they want.</p>
+    <p>
+        This test addresses a variety of page-level requirements that ensure users can find the
+        pages they want.
+    </p>
 );
 
 export const PageAssessment: Assessment = AssessmentBuilder.Assisted({
     key,
-    type: VisualizationType.PageAssessment,
+    visualizationType: VisualizationType.PageAssessment,
     gettingStarted: pageGettingStartedText,
     title: pageAssessmentTitle,
     guidance,
-    steps: [PageTitle, FrameTitle, GeneralNavigation],
+    requirements: [PageTitle, FrameTitle, GeneralNavigation],
     storeDataKey: 'pageAssessment',
 });

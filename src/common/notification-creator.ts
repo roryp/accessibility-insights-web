@@ -1,38 +1,48 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
-import * as _ from 'lodash/index';
-
-import { BrowserAdapter } from '../background/browser-adapter';
-import { VisualizationType } from '../common/types/visualization-type';
+import { Logger } from 'common/logging/logger';
+import { ScanIncompleteWarningId } from 'common/types/scan-incomplete-warnings';
+import { VisualizationType } from 'common/types/visualization-type';
+import { DictionaryStringTo } from 'types/common-types';
+import { BrowserAdapter } from './browser-adapters/browser-adapter';
 import { VisualizationConfigurationFactory } from './configs/visualization-configuration-factory';
 
 export class NotificationCreator {
-    private chromeAdapter: BrowserAdapter;
-    private visualizationConfigurationFactory: VisualizationConfigurationFactory;
-
-    constructor(chromeAdapter: BrowserAdapter, visualizationConfigurationFactory: VisualizationConfigurationFactory) {
-        this.chromeAdapter = chromeAdapter;
-        this.visualizationConfigurationFactory = visualizationConfigurationFactory;
-    }
+    constructor(
+        private readonly browserAdapter: BrowserAdapter,
+        private readonly visualizationConfigurationFactory: VisualizationConfigurationFactory,
+        private readonly logger: Logger,
+    ) {}
 
     public createNotification(message: string): void {
         if (message) {
-            const manifest = this.chromeAdapter.getManifest();
-            this.chromeAdapter.createNotification({
-                message: message,
-                title: manifest.name,
-                iconUrl: '../' + manifest.icons[128],
-            });
+            const manifest = this.browserAdapter.getManifest();
+            this.browserAdapter
+                .createNotification({
+                    type: 'basic',
+                    message: message,
+                    title: manifest.name,
+                    iconUrl: '../' + manifest.icons[128],
+                })
+                .catch(this.logger.error);
         }
     }
 
-    public createNotificationByVisualizationKey(selectorMap: DictionaryStringTo<any>, key: string, type: VisualizationType): void {
-        if (_.isEmpty(selectorMap)) {
-            const configuration = this.visualizationConfigurationFactory.getConfiguration(type);
-            const notificationMessage = configuration.getNotificationMessage(selectorMap, key);
-            if (notificationMessage != null) {
-                this.createNotification(notificationMessage);
-            }
-        }
+    public createNotificationByVisualizationKey(
+        selectorMap: DictionaryStringTo<any>,
+        key: string,
+        visualizationType: VisualizationType,
+        warnings: ScanIncompleteWarningId[],
+    ): void {
+        const configuration = this.visualizationConfigurationFactory.getConfiguration(
+            visualizationType,
+        );
+        const notificationMessage = configuration.getNotificationMessage(
+            selectorMap,
+            key,
+            warnings,
+        );
+
+        this.createNotification(notificationMessage);
     }
 }

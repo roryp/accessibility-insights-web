@@ -1,30 +1,42 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
-import { autobind } from '@uifabric/utilities';
-import * as _ from 'lodash/index';
+import { GeneratedAssessmentInstance } from 'common/types/store-data/assessment-result-data';
 
-import { IGeneratedAssessmentInstance } from '../../common/types/store-data/iassessment-result-data';
 import { BaseVisualHelperToggle } from './base-visual-helper-toggle';
 
 export class AssessmentVisualizationEnabledToggle extends BaseVisualHelperToggle {
-    protected isDisabled(filteredInstances: IGeneratedAssessmentInstance<{}, {}>[]): boolean {
-        return _.isEmpty(filteredInstances);
+    protected isDisabled(instances: GeneratedAssessmentInstance<{}, {}>[]): boolean {
+        return !this.isAnyInstanceVisualizable(instances);
     }
 
-    protected isChecked(instances: IGeneratedAssessmentInstance<{}, {}>[]): boolean {
+    protected isChecked(instances: GeneratedAssessmentInstance<{}, {}>[]): boolean {
         return this.isAnyInstanceVisible(instances);
     }
 
-    @autobind
-    protected onClick(event): void {
-        this.props.actionMessageCreator.changeAssessmentVisualizationStateForAll(
-            !this.isAnyInstanceVisible(this.filterInstancesByTestStep(this.props.assessmentNavState, this.props.instancesMap)),
+    protected onClick = (event): void => {
+        this.props.deps.detailsViewActionMessageCreator.changeAssessmentVisualizationStateForAll(
+            !this.isAnyInstanceVisible(
+                this.filterInstancesByTestStep(
+                    this.props.assessmentNavState,
+                    this.props.instancesMap,
+                ),
+            ),
             this.props.assessmentNavState.selectedTestType,
-            this.props.assessmentNavState.selectedTestStep,
+            this.props.assessmentNavState.selectedTestSubview,
+        );
+    };
+
+    private isAnyInstanceVisible(instances: GeneratedAssessmentInstance<{}, {}>[]): boolean {
+        const testStep = this.props.assessmentNavState.selectedTestSubview;
+        return instances.some(
+            instance => instance.testStepResults[testStep].isVisualizationEnabled,
         );
     }
 
-    private isAnyInstanceVisible(instances: IGeneratedAssessmentInstance<{}, {}>[]): boolean {
-        return instances.some(instance => instance.testStepResults[this.props.assessmentNavState.selectedTestStep].isVisualizationEnabled);
+    private isAnyInstanceVisualizable(instances: GeneratedAssessmentInstance<{}, {}>[]): boolean {
+        const testStep = this.props.assessmentNavState.selectedTestSubview;
+        return instances.some(
+            instance => instance.testStepResults[testStep].isVisualizationSupported,
+        );
     }
 }

@@ -1,20 +1,32 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
+import { AdHocTestkeys } from 'common/configs/adhoc-test-keys';
+import { TestMode } from 'common/configs/test-mode';
+import { VisualizationConfiguration } from 'common/configs/visualization-configuration';
+import { Messages } from 'common/messages';
+import { VisualizationType } from 'common/types/visualization-type';
+import { generateUID } from 'common/uid-generator';
+import { adhoc as content } from 'content/adhoc';
+import { createHowToTest } from 'content/adhoc/tabstops/how-to-test';
+import { AdhocStaticTestView } from 'DetailsView/components/adhoc-static-test-view';
+import { FocusAnalyzerConfiguration } from 'injected/analyzers/analyzer';
+import { VisualizationInstanceProcessor } from 'injected/visualization-instance-processor';
 import * as React from 'react';
 
-import { AdHocTestkeys } from '../../common/configs/adhoc-test-keys';
-import { TestMode } from '../../common/configs/test-mode';
-import { IVisualizationConfiguration } from '../../common/configs/visualization-configuration-factory';
-import { Messages } from '../../common/messages';
-import { VisualizationType } from '../../common/types/visualization-type';
-import { generateUID } from '../../common/uid-generator';
-import { adhoc as content } from '../../content/adhoc';
-import { AdhocStaticTestView } from '../../DetailsView/components/adhoc-static-test-view';
-import { VisualizationInstanceProcessor } from '../../injected/visualization-instance-processor';
+const { guidance, extraGuidance } = content.tabstops;
 
-const { guidance, extraGuidance, howToTest } = content.tabstops;
-export const TabStopsAdHocVisualization: IVisualizationConfiguration = {
-    getTestView: props => <AdhocStaticTestView content={howToTest} guidance={extraGuidance} {...props} />,
+const tabStopVisualizationConfiguration: FocusAnalyzerConfiguration = {
+    key: AdHocTestkeys.TabStops,
+    testType: VisualizationType.TabStops,
+    analyzerMessageType: Messages.Visualizations.Common.ScanCompleted,
+    analyzerProgressMessageType: Messages.Visualizations.TabStops.TabbedElementAdded,
+    analyzerTerminatedMessageType: Messages.Visualizations.TabStops.TerminateScan,
+};
+
+export const TabStopsAdHocVisualization: VisualizationConfiguration = {
+    getTestView: props => (
+        <AdhocStaticTestView content={createHowToTest(2)} guidance={extraGuidance} {...props} />
+    ),
     key: AdHocTestkeys.TabStops,
     testMode: TestMode.Adhoc,
     getStoreData: data => data.adhoc.tabStops,
@@ -30,23 +42,15 @@ export const TabStopsAdHocVisualization: IVisualizationConfiguration = {
     chromeCommand: '04_toggle-tabStops',
     launchPanelDisplayOrder: 4,
     adhocToolsPanelDisplayOrder: 5,
-    analyzerMessageType: Messages.Visualizations.Common.ScanCompleted,
     analyzerProgressMessageType: Messages.Visualizations.TabStops.TabbedElementAdded,
     analyzerTerminatedMessageType: Messages.Visualizations.TabStops.TerminateScan,
     getAnalyzer: provider =>
-        provider.createFocusTrackingAnalyzer({
-            key: AdHocTestkeys.TabStops,
-            testType: VisualizationType.TabStops,
-            analyzerMessageType: Messages.Visualizations.Common.ScanCompleted,
-            analyzerProgressMessageType: Messages.Visualizations.TabStops.TabbedElementAdded,
-            analyzerTerminatedMessageType: Messages.Visualizations.TabStops.TerminateScan,
-        }),
+        provider.createFocusTrackingAnalyzer(tabStopVisualizationConfiguration),
     getIdentifier: () => AdHocTestkeys.TabStops,
     visualizationInstanceProcessor: () => VisualizationInstanceProcessor.nullProcessor,
     getDrawer: provider => provider.createSVGDrawer(),
     getNotificationMessage: selectorMap => 'Start pressing Tab to start visualizing tab stops.',
     getSwitchToTargetTabOnScan: () => true,
     getInstanceIdentiferGenerator: () => generateUID,
-    getUpdateVisibility: () => false,
     guidance,
 };

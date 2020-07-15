@@ -4,8 +4,13 @@ import { shallow } from 'enzyme';
 import * as React from 'react';
 import { IMock, Mock, MockBehavior } from 'typemoq';
 
-import { IDisplayableVisualizationTypeData } from '../../../../../common/configs/visualization-configuration-factory';
-import { IScanData, IVisualizationStoreData, TestsEnabledState } from '../../../../../common/types/store-data/ivisualization-store-data';
+import { ContentReference } from 'views/content/content-page';
+import { DisplayableVisualizationTypeData } from '../../../../../common/configs/visualization-configuration-factory';
+import {
+    ScanData,
+    TestsEnabledState,
+    VisualizationStoreData,
+} from '../../../../../common/types/store-data/visualization-store-data';
 import { VisualizationType } from '../../../../../common/types/visualization-type';
 import {
     AdhocStaticTestView,
@@ -13,31 +18,33 @@ import {
     AdhocStaticTestViewProps,
 } from '../../../../../DetailsView/components/adhoc-static-test-view';
 import { DetailsViewToggleClickHandlerFactory } from '../../../../../DetailsView/handlers/details-view-toggle-click-handler-factory';
-import { ContentReference } from '../../../../../views/content/content-page';
 
 describe('AdhocStaticTestView', () => {
     let props: AdhocStaticTestViewProps;
-    let getStoreDataMock: IMock<(data: TestsEnabledState) => IScanData>;
+    let getStoreDataMock: IMock<(data: TestsEnabledState) => ScanData>;
     let clickHandlerFactoryMock: IMock<DetailsViewToggleClickHandlerFactory>;
-    let displayableDataStub: IDisplayableVisualizationTypeData;
-    let scanDataStub: IScanData;
+    let displayableDataStub: DisplayableVisualizationTypeData;
+    let scanDataStub: ScanData;
     let clickHandlerStub: (event: any) => void;
-    let visualizationStoreDataStub: IVisualizationStoreData;
+    let visualizationStoreDataStub: VisualizationStoreData;
     let selectedTest: VisualizationType;
 
     beforeEach(() => {
         getStoreDataMock = Mock.ofInstance(() => null, MockBehavior.Strict);
-        clickHandlerFactoryMock = Mock.ofType(DetailsViewToggleClickHandlerFactory, MockBehavior.Strict);
+        clickHandlerFactoryMock = Mock.ofType(
+            DetailsViewToggleClickHandlerFactory,
+            MockBehavior.Strict,
+        );
         displayableDataStub = {
             title: 'test title',
             toggleLabel: 'test toggle label',
-        } as IDisplayableVisualizationTypeData;
+        } as DisplayableVisualizationTypeData;
         scanDataStub = {
             enabled: true,
         };
         visualizationStoreDataStub = {
             tests: {},
-        } as IVisualizationStoreData;
+        } as VisualizationStoreData;
         clickHandlerStub = () => {};
         selectedTest = -1;
 

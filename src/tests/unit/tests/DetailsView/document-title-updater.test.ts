@@ -2,10 +2,10 @@
 // Licensed under the MIT License.
 import { IMock, It, Mock, MockBehavior } from 'typemoq';
 
+import { title } from 'content/strings/application';
 import { VisualizationConfigurationFactory } from '../../../../common/configs/visualization-configuration-factory';
-import { ITabStoreData } from '../../../../common/types/store-data/itab-store-data';
+import { TabStoreData } from '../../../../common/types/store-data/tab-store-data';
 import { VisualizationType } from '../../../../common/types/visualization-type';
-import { title } from '../../../../content/strings/application';
 import {
     DetailsRightPanelConfiguration,
     GetDetailsRightPanelConfigurationProps,
@@ -22,18 +22,27 @@ import { StoreMocks } from './store-mocks';
 describe('DocumentTitleUpdater', () => {
     let storeMocks: StoreMocks;
     let testObject: DocumentTitleUpdater;
-    let getPanelConfigMock: IMock<(props: GetDetailsRightPanelConfigurationProps) => DetailsRightPanelConfiguration>;
+    let getPanelConfigMock: IMock<(
+        props: GetDetailsRightPanelConfigurationProps,
+    ) => DetailsRightPanelConfiguration>;
     let getSwitcherNavConfigMock: IMock<GetDetailsSwitcherNavConfiguration>;
     let visualizationConfigFactoryMock: IMock<VisualizationConfigurationFactory>;
     let doc;
     let onStoreChange: () => void;
     let switcherNavConfigStub: DetailsViewSwitcherNavConfiguration;
-    let getSelectedDetailsViewMock: IMock<(props: GetSelectedDetailsViewProps) => VisualizationType>;
+    let getSelectedDetailsViewMock: IMock<(
+        props: GetSelectedDetailsViewProps,
+    ) => VisualizationType>;
 
     beforeEach(() => {
         storeMocks = new StoreMocks();
-        getPanelConfigMock = Mock.ofInstance((props: GetDetailsRightPanelConfigurationProps) => null);
-        getSelectedDetailsViewMock = Mock.ofInstance((props: GetSelectedDetailsViewProps) => null, MockBehavior.Strict);
+        getPanelConfigMock = Mock.ofInstance(
+            (props: GetDetailsRightPanelConfigurationProps) => null,
+        );
+        getSelectedDetailsViewMock = Mock.ofInstance(
+            (props: GetSelectedDetailsViewProps) => null,
+            MockBehavior.Strict,
+        );
         getSwitcherNavConfigMock = Mock.ofInstance(_ => null, MockBehavior.Strict);
         visualizationConfigFactoryMock = Mock.ofType(VisualizationConfigurationFactory);
 
@@ -85,7 +94,7 @@ describe('DocumentTitleUpdater', () => {
     });
 
     test('tab is closed', () => {
-        storeMocks.setTabStoreData({ isClosed: true } as ITabStoreData);
+        storeMocks.setTabStoreData({ isClosed: true } as TabStoreData);
         setupStoreGetState();
 
         testObject.initialize();
@@ -108,7 +117,12 @@ describe('DocumentTitleUpdater', () => {
             .verifiable();
 
         getSwitcherNavConfigMock
-            .setup(mock => mock({ selectedDetailsViewPivot: storeMocks.visualizationStoreData.selectedDetailsViewPivot }))
+            .setup(mock =>
+                mock({
+                    selectedDetailsViewPivot:
+                        storeMocks.visualizationStoreData.selectedDetailsViewPivot,
+                }),
+            )
             .returns(() => switcherNavConfigStub);
 
         getSelectedDetailsViewMock
@@ -136,7 +150,7 @@ describe('DocumentTitleUpdater', () => {
         getPanelConfigMock.verifyAll();
     });
 
-    function setupStoreListenersAdded() {
+    function setupStoreListenersAdded(): void {
         storeMocks.tabStoreMock
             .setup(store => store.addChangedListener(It.isAny()))
             .callback(cb => (onStoreChange = cb))
@@ -155,10 +169,18 @@ describe('DocumentTitleUpdater', () => {
             .verifiable();
     }
 
-    function setupStoreGetState() {
-        storeMocks.tabStoreMock.setup(store => store.getState()).returns(() => storeMocks.tabStoreData);
-        storeMocks.detailsViewStoreMock.setup(store => store.getState()).returns(() => storeMocks.detailsViewStoreData);
-        storeMocks.visualizationStoreMock.setup(store => store.getState()).returns(() => storeMocks.visualizationStoreData);
-        storeMocks.assessmentStoreMock.setup(store => store.getState()).returns(() => storeMocks.assessmentStoreData);
+    function setupStoreGetState(): void {
+        storeMocks.tabStoreMock
+            .setup(store => store.getState())
+            .returns(() => storeMocks.tabStoreData);
+        storeMocks.detailsViewStoreMock
+            .setup(store => store.getState())
+            .returns(() => storeMocks.detailsViewStoreData);
+        storeMocks.visualizationStoreMock
+            .setup(store => store.getState())
+            .returns(() => storeMocks.visualizationStoreData);
+        storeMocks.assessmentStoreMock
+            .setup(store => store.getState())
+            .returns(() => storeMocks.assessmentStoreData);
     }
 });

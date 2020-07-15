@@ -1,154 +1,132 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
-import { autobind, css } from '@uifabric/utilities';
-import { escape } from 'lodash';
-import { ActionButton } from 'office-ui-fabric-react/lib/Button';
-import { Link } from 'office-ui-fabric-react/lib/Link';
+import { css } from '@uifabric/utilities';
+import { AssessmentsProvider } from 'assessments/types/assessments-provider';
+import { CardsViewModel } from 'common/types/store-data/card-view-model';
+import { VisualizationScanResultData } from 'common/types/store-data/visualization-scan-result-data';
+import { VisualizationStoreData } from 'common/types/store-data/visualization-store-data';
+import { DetailsViewActionMessageCreator } from 'DetailsView/actions/details-view-action-message-creator';
+import { detailsViewCommandButtons } from 'DetailsView/components/details-view-command-bar.scss';
+import { DetailsViewSwitcherNavConfiguration } from 'DetailsView/components/details-view-switcher-nav';
+import { StartOverDeps } from 'DetailsView/components/start-over-dropdown';
+import { ITooltipHostStyles, Link, TooltipHost } from 'office-ui-fabric-react';
 import * as React from 'react';
+import { ReportGenerator } from 'reports/report-generator';
 
-import { IAssessmentsProvider } from '../../assessments/types/iassessments-provider';
-import { FeatureFlags } from '../../common/feature-flags';
+import { ScanMetadata } from 'common/types/store-data/unified-data-interface';
+import { CommandBarButtonsMenu } from 'DetailsView/components/command-bar-buttons-menu';
+import { NarrowModeStatus } from 'DetailsView/components/narrow-mode-detector';
+import { StartOverFactoryProps } from 'DetailsView/components/start-over-component-factory';
+import { AssessmentStoreData } from '../../common/types/store-data/assessment-result-data';
 import { FeatureFlagStoreData } from '../../common/types/store-data/feature-flag-store-data';
-import { IAssessmentStoreData } from '../../common/types/store-data/iassessment-result-data';
-import { ITabStoreData } from '../../common/types/store-data/itab-store-data';
-import { DetailsViewActionMessageCreator } from '../actions/details-view-action-message-creator';
-import { ReportGenerator, ReportGeneratorDeps } from '../reports/report-generator';
-import { ExportDialog, ExportDialogDeps } from './export-dialog';
-import { StartOverDropdown } from './start-over-dropdown';
+import { TabStoreData } from '../../common/types/store-data/tab-store-data';
+import * as styles from './details-view-command-bar.scss';
+import { DetailsRightPanelConfiguration } from './details-view-right-panel';
+import { ReportExportComponentDeps } from './report-export-component';
 
-export type DetailsViewCommandBarDeps = ExportDialogDeps & ReportGeneratorDeps;
+export type DetailsViewCommandBarDeps = {
+    getCurrentDate: () => Date;
+    reportGenerator: ReportGenerator;
+    getDateFromTimestamp: (timestamp: string) => Date;
+    detailsViewActionMessageCreator: DetailsViewActionMessageCreator;
+} & ReportExportComponentDeps &
+    StartOverDeps;
+
+export type CommandBarProps = DetailsViewCommandBarProps;
+
+export type ReportExportComponentFactory = (props: CommandBarProps) => JSX.Element;
+
+export type StartOverComponentFactory = (props: StartOverFactoryProps) => JSX.Element;
 
 export interface DetailsViewCommandBarProps {
     deps: DetailsViewCommandBarDeps;
     featureFlagStoreData: FeatureFlagStoreData;
-    tabStoreData: ITabStoreData;
-    actionMessageCreator: DetailsViewActionMessageCreator;
-    assessmentStoreData: IAssessmentStoreData;
-    assessmentsProvider: IAssessmentsProvider;
-    reportGenerator: ReportGenerator;
-    renderExportAndStartOver: boolean;
+    tabStoreData: TabStoreData;
+    assessmentStoreData: AssessmentStoreData;
+    assessmentsProvider: AssessmentsProvider;
+    rightPanelConfiguration: DetailsRightPanelConfiguration;
+    visualizationStoreData: VisualizationStoreData;
+    visualizationScanResultData: VisualizationScanResultData;
+    cardsViewData: CardsViewModel;
+    switcherNavConfiguration: DetailsViewSwitcherNavConfiguration;
+    scanMetadata: ScanMetadata;
+    narrowModeStatus: NarrowModeStatus;
 }
 
-export interface DetailsViewCommandBarState {
-    isExportDialogOpen: boolean;
-    exportDialogDescription: string;
-    exportHtmlWithPlaceholder: string;
-    exportHtmlWithDescription: string;
-}
-
-export class DetailsViewCommandBar extends React.Component<DetailsViewCommandBarProps, DetailsViewCommandBarState> {
-    constructor(props) {
-        super(props);
-        this.state = {
-            isExportDialogOpen: false,
-            exportDialogDescription: '',
-            exportHtmlWithPlaceholder: '',
-            exportHtmlWithDescription: '',
-        };
-    }
-
+export class DetailsViewCommandBar extends React.Component<DetailsViewCommandBarProps> {
     public render(): JSX.Element {
-        const shouldRender = !this.props.tabStoreData.isClosed && this.props.featureFlagStoreData[FeatureFlags.newAssessmentExperience];
-        if (!shouldRender) {
+        if (this.props.tabStoreData.isClosed) {
             return null;
         }
 
         return (
-            <div className="details-view-command-bar">
+            <div className={styles.detailsViewCommandBar}>
                 {this.renderTargetPageInfo()}
-                {this.renderCommandButtons()}
+                {this.renderFarItems()}
             </div>
         );
     }
 
     private renderTargetPageInfo(): JSX.Element {
-        const targetPageTitle: string = this.props.tabStoreData.title;
+        const targetPageTitle: string = this.props.scanMetadata.targetAppInfo.name;
+        const tooltipContent = `Switch to target page: ${targetPageTitle}`;
+        const hostStyles: Partial<ITooltipHostStyles> = {
+            root: { display: 'inline-block', minWidth: 0 },
+        };
         return (
-            <div className="details-view-target-page">
-                Target page:&nbsp;
-                <Link
-                    role="link"
-                    title="Switch to target page"
-                    className={css('insights-link', 'target-page-link')}
-                    onClick={this.props.actionMessageCreator.switchToTargetTab}
-                >
-                    {targetPageTitle}
-                </Link>
+            <div className={styles.detailsViewTargetPage} aria-labelledby="switch-to-target">
+                <span id="switch-to-target">Target page:&nbsp;</span>
+                <TooltipHost content={tooltipContent} styles={hostStyles}>
+                    <Link
+                        role="link"
+                        className={css('insights-link', styles.targetPageLink)}
+                        onClick={this.props.deps.detailsViewActionMessageCreator.switchToTargetTab}
+                        aria-label={tooltipContent}
+                    >
+                        <span className={styles.targetPageTitle}>{targetPageTitle}</span>
+                    </Link>
+                </TooltipHost>
             </div>
         );
+    }
+
+    private renderFarItems(): JSX.Element {
+        if (this.props.narrowModeStatus.isCommandBarCollapsed) {
+            return this.renderCommandButtonsMenu();
+        } else {
+            return this.renderCommandButtons();
+        }
     }
 
     private renderCommandButtons(): JSX.Element {
-        if (!this.props.renderExportAndStartOver) {
-            return null;
+        const reportExportElement: JSX.Element = this.renderExportComponent();
+        const startOverElement: JSX.Element = this.renderStartOverComponent();
+
+        if (reportExportElement || startOverElement) {
+            return (
+                <div className={detailsViewCommandButtons}>
+                    {reportExportElement}
+                    {startOverElement}
+                </div>
+            );
         }
 
-        const selectedTest = this.props.assessmentStoreData.assessmentNavState.selectedTestType;
-        const test = this.props.assessmentsProvider.forType(selectedTest);
-
-        return (
-            <div className="details-view-command-buttons">
-                <ActionButton iconProps={{ iconName: 'Export' }} onClick={this.onExportButtonClick}>
-                    Export result
-                </ActionButton>
-                <StartOverDropdown
-                    testName={test.title}
-                    test={selectedTest}
-                    requirementKey={this.props.assessmentStoreData.assessmentNavState.selectedTestStep}
-                    actionMessageCreator={this.props.actionMessageCreator}
-                />
-                <ExportDialog
-                    deps={this.props.deps}
-                    isOpen={this.state.isExportDialogOpen}
-                    description={this.state.exportDialogDescription}
-                    html={this.state.exportHtmlWithDescription}
-                    onClose={this.onExportDialogClose}
-                    onDescriptionChange={this.onExportDialogDescriptionChanged}
-                    exportResultsType="Assessment"
-                />
-            </div>
-        );
+        return null;
     }
 
-    private descriptionPlaceholder: string = '7efdac3c-8c94-4e00-a765-6fc8c59a232b';
-
-    @autobind
-    private onExportButtonClick(): void {
-        const exportHtmlWithPlaceholder = this.props.reportGenerator.generateAssessmentHtml(
-            this.props.deps,
-            this.props.assessmentStoreData,
-            this.props.assessmentsProvider,
-            this.props.featureFlagStoreData,
-            this.props.tabStoreData,
-            this.descriptionPlaceholder,
-        );
-
-        const description = '';
-        const exportHtmlWithDescription = exportHtmlWithPlaceholder.replace(this.descriptionPlaceholder, description);
-
-        this.setState({
-            isExportDialogOpen: true,
-            exportDialogDescription: description,
-            exportHtmlWithPlaceholder: exportHtmlWithPlaceholder,
-            exportHtmlWithDescription: exportHtmlWithDescription,
-        });
+    private renderCommandButtonsMenu(): JSX.Element {
+        return <CommandBarButtonsMenu {...this.props} />;
     }
 
-    @autobind
-    private onExportDialogClose(): void {
-        this.setState({
-            isExportDialogOpen: false,
-        });
+    private renderExportComponent(): JSX.Element {
+        return this.props.switcherNavConfiguration.ReportExportComponentFactory(this.props);
     }
 
-    @autobind
-    private onExportDialogDescriptionChanged(description: string): void {
-        const escapedDescription = escape(description);
-        const exportHtmlWithDescription = this.state.exportHtmlWithPlaceholder.replace(this.descriptionPlaceholder, escapedDescription);
-
-        this.setState({
-            exportDialogDescription: description,
-            exportHtmlWithDescription: exportHtmlWithDescription,
-        });
+    private renderStartOverComponent(): JSX.Element {
+        const startOverFactoryProps: StartOverFactoryProps = {
+            ...this.props,
+            dropdownDirection: 'down',
+        };
+        return this.props.switcherNavConfiguration.StartOverComponentFactory(startOverFactoryProps);
     }
 }

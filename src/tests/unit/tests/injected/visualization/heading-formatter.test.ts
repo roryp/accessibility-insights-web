@@ -2,16 +2,20 @@
 // Licensed under the MIT License.
 import { It, Mock } from 'typemoq';
 import { ClientUtils } from '../../../../../injected/client-utils';
-import { IAssessmentVisualizationInstance } from '../../../../../injected/frameCommunicators/html-element-axe-results-helper';
+import { AssessmentVisualizationInstance } from '../../../../../injected/frameCommunicators/html-element-axe-results-helper';
 import { DrawerConfiguration } from '../../../../../injected/visualization/formatter';
-import { HeadingFormatter, IHeadingStyleConfiguration, IStyleComputer } from '../../../../../injected/visualization/heading-formatter';
+import {
+    HeadingFormatter,
+    HeadingStyleConfiguration,
+    StyleComputer,
+} from '../../../../../injected/visualization/heading-formatter';
 
 describe('HeadingFormatterTests', () => {
     let testSubject: HeadingFormatter;
     let sandbox: HTMLDivElement;
-    let failedInstanceResult: IAssessmentVisualizationInstance;
-    let failedInstanceNotSelected: IAssessmentVisualizationInstance;
-    let styleComputer: IStyleComputer;
+    let failedInstanceResult: AssessmentVisualizationInstance;
+    let failedInstanceNotSelected: AssessmentVisualizationInstance;
+    let styleComputer: StyleComputer;
     const innerText = 'HEADING';
 
     beforeEach(() => {
@@ -21,8 +25,11 @@ describe('HeadingFormatterTests', () => {
         testSubject = new HeadingFormatter(styleComputer, new ClientUtils(window));
         sandbox = document.createElement('div');
         document.body.appendChild(sandbox);
-        failedInstanceResult = { isFailure: true } as IAssessmentVisualizationInstance;
-        failedInstanceNotSelected = { isFailure: true, isVisualizationEnabled: false } as IAssessmentVisualizationInstance;
+        failedInstanceResult = { isFailure: true } as AssessmentVisualizationInstance;
+        failedInstanceNotSelected = {
+            isFailure: true,
+            isVisualizationEnabled: false,
+        } as AssessmentVisualizationInstance;
     });
 
     afterEach(() => {
@@ -90,7 +97,7 @@ describe('HeadingFormatterTests', () => {
 
     test('verifyStylingForValidArialLevel', () => {
         const headingElement = createHeadingWithInnerText(`<div aria-level='3'>HEADING</div>`);
-        headingElement.attributes['aria-level'] = 3;
+        headingElement.setAttribute('aria-level', '3');
         const config = testSubject.getDrawerConfiguration(headingElement, null);
 
         const headingStyle = getHeadingStyle('3');
@@ -135,7 +142,10 @@ describe('HeadingFormatterTests', () => {
 
     test('verifyHideHiddenHeading', () => {
         const headingElement = createHeadingWithInnerText(`<h1 hidden="true">HEADING</h1>`);
-        const formatter = new HeadingFormatter(createDisplayNoneStyleComputer(), new ClientUtils(window));
+        const formatter = new HeadingFormatter(
+            createDisplayNoneStyleComputer(),
+            new ClientUtils(window),
+        );
         const config = formatter.getDrawerConfiguration(headingElement, null);
 
         expect(config.showVisualization).toBe(false);
@@ -143,14 +153,20 @@ describe('HeadingFormatterTests', () => {
 
     test('verifyHideHiddenHeading because not selected', () => {
         const headingElement = createHeadingWithInnerText(`<h1>HEADING</h1>`);
-        const config = testSubject.getDrawerConfiguration(headingElement, failedInstanceNotSelected);
+        const config = testSubject.getDrawerConfiguration(
+            headingElement,
+            failedInstanceNotSelected,
+        );
 
         expect(config.showVisualization).toBe(false);
     });
 
     test('verifyHideHiddenNoValueHeading', () => {
         const headingElement = createHeadingWithInnerText(`<h1 hidden>HEADING</h1>`);
-        const formatter = new HeadingFormatter(createDisplayNoneStyleComputer(), new ClientUtils(window));
+        const formatter = new HeadingFormatter(
+            createDisplayNoneStyleComputer(),
+            new ClientUtils(window),
+        );
         const config = formatter.getDrawerConfiguration(headingElement, null);
 
         expect(config.showVisualization).toBe(false);
@@ -171,7 +187,9 @@ describe('HeadingFormatterTests', () => {
     });
 
     test('verifyHideDisplayNoneContainedHeading', () => {
-        const containerElement = createHeadingWithInnerText(`<div style="display:none"><h1 style="display:none">HEADING</h1></div>`);
+        const containerElement = createHeadingWithInnerText(
+            `<div style="display:none"><h1 style="display:none">HEADING</h1></div>`,
+        );
         const headingElement = containerElement.getElementsByTagName('h1')[0];
         const config = testSubject.getDrawerConfiguration(headingElement, null);
 
@@ -179,21 +197,28 @@ describe('HeadingFormatterTests', () => {
     });
 
     test('verifyHideHiddenNoValueHeadingWithAriaHiddenFalse', () => {
-        const headingElement = createHeadingWithInnerText(`<h1 hidden aria-hidden="false">HEADING</h1>`);
-        const formatter = new HeadingFormatter(createDisplayNoneStyleComputer(), new ClientUtils(window));
+        const headingElement = createHeadingWithInnerText(
+            `<h1 hidden aria-hidden="false">HEADING</h1>`,
+        );
+        const formatter = new HeadingFormatter(
+            createDisplayNoneStyleComputer(),
+            new ClientUtils(window),
+        );
         const config = formatter.getDrawerConfiguration(headingElement, null);
 
         expect(config.showVisualization).toBe(false);
     });
 
     test('verifyHideDisplayNoneHeadingWithAriaHiddenFalse', () => {
-        const headingElement = createHeadingWithInnerText(`<h1 style="display:none" aria-hidden="false">HEADING</h1>`);
+        const headingElement = createHeadingWithInnerText(
+            `<h1 style="display:none" aria-hidden="false">HEADING</h1>`,
+        );
         const config = testSubject.getDrawerConfiguration(headingElement, null);
 
         expect(config.showVisualization).toBe(false);
     });
 
-    function createDisplayNoneStyleComputer(): IStyleComputer {
+    function createDisplayNoneStyleComputer(): StyleComputer {
         const getComputedStyleMock = Mock.ofInstance(_ => {});
 
         getComputedStyleMock
@@ -206,10 +231,14 @@ describe('HeadingFormatterTests', () => {
             getComputedStyle: getComputedStyleMock.object,
         };
 
-        return computedStyle as IStyleComputer;
+        return computedStyle as StyleComputer;
     }
 
-    function verifyHeadingStyle(config: DrawerConfiguration, headingStyle: IHeadingStyleConfiguration, text: string): void {
+    function verifyHeadingStyle(
+        config: DrawerConfiguration,
+        headingStyle: HeadingStyleConfiguration,
+        text: string,
+    ): void {
         expect(config.showVisualization).toBe(true);
         expect(config.borderColor).toBe(headingStyle.borderColor);
         expect(config.textBoxConfig.fontColor).toBe(headingStyle.fontColor);
@@ -227,7 +256,7 @@ describe('HeadingFormatterTests', () => {
         expect(failureBoxConfig).toEqual(expected);
     }
 
-    function getHeadingStyle(key: string) {
+    function getHeadingStyle(key: string): HeadingStyleConfiguration {
         const headingStyle = HeadingFormatter.headingStyles[key];
 
         expect(headingStyle).toBeDefined();

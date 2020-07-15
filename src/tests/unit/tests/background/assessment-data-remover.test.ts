@@ -1,7 +1,11 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
-import { AssessmentDataRemover } from '../../../../background/assessment-data-remover';
-import { IGeneratedAssessmentInstance, ITestStepResult } from '../../../../common/types/store-data/iassessment-result-data';
+import { AssessmentDataRemover } from 'background/assessment-data-remover';
+import {
+    GeneratedAssessmentInstance,
+    TestStepResult,
+} from '../../../../common/types/store-data/assessment-result-data';
+import { DictionaryStringTo } from '../../../../types/common-types';
 
 describe('AssessmentDataRemoverTest', () => {
     const instanceKey = 'instance-key-1';
@@ -10,46 +14,56 @@ describe('AssessmentDataRemoverTest', () => {
 
     test('deleteDataFromGeneratedMapWithStepKey: only delete one test step result entry', () => {
         const instanceMap = getInstanceMapWitMultipleTestStepResults();
-        new AssessmentDataRemover().deleteDataFromGeneratedMapWithStepKey(instanceMap, selectedStep);
+        new AssessmentDataRemover().deleteDataFromGeneratedMapWithStepKey(
+            instanceMap,
+            selectedStep,
+        );
         expect(instanceMap[instanceKey].testStepResults[anotherStep]).toBeDefined();
     });
 
     test('deleteDataFromGeneratedMapWithStepKey: delete the instance in the instance map', () => {
         const instanceMap = getInstanceMapWithOnlyOneTestStepResult();
-        new AssessmentDataRemover().deleteDataFromGeneratedMapWithStepKey(instanceMap, selectedStep);
+        new AssessmentDataRemover().deleteDataFromGeneratedMapWithStepKey(
+            instanceMap,
+            selectedStep,
+        );
         expect(instanceMap[instanceKey]).toBeUndefined();
     });
 
-    function getInstanceMapWithOnlyOneTestStepResult(): DictionaryStringTo<IGeneratedAssessmentInstance> {
+    function getInstanceMapWithOnlyOneTestStepResult(): DictionaryStringTo<
+        GeneratedAssessmentInstance
+    > {
         return {
             [instanceKey]: {
                 testStepResults: {
                     [selectedStep]: {
                         status: 2,
-                    } as ITestStepResult,
+                    } as TestStepResult,
                 },
                 target: null,
                 html: null,
                 propertyBag: null,
-            } as IGeneratedAssessmentInstance,
+            } as GeneratedAssessmentInstance,
         };
     }
 
-    function getInstanceMapWitMultipleTestStepResults(): DictionaryStringTo<IGeneratedAssessmentInstance> {
+    function getInstanceMapWitMultipleTestStepResults(): DictionaryStringTo<
+        GeneratedAssessmentInstance
+    > {
         return {
             [instanceKey]: {
                 testStepResults: {
                     [selectedStep]: {
                         status: 2,
-                    } as ITestStepResult,
+                    } as TestStepResult,
                     [anotherStep]: {
                         status: 1,
-                    } as ITestStepResult,
+                    } as TestStepResult,
                 },
                 target: null,
                 html: null,
                 propertyBag: null,
-            } as IGeneratedAssessmentInstance,
+            } as GeneratedAssessmentInstance,
         };
     }
 });

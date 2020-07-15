@@ -3,23 +3,29 @@
 import { find } from 'lodash';
 import { It, Mock } from 'typemoq';
 
-import { IAssessmentsProvider } from '../../../../../assessments/types/iassessments-provider';
+import { AssessmentsProvider } from 'assessments/types/assessments-provider';
 import { AssessmentTestDefinition } from '../../../../../common/assessment/assessment-test-result';
-import { getRequirementsResults, RequirementDefinition } from '../../../../../common/assessment/requirement';
+import {
+    getRequirementsResults,
+    RequirementDefinition,
+} from '../../../../../common/assessment/requirement';
 import { RequirementComparer } from '../../../../../common/assessment/requirement-comparer';
-import { ManualTestStatus, ManualTestStatusData } from '../../../../../common/types/manual-test-status';
+import {
+    ManualTestStatus,
+    ManualTestStatusData,
+} from '../../../../../common/types/manual-test-status';
 import { VisualizationType } from '../../../../../common/types/visualization-type';
 
 describe('Requirement', () => {
     describe('getRequirementsResults', () => {
         it('merges and sorts data as expected', () => {
-            const steps = [
+            const requirements = [
                 { key: 'gamma', name: 'at the top' },
                 { key: 'alpha', name: 'in the middle' },
                 { key: 'beta', name: 'on the bottom' },
             ];
-            function getStep(key) {
-                return find(steps, s => s.key === key) as RequirementDefinition;
+            function getStep(key): RequirementDefinition {
+                return find(requirements, s => s.key === key) as RequirementDefinition;
             }
 
             const stepStatus = {
@@ -29,17 +35,23 @@ describe('Requirement', () => {
             } as ManualTestStatusData;
 
             const test = {
-                steps,
+                requirements,
                 requirementOrder: RequirementComparer.byName,
             } as AssessmentTestDefinition;
 
-            const type = -3 as VisualizationType;
+            const visualizationType = -3 as VisualizationType;
 
-            const providerMock = Mock.ofType<IAssessmentsProvider>();
-            providerMock.setup(p => p.forType(type)).returns(() => test);
-            providerMock.setup(p => p.getStep(type, It.isAnyString())).returns((_, key) => getStep(key));
+            const providerMock = Mock.ofType<AssessmentsProvider>();
+            providerMock.setup(p => p.forType(visualizationType)).returns(() => test);
+            providerMock
+                .setup(p => p.getStep(visualizationType, It.isAnyString()))
+                .returns((_, key) => getStep(key));
 
-            const results = getRequirementsResults(providerMock.object, type, stepStatus);
+            const results = getRequirementsResults(
+                providerMock.object,
+                visualizationType,
+                stepStatus,
+            );
 
             expect(results).toEqual([
                 {

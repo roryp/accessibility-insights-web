@@ -1,10 +1,8 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
-import { autobind } from '@uifabric/utilities';
-
+import { BrowserAdapter } from '../common/browser-adapters/browser-adapter';
 import { VisualizationConfigurationFactory } from '../common/configs/visualization-configuration-factory';
 import { VisualizationType } from '../common/types/visualization-type';
-import { BrowserAdapter } from './browser-adapter';
 
 export class TargetTabController {
     private browserAdapter: BrowserAdapter;
@@ -15,12 +13,16 @@ export class TargetTabController {
         this.configurationFactory = configurationFactory;
     }
 
-    public showTargetTab(targetTabId: number, testType: VisualizationType, testStep: string = null): void {
+    public async showTargetTab(
+        targetTabId: number,
+        testType: VisualizationType,
+        testStep: string = null,
+    ): Promise<void> {
         const config = this.configurationFactory.getConfiguration(testType);
         const switchToTargetTab = config.getSwitchToTargetTabOnScan(testStep);
 
         if (switchToTargetTab) {
-            this.browserAdapter.switchToTab(targetTabId);
+            await this.browserAdapter.switchToTab(targetTabId);
         }
     }
 }

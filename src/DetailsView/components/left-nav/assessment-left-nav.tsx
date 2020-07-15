@@ -1,13 +1,21 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
+import { AssessmentsProvider } from 'assessments/types/assessments-provider';
+import { FeatureFlags } from 'common/feature-flags';
+import { FeatureFlagStoreData } from 'common/types/store-data/feature-flag-store-data';
+import { VisualizationType } from 'common/types/visualization-type';
+import { INav } from 'office-ui-fabric-react';
 import * as React from 'react';
 
-import { IAssessmentsProvider } from '../../../assessments/types/iassessments-provider';
-import { NamedSFC } from '../../../common/react/named-sfc';
+import { NamedFC } from '../../../common/react/named-fc';
 import { ManualTestStatus, ManualTestStatusData } from '../../../common/types/manual-test-status';
+import { DictionaryStringTo } from '../../../types/common-types';
 import { BaseLeftNav, BaseLeftNavLink } from '../base-left-nav';
-import { LeftNavIndexIcon, LeftNavStatusIcon } from './left-nav-icon';
-import { AssessmentLinkBuilderDeps, LeftNavLinkBuilder, OverviewLinkBuilderDeps } from './left-nav-link-builder';
+import {
+    AssessmentLinkBuilderDeps,
+    LeftNavLinkBuilder,
+    OverviewLinkBuilderDeps,
+} from './left-nav-link-builder';
 import { NavLinkHandler } from './nav-link-handler';
 
 export type AssessmentLeftNavDeps = {
@@ -19,32 +27,97 @@ export type AssessmentLeftNavDeps = {
 export type AssessmentLeftNavProps = {
     deps: AssessmentLeftNavDeps;
     selectedKey: string;
-    assessmentsProvider: IAssessmentsProvider;
+    assessmentsProvider: AssessmentsProvider;
     assessmentsData: DictionaryStringTo<ManualTestStatusData>;
+    featureFlagStoreData: FeatureFlagStoreData;
+    expandedTest: VisualizationType | undefined;
+    onRightPanelContentSwitch: () => void;
+    setNavComponentRef: (nav: INav) => void;
 };
 
 export type AssessmentLeftNavLink = {
     status: ManualTestStatus;
 } & BaseLeftNavLink;
 
-export const AssessmentLeftNav = NamedSFC<AssessmentLeftNavProps>('AssessmentLeftNav', props => {
-    const { deps, selectedKey, assessmentsProvider, assessmentsData } = props;
+export type ReflowAssessmentLeftNavLink = {
+    testType: VisualizationType;
+    status: ManualTestStatus;
+} & BaseLeftNavLink;
+
+export type TestGettingStartedNavLink = {
+    testType: VisualizationType;
+} & BaseLeftNavLink;
+
+export type TestRequirementLeftNavLink = {
+    displayedIndex: string;
+    testType: VisualizationType;
+    requirementKey: string;
+} & AssessmentLeftNavLink;
+
+export type onTestRequirementClick = (
+    event: React.MouseEvent<HTMLElement>,
+    item: TestRequirementLeftNavLink,
+) => void;
+
+export type onTestGettingStartedClick = (
+    event: React.MouseEvent<HTMLElement>,
+    item: TestGettingStartedNavLink,
+) => void;
+
+export const AssessmentLeftNav = NamedFC<AssessmentLeftNavProps>('AssessmentLeftNav', props => {
+    const {
+        deps,
+        selectedKey,
+        assessmentsProvider,
+        assessmentsData,
+        featureFlagStoreData,
+        expandedTest,
+        onRightPanelContentSwitch,
+        setNavComponentRef,
+    } = props;
 
     const { navLinkHandler, leftNavLinkBuilder } = deps;
 
-    const renderAssessmentIcon = (link: AssessmentLeftNavLink) => {
-        if (link.status === ManualTestStatus.UNKNOWN) {
-            return <LeftNavIndexIcon item={link} />;
-        }
-
-        return <LeftNavStatusIcon item={link} />;
-    };
-
     let links = [];
-    links.push(leftNavLinkBuilder.buildOverviewLink(deps, navLinkHandler.onOverviewClick, assessmentsProvider, assessmentsData, 0));
-    links = links.concat(
-        leftNavLinkBuilder.buildAssessmentTestLinks(deps, navLinkHandler.onAssessmentTestClick, assessmentsProvider, assessmentsData, 1),
+    links.push(
+        leftNavLinkBuilder.buildOverviewLink(
+            deps,
+            navLinkHandler.onOverviewClick,
+            assessmentsProvider,
+            assessmentsData,
+            0,
+            onRightPanelContentSwitch,
+        ),
     );
 
-    return <BaseLeftNav renderIcon={renderAssessmentIcon} selectedKey={selectedKey} links={links} />;
+    if (featureFlagStoreData[FeatureFlags.reflowUI]) {
+        links = links.concat(
+            leftNavLinkBuilder.buildReflowAssessmentTestLinks(
+                deps,
+                assessmentsProvider,
+                assessmentsData,
+                1,
+                expandedTest,
+                onRightPanelContentSwitch,
+            ),
+        );
+    } else {
+        links = links.concat(
+            leftNavLinkBuilder.buildAssessmentTestLinks(
+                deps,
+                navLinkHandler.onAssessmentTestClick,
+                assessmentsProvider,
+                assessmentsData,
+                1,
+            ),
+        );
+    }
+
+    return (
+        <BaseLeftNav
+            selectedKey={selectedKey}
+            links={links}
+            setNavComponentRef={setNavComponentRef}
+        />
+    );
 });

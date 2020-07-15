@@ -12,12 +12,19 @@ module.exports = {
     globalTeardown: `${currentDir}/setup/global-teardown.ts`,
     moduleFileExtensions: [
         'ts',
+        'tsx',
         'json', // adding json, since puppeteer.launch throws error - refer https://github.com/GoogleChrome/puppeteer/issues/2754
         'js',
     ],
     rootDir: rootDir,
     roots: [currentDir],
-    reporters: ['default', ['jest-junit', { outputDirectory: '.', outputName: '<rootDir>/test-results/e2e/junit-e2e.xml' }]],
+    reporters: [
+        'default',
+        [
+            'jest-junit',
+            { outputDirectory: '.', outputName: '<rootDir>/test-results/e2e/junit-e2e.xml' },
+        ],
+    ],
     setupFilesAfterEnv: [`${currentDir}/setup/test-setup.ts`],
     globals: {
         rootDir: path.resolve(__dirname, rootDir),

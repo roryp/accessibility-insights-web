@@ -1,15 +1,13 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
+import { shallow } from 'enzyme';
 import * as React from 'react';
 
-import { configMutator } from '../../../../../common/configuration';
-import { Page, PageDeps } from '../../../../../views/page/page';
-import { shallowRender } from '../../../common/shallow-render';
-
-configMutator.setOption('extensionFullName', 'EXTENSION_NAME');
+import { Page, PageDeps } from 'views/page/page';
 
 describe('page view', () => {
     it('renders', () => {
-        expect(shallowRender(<Page deps={{} as PageDeps}>INSIDE</Page>)).toMatchSnapshot();
+        const wrapper = shallow(<Page deps={{} as PageDeps}>INSIDE</Page>);
+        expect(wrapper.getElement()).toMatchSnapshot();
     });
 });

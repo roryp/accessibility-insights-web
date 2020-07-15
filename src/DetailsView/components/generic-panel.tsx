@@ -1,35 +1,23 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
-import { autobind, css } from '@uifabric/utilities';
-import { Panel, PanelType } from 'office-ui-fabric-react/lib/Panel';
+import { css } from '@uifabric/utilities';
+import { NamedFC } from 'common/react/named-fc';
+import { IPanelProps, Panel } from 'office-ui-fabric-react';
 import * as React from 'react';
+import * as styles from './generic-panel.scss';
 
-export interface GenericPanelProps {
-    isOpen: boolean;
-    onDismiss: () => void;
-    title: string;
-    className?: string;
-    closeButtonAriaLabel: string;
-    hasCloseButton: boolean;
-}
+export type GenericPanelProps = IPanelProps & {
+    innerPanelAutomationId?: string;
+};
 
-export class GenericPanel extends React.Component<GenericPanelProps> {
-    public render(): JSX.Element {
-        return (
-            <Panel
-                isOpen={this.props.isOpen}
-                type={PanelType.custom}
-                customWidth="550px"
-                className={css('generic-panel', this.props.className)}
-                isLightDismiss={true}
-                onDismiss={this.props.onDismiss}
-                closeButtonAriaLabel={this.props.closeButtonAriaLabel}
-                hasCloseButton={this.props.hasCloseButton}
-                headerText={this.props.title}
-                headerClassName="header-text"
-            >
-                {this.props.children}
-            </Panel>
-        );
-    }
-}
+export const GenericPanel = NamedFC<GenericPanelProps>('GenericPanel', props => (
+    <Panel
+        {...props}
+        data-automation-id={props.innerPanelAutomationId}
+        className={css(styles.genericPanel, props.className)}
+        isLightDismiss={true}
+        headerClassName={styles.headerText}
+    >
+        {props.children}
+    </Panel>
+));

@@ -12,6 +12,11 @@ exports[`First time Dialog content should match snapshot 1`] = `
       class="ms-Dialog-main insights-dialog-main-override telemetry-permission-dialog main-000"
     >
       <div
+        data-is-visible="true"
+        style="pointer-events: none; position: fixed;"
+        tabindex="0"
+      />
+      <div
         class="ms-Modal-scrollableContent scrollableContent-000"
         data-is-scrollable="true"
       >
@@ -21,14 +26,14 @@ exports[`First time Dialog content should match snapshot 1`] = `
           <div
             class="ms-Dialog-header header-000"
           >
-            <p
+            <div
               aria-level="2"
               class="ms-Dialog-title title-000"
-              id="telemetry-permission-title"
+              id="Dialog000-title"
               role="heading"
             >
               We need your help
-            </p>
+            </div>
             <div
               class="topButton-000"
             />
@@ -39,16 +44,24 @@ exports[`First time Dialog content should match snapshot 1`] = `
             <div
               class="ms-Dialog-content innerContent-000"
             >
-              <p
+              <div
                 class="telemetry-permission-details"
-              />
-              <p>
-                By opting into telemetry, you help the community develop inclusive software.
-              </p>
-              <p>
-                We collect anonymized data to identify the top accessibility issues found by the users. This will help focus the accessibility tools and standards community to improve guidelines, rules engines, and features.
-              </p>
-              <p />
+              >
+                <p>
+                  By opting into telemetry, you 
+                  <a
+                    class="ms-Link insights-link root-000"
+                    href="https://accessibilityinsights.io/docs/en/telemetry"
+                    target="_blank"
+                  >
+                    help the community
+                  </a>
+                   develop inclusive software.
+                </p>
+                <p>
+                  We collect anonymized data to identify the top accessibility issues found by the users. This will help focus the accessibility tools and standards community to improve guidelines, rules engines, and features.
+                </p>
+              </div>
               <div
                 class="telemetry-checkbox-section"
               >
@@ -56,6 +69,8 @@ exports[`First time Dialog content should match snapshot 1`] = `
                   class="ms-Checkbox is-checked is-enabled telemetry-agree-checkbox root-000"
                 >
                   <input
+                    aria-checked="true"
+                    aria-label="I agree to enable telemetry"
                     checked=""
                     class="input-000"
                     id="checkbox-000"
@@ -63,20 +78,21 @@ exports[`First time Dialog content should match snapshot 1`] = `
                   />
                   <label
                     class="ms-Checkbox-label label-000"
-                    for="checkbox-6"
+                    for="checkbox-9"
                   >
                     <div
                       class="ms-Checkbox-checkbox checkbox-000"
                     >
                       <i
+                        aria-hidden="true"
                         class="ms-Checkbox-checkmark checkmark-000"
                         data-icon-name="CheckMark"
-                        role="presentation"
                       >
                         
                       </i>
                     </div>
                     <span
+                      aria-hidden="true"
                       class="ms-Checkbox-text text-000"
                     >
                       I agree to enable telemetry
@@ -89,7 +105,7 @@ exports[`First time Dialog content should match snapshot 1`] = `
                   href="http://go.microsoft.com/fwlink/?LinkId=521839"
                   target="_blank"
                 >
-                   privacy statement
+                  privacy statement
                 </a>
                  to learn more.
               </div>
@@ -108,20 +124,21 @@ exports[`First time Dialog content should match snapshot 1`] = `
                     data-is-focusable="true"
                     type="button"
                   >
-                    <div
+                    <span
                       class="ms-Button-flexContainer flexContainer-000"
+                      data-automationid="splitbuttonprimary"
                     >
-                      <div
+                      <span
                         class="ms-Button-textContainer textContainer-000"
                       >
-                        <div
+                        <span
                           class="ms-Button-label label-000"
                           id="id__000"
                         >
                           OK
-                        </div>
-                      </div>
-                    </div>
+                        </span>
+                      </span>
+                    </span>
                   </button>
                 </span>
               </div>
@@ -129,6 +146,11 @@ exports[`First time Dialog content should match snapshot 1`] = `
           </div>
         </div>
       </div>
+      <div
+        data-is-visible="true"
+        style="pointer-events: none; position: fixed;"
+        tabindex="0"
+      />
     </div>
   </div>
 </DocumentFragment>

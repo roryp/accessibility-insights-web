@@ -1,0 +1,27 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`GuidanceLinksTest linkComponentType is defined as ElectronExternalLink 1`] = `
+"<span className=\\"guidance-links\\">
+  <ElectronExternalLink href=\\"https://url1\\" onClick={[Function: onClick]}>
+    TEXT1
+  </ElectronExternalLink>
+</span>"
+`;
+
+exports[`GuidanceLinksTest links is empty 1`] = `""`;
+
+exports[`GuidanceLinksTest links is not null 1`] = `
+"<span className=\\"className\\">
+  <ElectronExternalLink href=\\"https://url1\\" onClick={[Function: onClick]}>
+    TEXT1
+  </ElectronExternalLink>
+  <span>
+    , 
+  </span>
+  <ElectronExternalLink href=\\"https://url2\\" onClick={[Function: onClick]}>
+    TEXT2
+  </ElectronExternalLink>
+</span>"
+`;
+
+exports[`GuidanceLinksTest links is null 1`] = `""`;

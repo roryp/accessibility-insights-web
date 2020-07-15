@@ -1,40 +1,50 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
+import { PropertyBagColumnRendererFactory } from 'assessments/common/property-bag-column-renderer-factory';
+import {
+    MacContrastCheckerAppLink,
+    WindowsContrastCheckerAppLink,
+} from 'common/components/contrast-checker-app-links';
+import { ContrastPropertyBag } from 'common/types/property-bag/contrast';
+import { VisualizationType } from 'common/types/visualization-type';
+import { link } from 'content/link';
+import { productName } from 'content/strings/application';
+import { TestAutomaticallyPassedNotice } from 'content/test/common/test-automatically-passed-notice';
+import * as content from 'content/test/text-legibility/contrast';
+import { AssessmentVisualizationEnabledToggle } from 'DetailsView/components/assessment-visualization-enabled-toggle';
+import { ScannerUtils } from 'injected/scanner-utils';
 import * as React from 'react';
-
-import { PropertyBagColumnRendererFactory } from '../../../assessments/common/property-bag-column-renderer-factory';
-import { TextLegibilityTestStep } from '../../../assessments/text-legibility/test-steps/test-step';
-import { NewTabLink } from '../../../common/components/new-tab-link';
-import { IContrastPropertyBag } from '../../../common/types/property-bag/icontrast';
-import { VisualizationType } from '../../../common/types/visualization-type';
-import { link } from '../../../content/link';
-import { productName, windowsPlatformTitle } from '../../../content/strings/application';
-import * as content from '../../../content/test/text-legibility/contrast';
-import { AssessmentVisualizationEnabledToggle } from '../../../DetailsView/components/assessment-visualization-enabled-toggle';
-import { ScannerUtils } from '../../../injected/scanner-utils';
 import { AnalyzerConfigurationFactory } from '../../common/analyzer-configuration-factory';
-import AssistedTestRecordYourResults from '../../common/assisted-test-record-your-results';
-import { PropertyBagColumnRendererConfig } from '../../common/property-bag-column-renderer';
+import { AssistedTestRecordYourResults } from '../../common/assisted-test-record-your-results';
+import {
+    NoValue,
+    PropertyBagColumnRendererConfig,
+} from '../../common/property-bag-column-renderer';
 import * as Markup from '../../markup';
 import { ReportInstanceField } from '../../types/report-instance-field';
-import { TestStep } from '../../types/test-step';
+import { Requirement } from '../../types/requirement';
+import { TextLegibilityTestStep } from './test-step';
 
 const contrastDescription: JSX.Element = <span>Text elements must have sufficient contrast.</span>;
 
-const WindowsPlatformLink = () => <NewTabLink href="https://go.microsoft.com/fwlink/?linkid=2075365">{windowsPlatformTitle}</NewTabLink>;
-
 const contrastHowToTest: JSX.Element = (
     <div>
-        For this requirement, {productName} highlights instances of text where the contrast ratio can't be determined, typically because the
-        background color is not uniform. You must manually verify the contrast for these instances.
+        <p>
+            For this requirement, {productName} highlights instances of text where the contrast
+            ratio can't be determined, typically because the background color is not uniform. You
+            must manually verify the contrast for these instances.
+        </p>
+        <TestAutomaticallyPassedNotice />
         <ol>
             <li>
-                Examine each instance in the target page to identify an area where the text and background are most likely to have a low
-                contrast ratio (e.g., white text on a light gray background).
+                Examine each instance in the target page to identify an area where the text and
+                background are most likely to have a low contrast ratio (e.g., white text on a light
+                gray background).
             </li>
             <li>
-                Use <WindowsPlatformLink /> to test the contrast at that area. (If you are testing on a Mac, you can use the{' '}
-                <NewTabLink href="https://developer.paciellogroup.com/resources/contrastanalyser/">Colour Contrast Analyser</NewTabLink>.)
+                Use <WindowsContrastCheckerAppLink /> to test the contrast at that area. (If you are
+                testing on a Mac, you can use the <MacContrastCheckerAppLink />
+                .)
             </li>
             <li>
                 Verify that each instance meets these contrast thresholds:
@@ -43,7 +53,8 @@ const contrastHowToTest: JSX.Element = (
                         Regular text must have a ratio <Markup.GreaterThanOrEqualTo /> 4.5
                     </li>
                     <li>
-                        Large text (18pt or 14pt+bold) must have a ratio <Markup.GreaterThanOrEqualTo /> 3.0.
+                        Large text (18pt or 14pt+bold) must have a ratio{' '}
+                        <Markup.GreaterThanOrEqualTo /> 3.0.
                     </li>
                 </ol>
             </li>
@@ -54,11 +65,11 @@ const contrastHowToTest: JSX.Element = (
 
 const key = TextLegibilityTestStep.contrast;
 
-const propertyBagConfig: PropertyBagColumnRendererConfig<IContrastPropertyBag>[] = [
+const propertyBagConfig: PropertyBagColumnRendererConfig<ContrastPropertyBag>[] = [
     {
         propertyName: 'textString',
         displayName: 'Text string',
-        defaultValue: '-',
+        defaultValue: NoValue,
     },
     {
         propertyName: 'size',
@@ -66,7 +77,7 @@ const propertyBagConfig: PropertyBagColumnRendererConfig<IContrastPropertyBag>[]
     },
 ];
 
-export const Contrast: TestStep = {
+export const Contrast: Requirement = {
     key: TextLegibilityTestStep.contrast,
     name: 'Contrast',
     description: contrastDescription,
@@ -78,7 +89,7 @@ export const Contrast: TestStep = {
         {
             key: 'contrast-ratio-info',
             name: 'Contrast ratio info',
-            onRender: PropertyBagColumnRendererFactory.get(propertyBagConfig),
+            onRender: PropertyBagColumnRendererFactory.getRenderer(propertyBagConfig),
         },
     ],
     reportInstanceFields: ReportInstanceField.fromColumns(propertyBagConfig),

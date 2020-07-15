@@ -1,0 +1,53 @@
+{
+    "license": "copyright-header.txt",
+    "ignore": [
+        "./.dependabot",
+        "./.git",
+        "./.github",
+        "./.vs",
+        "./.vscode",
+        "./dist",
+        "./docs/art/ada-cat.ansi256.txt",
+        "./docs/LICENSE.txt",
+        "./src/electron/resources/license_en.txt",
+        "./src/electron/resources/license.txt",
+        "./drop",
+        "./extension",
+        "./node_modules",
+        "./package",
+        "./src/assessments/color/test-steps/flashing-text-example.html",
+        "./src/tests/miscellaneous/mock-adb/bin",
+        "./test-results",
+        ".gitattribute",
+        ".gitattributes",
+        ".ignoredRevs",
+        "**/.DS_Store",
+        "**/*.icns",
+        "**/*.scss.d.ts",
+        "**/*.snap",
+        "**/*.svg",
+        "**/*.mp3",
+        "Dockerfile",
+        "yarn.lock"
+    ],
+    "licenseFormats": {
+        "yaml|npmrc|yml|ps1|gitignore|dockerignore|prettierignore|yarnrc|nsh": {
+            "eachLine": {
+                "prepend": "# "
+            }
+        },
+        "md": {
+            "prepend": "<!--",
+            "append": "-->"
+        },
+        "ts|tsx|d.ts|js|scss|css": {
+            "eachLine": {
+                "prepend": "// "
+            }
+        }
+    },
+    "defaultFormat": {
+        "prepend": "/*",
+        "append": "*/"
+    }
+}
