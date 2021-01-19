@@ -22,6 +22,7 @@ exports[` render renders normally 1`] = `
           "dispatcher": undefined,
           "editFailureInstance": [Function],
           "leftNavPanelExpanded": [Function],
+          "loadAssessment": [Function],
           "removeFailureInstance": [Function],
           "rescanVisualization": [Function],
           "setAllUrlsPermissionState": [Function],
@@ -43,6 +44,7 @@ exports[` render renders normally 1`] = `
         },
         "getCardSelectionViewData": [Function],
         "getCardViewData": [Function],
+        "getDateFromTimestamp": [Function],
         "getDetailsRightPanelConfiguration": [Function],
         "getDetailsSwitcherNavConfiguration": [Function],
         "isResultHighlightUnavailable": [Function],
@@ -108,6 +110,7 @@ exports[` render renders normally 1`] = `
           "dispatcher": undefined,
           "editFailureInstance": [Function],
           "leftNavPanelExpanded": [Function],
+          "loadAssessment": [Function],
           "removeFailureInstance": [Function],
           "rescanVisualization": [Function],
           "setAllUrlsPermissionState": [Function],
@@ -129,6 +132,7 @@ exports[` render renders normally 1`] = `
         },
         "getCardSelectionViewData": [Function],
         "getCardViewData": [Function],
+        "getDateFromTimestamp": [Function],
         "getDetailsRightPanelConfiguration": [Function],
         "getDetailsSwitcherNavConfiguration": [Function],
         "isResultHighlightUnavailable": [Function],
@@ -188,7 +192,9 @@ exports[` render renders normally 1`] = `
           "name": "DetailsViewContainerTest title",
           "url": "http://detailsViewContainerTest/url/",
         },
-        "timestamp": "timestamp",
+        "timespan": Object {
+          "scanComplete": 1900-02-02T03:00:00.000Z,
+        },
         "toolData": Object {
           "applicationProperties": Object {
             "name": "some app",
@@ -214,6 +220,22 @@ exports[` render renders normally 1`] = `
         "url": "http://detailsViewContainerTest/url/",
       }
     }
+    unifiedScanResultStoreData={
+      Object {
+        "results": Array [],
+        "rules": Array [],
+        "targetAppInfo": Object {
+          "name": "DetailsViewContainerTest title",
+          "url": "http://detailsViewContainerTest/url/",
+        },
+        "timestamp": "timestamp",
+        "toolInfo": Object {
+          "applicationProperties": Object {
+            "name": "some app",
+          },
+        },
+      }
+    }
     userConfigurationStoreData={
       Object {
         "adbLocation": null,
@@ -227,6 +249,8 @@ exports[` render renders normally 1`] = `
         "enableTelemetry": true,
         "isFirstTime": false,
         "lastSelectedHighContrast": false,
+        "lastWindowBounds": null,
+        "lastWindowState": null,
       }
     }
     visualizationScanResultData={
@@ -274,7 +298,7 @@ exports[` render renders normally 1`] = `
     visualizationStoreData={
       Object {
         "focusedTarget": null,
-        "injectingInProgress": null,
+        "injectingRequested": false,
         "injectingStarted": false,
         "scanning": null,
         "selectedAdhocDetailsView": -1,
@@ -302,6 +326,10 @@ exports[` render renders normally 1`] = `
             },
           },
           "assessments": Object {
+            "adaptableContentAssessment": Object {
+              "enabled": false,
+              "stepStatus": Object {},
+            },
             "audioVideoOnlyAssessment": Object {
               "enabled": false,
               "stepStatus": Object {},
@@ -386,10 +414,6 @@ exports[` render renders normally 1`] = `
               "enabled": false,
               "stepStatus": Object {},
             },
-            "textLegibilityAssessment": Object {
-              "enabled": false,
-              "stepStatus": Object {},
-            },
             "timedEventsAssessment": Object {
               "enabled": false,
               "stepStatus": Object {},
@@ -423,6 +447,7 @@ exports[` render renders normally 1`] = `
           "dispatcher": undefined,
           "editFailureInstance": [Function],
           "leftNavPanelExpanded": [Function],
+          "loadAssessment": [Function],
           "removeFailureInstance": [Function],
           "rescanVisualization": [Function],
           "setAllUrlsPermissionState": [Function],
@@ -444,6 +469,7 @@ exports[` render renders normally 1`] = `
         },
         "getCardSelectionViewData": [Function],
         "getCardViewData": [Function],
+        "getDateFromTimestamp": [Function],
         "getDetailsRightPanelConfiguration": [Function],
         "getDetailsSwitcherNavConfiguration": [Function],
         "isResultHighlightUnavailable": [Function],
@@ -493,6 +519,8 @@ exports[` render renders normally 1`] = `
         "enableTelemetry": true,
         "isFirstTime": false,
         "lastSelectedHighContrast": false,
+        "lastWindowBounds": null,
+        "lastWindowState": null,
       }
     }
   />

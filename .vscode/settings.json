@@ -1,5 +1,4 @@
 {
-    "tslint.configFile": "tslint.json",
     "typescript.reportStyleChecksAsWarnings": true,
     "typescript.preferences.importModuleSpecifier": "non-relative",
     "psi-header.changes-tracking": {
@@ -32,6 +31,7 @@
             ]
         }
     ],
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
     "editor.tabSize": 4,
     "html.format.endWithNewline": true,
     "files.eol": "\n",

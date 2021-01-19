@@ -19,6 +19,10 @@
 
     .main-content {
         margin-top: 10px;
+
+        h3 {
+            @include h3;
+        }
     }
 }
 
@@ -26,7 +30,7 @@
     display: flex;
     padding-top: 1.5vh;
     flex-wrap: wrap;
-    &-text {
+    :global(.visual-helper-text) {
         padding-right: 0.9vh;
         font-family: $fontFamily;
         font-size: 14px;

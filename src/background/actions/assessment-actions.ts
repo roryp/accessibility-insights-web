@@ -10,6 +10,7 @@ import {
     AddFailureInstancePayload,
     AddResultDescriptionPayload,
     AssessmentActionInstancePayload,
+    BaseActionPayload,
     ChangeInstanceSelectionPayload,
     ChangeInstanceStatusPayload,
     ChangeRequirementStatusPayload,
@@ -19,6 +20,7 @@ import {
     SelectTestSubviewPayload,
     ToggleActionPayload,
     UpdateSelectedDetailsViewPayload,
+    LoadAssessmentPayload,
 } from './action-payloads';
 
 export class AssessmentActions {
@@ -32,12 +34,8 @@ export class AssessmentActions {
     public readonly removeFailureInstance = new Action<RemoveFailureInstancePayload>();
     public readonly editFailureInstance = new Action<EditFailureInstancePayload>();
     public readonly passUnmarkedInstance = new Action<ToggleActionPayload>();
-    public readonly changeAssessmentVisualizationState = new Action<
-        ChangeInstanceSelectionPayload
-    >();
-    public readonly changeAssessmentVisualizationStateForAll = new Action<
-        ChangeInstanceSelectionPayload
-    >();
+    public readonly changeAssessmentVisualizationState = new Action<ChangeInstanceSelectionPayload>();
+    public readonly changeAssessmentVisualizationStateForAll = new Action<ChangeInstanceSelectionPayload>();
     public readonly undoInstanceStatusChange = new Action<AssessmentActionInstancePayload>();
     public readonly undoRequirementStatusChange = new Action<ChangeRequirementStatusPayload>();
     public readonly getCurrentState = new Action<void>();
@@ -49,4 +47,5 @@ export class AssessmentActions {
     public readonly updateSelectedPivotChild = new Action<UpdateSelectedDetailsViewPayload>();
     public readonly updateTargetTabId = new Action<number>();
     public readonly continuePreviousAssessment = new Action<number>();
+    public readonly LoadAssessment = new Action<LoadAssessmentPayload>();
 }

@@ -1,8 +1,8 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
+import { shallow } from 'enzyme';
 import * as React from 'react';
 
-import { shallow } from 'enzyme';
 import { allInstanceOutcomeTypes } from 'reports/components/instance-outcome-type';
 import {
     NoFailedInstancesCongrats,
@@ -14,7 +14,7 @@ describe.each(allInstanceOutcomeTypes)(
     outcomeType => {
         it('renders per snapshot with default message', () => {
             const deps: NoFailedInstancesCongratsDeps = {
-                customCongratsMessage: null,
+                customCongratsContinueInvestigatingMessage: null,
                 outcomeType: outcomeType,
             };
             const wrapper = shallow(
@@ -26,7 +26,7 @@ describe.each(allInstanceOutcomeTypes)(
 
         it('renders per snapshot with custom message', () => {
             const deps: NoFailedInstancesCongratsDeps = {
-                customCongratsMessage: 'Look, ma! No bugs!',
+                customCongratsContinueInvestigatingMessage: 'Continue investigating!',
                 outcomeType: outcomeType,
             };
             const wrapper = shallow(

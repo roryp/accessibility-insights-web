@@ -6,6 +6,7 @@ import { instanceTableTextContentAutomationId } from 'DetailsView/components/ass
 import { visualHelperToggleAutomationId } from 'DetailsView/components/base-visual-helper-toggle';
 import { settingsPanelAutomationId } from 'DetailsView/components/details-view-overlay/settings-panel/settings-panel';
 import { IframeWarningContainerAutomationId } from 'DetailsView/components/iframe-warning';
+import { overviewContainerAutomationId } from 'DetailsView/components/overview-content/overview-content-container';
 import { overviewHeadingAutomationId } from 'DetailsView/components/overview-content/overview-heading';
 import { startOverAutomationId } from 'DetailsView/components/start-over-component-factory';
 import { failureCountAutomationId } from 'reports/components/outcome-chip';
@@ -20,6 +21,7 @@ export const detailsViewSelectors = {
 
     testNavLink: (testName: string): string => `div [name="${testName}"]`,
     requirementNavLink: (requirementName: string): string => `div [name="${requirementName}"] a`,
+    gettingStartedNavLink: 'div [name="Getting started"]',
 
     visualHelperToggle: getAutomationIdSelector(visualHelperToggleAutomationId),
 
@@ -38,6 +40,23 @@ export const detailsViewSelectors = {
     automatedChecksResultSection: getAutomationIdSelector(resultSectionAutomationId),
 };
 
+export const navMenuSelectors = {
+    commandBarMenuButtonSelectors: {
+        collapsed: 'button[aria-label="More items"][aria-expanded=false]',
+        expanded: 'button[aria-label="More items"][aria-expanded=true]',
+    },
+
+    hamburgerMenuButtonSelectors: {
+        collapsed:
+            'button[aria-label="Assessment - all tests and requirements list"][aria-expanded=false]',
+        // Note: in the expanded state, the hamburger menu opens a modal dialog panel which hides the
+        // original menu button, but which has a second identical menu button overlaid. [role="dialog"]
+        // causes tests to interact with the dialog's copy (the one on top that the user would see).
+        expanded:
+            '[role="dialog"] button[aria-label="Assessment - all tests and requirements list"][aria-expanded=true]',
+    },
+};
+
 export const fastPassAutomatedChecksSelectors = {
     startOverButton: getAutomationIdSelector(startOverAutomationId),
     ruleDetailsGroups: getAutomationIdSelector(ruleDetailsGroupAutomationId),
@@ -48,7 +67,7 @@ export const fastPassAutomatedChecksSelectors = {
 };
 
 export const overviewSelectors = {
-    overview: '.overview',
+    overview: getAutomationIdSelector(overviewContainerAutomationId),
     overviewHeading: getAutomationIdSelector(overviewHeadingAutomationId),
 };
 

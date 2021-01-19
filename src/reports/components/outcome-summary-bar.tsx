@@ -5,13 +5,20 @@ import { NamedFC } from 'common/react/named-fc';
 import { kebabCase } from 'lodash';
 import * as React from 'react';
 
-import { outcomeIconMap, outcomeIconMapInverted, OutcomeStats, OutcomeType } from './outcome-type';
+import {
+    outcomeIconMap,
+    outcomeIconMapInverted,
+    OutcomeStats,
+    OutcomeType,
+    outcomeTypeSemantics,
+} from './outcome-type';
 
 export type OutcomeSummaryBarProps = {
     outcomeStats: Partial<OutcomeStats>;
     allOutcomeTypes: OutcomeType[];
     iconStyleInverted?: boolean;
     countSuffix?: string;
+    textLabel?: boolean;
 };
 
 export const OutcomeSummaryBar = NamedFC<OutcomeSummaryBarProps>('OutcomeSummaryBar', props => {
@@ -25,14 +32,35 @@ export const OutcomeSummaryBar = NamedFC<OutcomeSummaryBarProps>('OutcomeSummary
         });
     };
 
+    const getLabel = () => {
+        const { allOutcomeTypes, outcomeStats } = props;
+        const countSuffix = props.countSuffix || '';
+        return allOutcomeTypes
+            .map(outcomeType => {
+                const count = outcomeStats[outcomeType];
+                const outcomePastTense = outcomeTypeSemantics[outcomeType].pastTense;
+                return `${count}${countSuffix} ${outcomePastTense}`;
+            })
+            .join(', ');
+    };
+
+    const getTextLabel = (outcomeType: OutcomeType) => {
+        if (props.textLabel !== true) {
+            return null;
+        }
+        const outcomePastTense = outcomeTypeSemantics[outcomeType].pastTense;
+        return <span className={'label'}>{` ${outcomePastTense}`}</span>;
+    };
+
     return (
-        <div className="outcome-summary-bar">
+        <div className="outcome-summary-bar" aria-label={getLabel()} role="img">
             {props.allOutcomeTypes.map((outcomeType, index) => {
                 const { iconStyleInverted, countSuffix } = props;
                 const iconMap =
                     iconStyleInverted === true ? outcomeIconMapInverted : outcomeIconMap;
                 const outcomeIcon = iconMap[outcomeType];
                 const count = props.outcomeStats[outcomeType];
+                const outcomePastTense = outcomeTypeSemantics[outcomeType].pastTense;
 
                 return (
                     <div key={outcomeType} style={{ flexGrow: count }}>
@@ -40,6 +68,7 @@ export const OutcomeSummaryBar = NamedFC<OutcomeSummaryBarProps>('OutcomeSummary
                             <span aria-hidden="true">{outcomeIcon}</span>
                             {count}
                             {countSuffix}
+                            {getTextLabel(outcomeType)}
                         </span>
                     </div>
                 );

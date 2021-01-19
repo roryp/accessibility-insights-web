@@ -16,12 +16,12 @@ $outcome-not-applicable-color: $neutral-outcome;
 
 .outcome-summary-bar {
     $outcome-summary-icon-size: 16px;
-    flex: 0 0 100%;
     display: flex;
+    flex-grow: 0;
+    flex-shrink: 0;
     flex-direction: row;
     flex-wrap: wrap;
     align-items: center;
-    height: 32px;
     margin-top: 16px;
     margin-bottom: 0px;
     line-height: 24px;
@@ -63,7 +63,8 @@ $outcome-not-applicable-color: $neutral-outcome;
         }
         background-color: $outcome-pass-color;
     }
-    .inapplicable {
+    .inapplicable,
+    .unscannable {
         @extend .block;
         @include inapplicable-icon-styles(
             $outcome-summary-icon-size,
@@ -97,5 +98,8 @@ $outcome-not-applicable-color: $neutral-outcome;
         border-top-right-radius: 2px;
         border-bottom-right-radius: 2px;
         margin-right: 0px;
+    }
+    .label {
+        font-weight: normal;
     }
 }

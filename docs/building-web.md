@@ -13,14 +13,14 @@ This document describes how to build and test Accessibility Insights for Web (th
 
 You will need the following tools installed:
 
--   [Node](https://nodejs.org) >= 12.16.3 (check by running `node --version`) - This is the version being enforced on our builds
--   [Yarn](https://yarnpkg.com/getting-started/install) >= 1.22.4 (check by running `yarn --version`)
+-   [Node](https://nodejs.org) >= 14.15.0 (check by running `node --version`) - This is the version being enforced on our builds
+-   [Yarn](https://yarnpkg.com/getting-started/install) >= 1.22.10 (check by running `yarn --version`)
 
 We recommend [VS Code](https://code.visualstudio.com/) for [editing/debugging](#using-vs-code), but you can use whichever editor you prefer. The [extensions we recommend](../.vscode/extensions.json) should be automatically suggested to you when opening this repository's folder in VS Code.
 
 #### Fork and clone the repository
 
-See [Git branch setup](docs/git-branch-setup.md).
+See [Git branch setup](git-branch-setup.md).
 
 #### Install packages
 
@@ -95,9 +95,9 @@ To debug using an external tool, run `node --inspect-brk ./node_modules/jest/bin
 
 We expect most features to have at least one major scenario covered by an end to end test, but most individual Pull Requests won't require new end-to-end tests.
 
-We use [Puppeteer](https://github.com/GoogleChrome/puppeteer) for browser automation in our end-to-end UI tests. There are some known limitations:
+We use [Playwright](https://playwright.dev) for browser automation in our end-to-end UI tests. There are some known limitations:
 
--   You must use a **non**-admin prompt to avoid [this issue](https://stackoverflow.com/questions/36835130).
+-   You must use a **non**-admin prompt to avoid [this issue](https://github.com/microsoft/playwright/issues/3191).
 -   Headless Chromium does not support browser extensions, so our E2E tests require the ability to run a _non-headless_ Chromium process. Because of this, they are incompatible with non-graphical development environments (notably, a default WSL environment on Windows). For an example of emulating a graphical environment using `xvfb`, see [./Dockerfile](./Dockerfile). For details, see [issue #853](https://github.com/microsoft/accessibility-insights-web/issues/853).
 
 To run the E2E tests locally:

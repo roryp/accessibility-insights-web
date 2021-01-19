@@ -32,29 +32,9 @@ yarn build:unified:all
 
 Most of the functionality of Unified relies on connecting to a device running the Accessibility Insights for Android Service. However, most Unified development and testing does not require an actual Android device/VM; this repository comes with `mock-adb` and `mock-service-for-android` tools that can be used to fake having one for most purposes.
 
-#### Using the old device connect view (no adbSetupView feature flag)
+#### Using a mock device
 
-```sh
-# This is the command you'll want to use most of the time
-# In the app, use port 9051 for the mock service
-yarn with:mock-service-for-android start:unified:dev
-
-# You can leave off the :dev if you don't want the "inspect" window
-yarn with:mock-service-for-android start:unified
-```
-
-#### Using the new Android Setup flow (with adbSetupView feature flag)
-
-```sh
-# This sets up mock-adb to respond as if a single physical device is connected with a working
-# and current install of Accessibility Insights for Android Service.
-yarn mock-adb single-device
-
-# Start the app like normal. During the "connect a device" flow where it asks you where to find
-# ADB, use the path C:\path\to\repo\drop\mock-adb - this folder should have been produced already
-# as part of yarn build:unified, but you can rebuild it with yarn build:mock-adb if necessary.
-yarn start:unified
-```
+See guidance [here](../src/tests/miscellaneous/mock-adb/README.md).
 
 #### Connecting to a real device/emulator
 

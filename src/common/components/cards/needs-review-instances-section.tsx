@@ -2,22 +2,12 @@
 // Licensed under the MIT License.
 import { NamedFC } from 'common/react/named-fc';
 import * as React from 'react';
+import { OutcomeCounter } from 'reports/components/outcome-counter';
 
-import { ScanMetadata } from 'common/types/store-data/unified-data-interface';
-import { CardsViewModel } from '../../types/store-data/card-view-model';
-import { UserConfigurationStoreData } from '../../types/store-data/user-configuration-store';
-import { ResultSection, ResultSectionDeps } from './result-section';
+import { CommonInstancesSectionProps } from './common-instances-section-props';
+import { ResultSection } from './result-section';
 
-export type NeedsReviewInstancesSectionDeps = ResultSectionDeps;
-export type NeedsReviewInstancesSectionProps = {
-    deps: NeedsReviewInstancesSectionDeps;
-    cardsViewData: CardsViewModel;
-    userConfigurationStoreData: UserConfigurationStoreData;
-    scanMetadata: ScanMetadata;
-    shouldAlertFailuresCount?: boolean;
-};
-
-export const NeedsReviewInstancesSection = NamedFC<NeedsReviewInstancesSectionProps>(
+export const NeedsReviewInstancesSection = NamedFC<CommonInstancesSectionProps>(
     'NeedsReviewInstancesSection',
     ({
         cardsViewData,
@@ -30,19 +20,15 @@ export const NeedsReviewInstancesSection = NamedFC<NeedsReviewInstancesSectionPr
             return null;
         }
 
-        const count =
-            cardsViewData.cards.fail.reduce((total, rule) => {
-                return total + rule.nodes.length;
-            }, 0) +
-            cardsViewData.cards.unknown.reduce((total, rule) => {
-                return total + rule.nodes.length;
-            }, 0);
+        const count = cardsViewData.cards.unknown.reduce((total, rule) => {
+            return total + rule.nodes.length;
+        }, 0);
 
         return (
             <ResultSection
                 deps={deps}
                 title="Instances to review"
-                results={[...cardsViewData.cards.fail, ...cardsViewData.cards.unknown]}
+                results={cardsViewData.cards.unknown}
                 containerClassName={null}
                 outcomeType="review"
                 badgeCount={count}
@@ -51,6 +37,8 @@ export const NeedsReviewInstancesSection = NamedFC<NeedsReviewInstancesSectionPr
                 shouldAlertFailuresCount={shouldAlertFailuresCount}
                 visualHelperEnabled={cardsViewData.visualHelperEnabled}
                 allCardsCollapsed={cardsViewData.allCardsCollapsed}
+                outcomeCounter={OutcomeCounter.countByCards}
+                headingLevel={3}
             />
         );
     },

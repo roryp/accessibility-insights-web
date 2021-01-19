@@ -1,20 +1,24 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
+import * as path from 'path';
 import {
+    detectDeviceAutomationId,
     leftFooterButtonAutomationId,
     rightFooterButtonAutomationId,
-} from 'electron/views/device-connect-view/components/android-setup/android-setup-step-layout';
-import { detectDeviceAutomationId } from 'electron/views/device-connect-view/components/android-setup/prompt-connect-to-device-step';
+} from 'electron/views/device-connect-view/components/automation-ids';
 import { getAutomationIdSelector } from 'tests/common/get-automation-id-selector';
 import { createApplication } from 'tests/electron/common/create-application';
-import { scanForAccessibilityIssues } from 'tests/electron/common/scan-for-accessibility-issues';
+import { scanForAccessibilityIssuesInAllModes } from 'tests/electron/common/scan-for-accessibility-issues';
 import { AndroidSetupViewController } from 'tests/electron/common/view-controllers/android-setup-view-controller';
 import { AppController } from 'tests/electron/common/view-controllers/app-controller';
 import {
     commonAdbConfigs,
+    delayAllCommands,
     setupMockAdb,
-    simulateNoDevices,
+    simulateNoDevicesConnected,
 } from '../../miscellaneous/mock-adb/setup-mock-adb';
+
+const [closeId, nextId] = [leftFooterButtonAutomationId, rightFooterButtonAutomationId];
 
 describe('Android setup - prompt-connect-to-device ', () => {
     const defaultDeviceConfig = commonAdbConfigs['multiple-devices'];
@@ -22,7 +26,11 @@ describe('Android setup - prompt-connect-to-device ', () => {
     let dialog: AndroidSetupViewController;
 
     beforeEach(async () => {
-        await setupMockAdb(simulateNoDevices(defaultDeviceConfig));
+        await setupMockAdb(
+            simulateNoDevicesConnected(defaultDeviceConfig),
+            path.basename(__filename),
+            'beforeEach',
+        );
         app = await createApplication({ suppressFirstTimeDialog: true });
         dialog = await app.openAndroidSetupView('prompt-connect-to-device');
     });
@@ -34,7 +42,6 @@ describe('Android setup - prompt-connect-to-device ', () => {
     });
 
     it('initial component state is correct', async () => {
-        const [closeId, nextId] = [leftFooterButtonAutomationId, rightFooterButtonAutomationId];
         expect(await dialog.isEnabled(getAutomationIdSelector(closeId))).toBe(true);
         expect(await dialog.isEnabled(getAutomationIdSelector(nextId))).toBe(false);
         expect(await dialog.isEnabled(getAutomationIdSelector(detectDeviceAutomationId))).toBe(
@@ -43,19 +50,28 @@ describe('Android setup - prompt-connect-to-device ', () => {
     });
 
     it('detect button triggers new detection', async () => {
-        await setupMockAdb(defaultDeviceConfig);
-        await dialog.client.click(getAutomationIdSelector(detectDeviceAutomationId));
+        await setupMockAdb(
+            defaultDeviceConfig,
+            path.basename(__filename),
+            'triggers new detection',
+        );
+        await dialog.click(getAutomationIdSelector(detectDeviceAutomationId));
         await dialog.waitForDialogVisible('prompt-choose-device');
     });
 
-    it.each([true, false])(
-        'should pass accessibility validation with highContrastMode=%s',
-        async highContrastMode => {
-            await app.setHighContrastMode(highContrastMode);
-            await app.waitForHighContrastMode(highContrastMode);
+    it('detect device spinner should pass accessibility validation an all contrast modes', async () => {
+        await setupMockAdb(
+            delayAllCommands(3000, simulateNoDevicesConnected(defaultDeviceConfig)),
+            path.basename(__filename),
+            'spinner a11y',
+        );
+        await dialog.click(getAutomationIdSelector(detectDeviceAutomationId));
+        await dialog.waitForDialogVisible('detect-devices');
+        await scanForAccessibilityIssuesInAllModes(app);
+        await dialog.waitForDialogVisible('prompt-connect-to-device'); // Let mock-adb finish
+    });
 
-            const violations = await scanForAccessibilityIssues(dialog);
-            expect(violations).toStrictEqual([]);
-        },
-    );
+    it('should pass accessibility validation in all contrast modes', async () => {
+        await scanForAccessibilityIssuesInAllModes(app);
+    });
 });

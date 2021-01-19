@@ -4,6 +4,7 @@ exports[`CommandBarButtonsMenu renders CommandBarButtonsMenu 1`] = `
 <CustomizedCommandBarButton
   ariaLabel="More items"
   className="commandBarButtonsMenu"
+  componentRef={Object {}}
   menuIconProps={
     Object {
       "className": "commandBarButtonsMenuButton",
@@ -20,7 +21,6 @@ exports[`CommandBarButtonsMenu renders CommandBarButtonsMenu 1`] = `
         },
         Object {
           "key": "start over",
-          "onRender": [Function],
         },
       ],
     }
@@ -29,18 +29,54 @@ exports[`CommandBarButtonsMenu renders CommandBarButtonsMenu 1`] = `
 />
 `;
 
-exports[`CommandBarButtonsMenu renders child buttons 1`] = `
+exports[`CommandBarButtonsMenu renders all child buttons, including child behind the feature flag: render export report menuitem 1`] = `
 <div
   role="menuitem"
 >
-  <React.Fragment />
+  <React.Fragment>
+    Report export button
+  </React.Fragment>
 </div>
 `;
 
-exports[`CommandBarButtonsMenu renders child buttons 2`] = `
+exports[`CommandBarButtonsMenu renders all child buttons, including child behind the feature flag: render load assessment menuitem 1`] = `
 <div
   role="menuitem"
 >
-  <React.Fragment />
+  <React.Fragment>
+    Load assessment button
+  </React.Fragment>
 </div>
+`;
+
+exports[`CommandBarButtonsMenu renders all child buttons, including child behind the feature flag: render save assessment menuitem 1`] = `
+<div
+  role="menuitem"
+>
+  <React.Fragment>
+    Save assessment button
+  </React.Fragment>
+</div>
+`;
+
+exports[`CommandBarButtonsMenu renders all child buttons, including child behind the feature flag: render start over menuitem 1`] = `
+<React.Fragment>
+  Start over button
+</React.Fragment>
+`;
+
+exports[`CommandBarButtonsMenu renders child buttons with the exception of child behind feature flag: render export report menuitem 1`] = `
+<div
+  role="menuitem"
+>
+  <React.Fragment>
+    Report export button
+  </React.Fragment>
+</div>
+`;
+
+exports[`CommandBarButtonsMenu renders child buttons with the exception of child behind feature flag: render start over menuitem 1`] = `
+<React.Fragment>
+  Start over button
+</React.Fragment>
 `;
